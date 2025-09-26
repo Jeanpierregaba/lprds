@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Eye, Users, FileText } from 'lucide-react';
+import { Plus, Edit, Eye, Users, FileText, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ChildDetailView from './children/ChildDetailView';
+import GroupManagementAdvanced from './children/GroupManagementAdvanced';
 
 interface Child {
   id: string;
@@ -200,6 +202,10 @@ export default function ChildrenManagement() {
         <TabsList>
           <TabsTrigger value="children">Enfants</TabsTrigger>
           <TabsTrigger value="groups">Groupes & Sections</TabsTrigger>
+          <TabsTrigger value="advanced">
+            <Settings2 className="w-4 h-4 mr-1" />
+            Gestion Avancée
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="children">
@@ -261,6 +267,10 @@ export default function ChildrenManagement() {
             educators={educators}
             onRefresh={fetchData}
           />
+        </TabsContent>
+
+        <TabsContent value="advanced">
+          <GroupManagementAdvanced />
         </TabsContent>
       </Tabs>
 
@@ -432,94 +442,7 @@ function CreateChildForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-// Composant pour afficher les détails d'un enfant
-function ChildDetailView({ child }: { child: Child }) {
-  return (
-    <Tabs defaultValue="general" className="w-full">
-      <TabsList className="grid grid-cols-4 w-full">
-        <TabsTrigger value="general">Général</TabsTrigger>
-        <TabsTrigger value="medical">Médical</TabsTrigger>
-        <TabsTrigger value="contacts">Contacts</TabsTrigger>
-        <TabsTrigger value="documents">Documents</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="general" className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Code QR</Label>
-            <p className="font-mono text-lg">{child.code_qr_id}</p>
-          </div>
-          <div>
-            <Label>Statut</Label>
-            <div className="mt-1">
-              <Badge variant={child.status === 'active' ? 'default' : 'secondary'}>
-                {child.status === 'active' ? 'Actif' : 'Inactif'}
-              </Badge>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Date de naissance</Label>
-            <p>{new Date(child.birth_date).toLocaleDateString('fr-FR')}</p>
-          </div>
-          <div>
-            <Label>Date d'admission</Label>
-            <p>{new Date(child.admission_date).toLocaleDateString('fr-FR')}</p>
-          </div>
-        </div>
-
-        {child.address && (
-          <div>
-            <Label>Adresse</Label>
-            <p>{child.address}</p>
-          </div>
-        )}
-
-        {child.section && (
-          <div>
-            <Label>Section</Label>
-            <p>{child.section}</p>
-          </div>
-        )}
-      </TabsContent>
-
-      <TabsContent value="medical" className="space-y-4">
-        {child.allergies && (
-          <div>
-            <Label>Allergies</Label>
-            <p className="text-red-600 font-medium">{child.allergies}</p>
-          </div>
-        )}
-        
-        {child.medical_info && (
-          <div>
-            <Label>Informations médicales</Label>
-            <p>{child.medical_info}</p>
-          </div>
-        )}
-        
-        {child.special_needs && (
-          <div>
-            <Label>Besoins spéciaux</Label>
-            <p>{child.special_needs}</p>
-          </div>
-        )}
-      </TabsContent>
-
-      <TabsContent value="contacts" className="space-y-4">
-        <p className="text-muted-foreground">Contacts d'urgence et personnes autorisées</p>
-        {/* À implémenter avec les données de emergency_contacts_detailed */}
-      </TabsContent>
-
-      <TabsContent value="documents" className="space-y-4">
-        <p className="text-muted-foreground">Documents administratifs</p>
-        {/* À implémenter avec les données de administrative_documents */}
-      </TabsContent>
-    </Tabs>
-  );
-}
+// Composant pour afficher les détails d'un enfant - Déplacé vers children/ChildDetailView.tsx
 
 // Composant pour la gestion des groupes
 function GroupsManagement({ groups, educators, onRefresh }: {
