@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import logo from '@/assets/logo.png';
+import patternBg from '@/assets/pattern-bg-v1.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -57,8 +58,18 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: `url(${patternBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Overlay pour diminuer l'opacité du background */}
+      <div className="absolute inset-0 bg-white/95"></div>
+      <Card className="w-full max-w-md relative z-10">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <img src={logo} alt="Logo" className="h-16 w-auto" />
@@ -84,7 +95,7 @@ const Login = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="votre@email.com"
+                placeholder="parent@lprds.fr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -117,7 +128,7 @@ const Login = () => {
               </div>
             </div>
             
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-primary text-white px-8 py-4 rounded-full" disabled={loading} variant="outline">
               {loading ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
