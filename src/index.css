@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Crèche Color Palette */
+    --background: 48 100% 97%; /* Blanc crème #FFFAF0 */
+    --foreground: 0 0% 20%; /* Texte principal */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+
+    /* Vert principal #164f2b */
+    --primary: 149, 56%, 20%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 149 56% 15%;
+
+    /* Orange/Jaune #f4a92b */
+    --secondary: 38, 89%, 56%;
+    --secondary-foreground: 0 0% 20%;
+    --secondary-hover: 38 89% 51%;
+
+    /* Turquoise/Teal #00a099 */
+    --accent: 177, 100%, 31%;
+    --accent-foreground: 0 0% 100%;
+    --accent-hover: 177 100% 26%;
+
+    /* Gris doux #F5F5F5 */
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --ternegreen: 139.1 90.9% 91.0%;
+    --terneyellow: 37.2, 98.4%, 76.5%;
+    --terneaccent: 177.1, 97.0%, 75.9%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 100%;
+    --ring: 127 63% 24%;
+
+    --radius: 2rem;
+    
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-warm: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--accent)));
+    --gradient-soft: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(var(--primary) / 0.1);
+    --shadow-hover: 0 8px 30px -8px hsl(var(--primary) / 0.2);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Keep same colors for consistency - crèche doesn't need dark mode */
+    --background: 48 100% 97%;
+    --foreground: 0 0% 20%;
+  }
+}
+
+@font-face {
+  font-family: 'MuseoSansRounded';
+  src: url('/public/fonts/Museo/MuseoSansRounded100.woff') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MuseoSansRounded';
+  src: url('/public/fonts/Museo/MuseoSansRounded300.woff') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MuseoSansRounded';
+  src: url('/public/fonts/Museo/MuseoSansRounded500.woff') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MuseoSansRounded';
+  src: url('/public/fonts/Museo/MuseoSansRounded700.woff') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-MuseoSansRounded;
+  }
+
+  p {
+    @apply text-foreground font-MuseoSansRounded font-light;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-fredoka;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-8 py-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary hover:bg-secondary/90 text-secondary-foreground font-medium px-6 py-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105;
+  }
+  
+  .btn-accent {
+    @apply bg-accent hover:bg-accent/90 text-accent-foreground font-medium px-6 py-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105;
+  }
+  
+  .card-soft {
+    @apply bg-card rounded-2xl p-6 transition-all duration-300;
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .card-soft:hover {
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .section-padding {
+    @apply px-4 py-16 sm:px-6 lg:px-8;
+  }
+  
+  .container-custom {
+    @apply max-w-7xl mx-auto;
+  }
+}
