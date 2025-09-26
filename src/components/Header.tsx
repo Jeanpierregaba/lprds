@@ -59,15 +59,16 @@ const Header = () => {
 
           {/* CTA Button & Mobile Menu */}
           <div className="flex items-center space-x-4">
-            <Button className="btn-primary hidden sm:flex items-center space-x-2">
+            <Button variant="outline" className="bg-primary text-white px-8 py-4 rounded-full">
               <span>Rejoignez-nous</span>
             </Button>
             
             <Button 
-              className="btn-accent hidden sm:flex items-center space-x-2"
+              variant="outline"
+              className="border-primary text-primary px-8 py-4 rounded-full"
               onClick={() => window.location.href = '/admin/login'}
             >
-              <span>Espace Admin</span>
+              <span>Espace Parent</span>
             </Button>
             
             <Button className="btn-accent sm:hidden">
