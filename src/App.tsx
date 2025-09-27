@@ -21,6 +21,7 @@ import DailyReportsPage from "./pages/admin/DailyReportsPage";
 import MessagesPage from "./pages/admin/MessagesPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import ForgotPassword from "./pages/admin/ForgotPassword";
+import QRScanPage from "./pages/admin/QRScanPage";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="children" element={<ChildrenPage />} />
               <Route path="staff" element={<StaffPage />} />
               <Route path="attendance" element={<AttendancePage />} />
+              <Route path="qr-scanner" element={<QRScanPage />} />
               <Route path="daily-reports" element={<DailyReportsPage />} />
               <Route path="messages" element={<MessagesPage />} />
               <Route path="settings" element={<SettingsPage />} />

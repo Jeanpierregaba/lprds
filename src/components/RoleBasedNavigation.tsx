@@ -11,7 +11,8 @@ import {
   Heart,
   Calendar,
   Shield,
-  DollarSign
+  DollarSign,
+  QrCode
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -76,6 +77,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: Clock 
       },
       { 
+        title: "Scanner QR", 
+        url: "/admin/dashboard/qr-scanner", 
+        icon: QrCode 
+      },
+      { 
         title: "Suivi Quotidien", 
         url: "/admin/dashboard/daily-reports", 
         icon: FileText 
@@ -118,6 +124,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Présences", 
         url: "/admin/dashboard/attendance", 
         icon: Clock 
+      },
+      { 
+        title: "Scanner QR", 
+        url: "/admin/dashboard/qr-scanner", 
+        icon: QrCode 
       },
       { 
         title: "Suivi Quotidien", 
