@@ -1,0 +1,691 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  Clock, 
+  Heart, 
+  Utensils, 
+  Bed, 
+  Droplets,
+  Camera,
+  Save,
+  Send,
+  User,
+  CalendarDays,
+  Smile,
+  Meh,
+  Frown,
+  Baby
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+
+interface Child {
+  id: string;
+  first_name: string;
+  last_name: string;
+  photo_url?: string;
+  section?: string;
+}
+
+interface DailyReportData {
+  child_id: string;
+  report_date: string;
+  arrival_time?: string;
+  departure_time?: string;
+  health_status: 'well' | 'monitor' | 'sick';
+  health_notes?: string;
+  activities: string[];
+  nap_taken: boolean;
+  nap_duration_minutes?: number;
+  breakfast_eaten: 'well' | 'little' | 'nothing';
+  lunch_eaten: 'well' | 'little' | 'nothing';
+  snack_eaten: 'well' | 'little' | 'nothing';
+  hygiene_bath: boolean;
+  hygiene_bowel_movement: boolean;
+  hygiene_frequency_notes?: string;
+  mood: 'happy' | 'calm' | 'agitated' | 'sad' | 'tired';
+  special_observations?: string;
+  photos: File[];
+}
+
+interface DailyReportFormProps {
+  childId?: string;
+  reportDate?: string;
+  existingReport?: any;
+  onSaved?: () => void;
+}
+
+const ACTIVITY_OPTIONS = [
+  'Peinture', 'Dessin', 'Lecture', 'Jeux d\'extérieur', 'Jeux de construction',
+  'Musique', 'Chant', 'Danse', 'Jardinage', 'Cuisine', 'Motricité',
+  'Jeux d\'eau', 'Puzzle', 'Jeux de société', 'Activité sensorielle'
+];
+
+const MOOD_OPTIONS = [
+  { value: 'happy', label: 'Joyeux', icon: '😊', color: 'text-green-500' },
+  { value: 'calm', label: 'Calme', icon: '😌', color: 'text-blue-500' },
+  { value: 'agitated', label: 'Agité', icon: '😤', color: 'text-orange-500' },
+  { value: 'sad', label: 'Triste', icon: '😢', color: 'text-red-500' },
+  { value: 'tired', label: 'Fatigué', icon: '😴', color: 'text-purple-500' }
+];
+
+const DailyReportForm: React.FC<DailyReportFormProps> = ({
+  childId,
+  reportDate = new Date().toISOString().split('T')[0],
+  existingReport,
+  onSaved
+}) => {
+  const [child, setChild] = useState<Child | null>(null);
+  const [formData, setFormData] = useState<DailyReportData>({
+    child_id: childId || '',
+    report_date: reportDate,
+    health_status: 'well',
+    activities: [],
+    nap_taken: false,
+    breakfast_eaten: 'well',
+    lunch_eaten: 'well',
+    snack_eaten: 'well',
+    hygiene_bath: false,
+    hygiene_bowel_movement: false,
+    mood: 'happy',
+    photos: []
+  });
+  
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDraft, setIsDraft] = useState(true);
+  
+  const { toast } = useToast();
+  const { profile } = useAuth();
+
+  // Charger les données de l'enfant
+  useEffect(() => {
+    if (childId) {
+      loadChild(childId);
+    }
+  }, [childId]);
+
+  // Charger un rapport existant
+  useEffect(() => {
+    if (existingReport) {
+      setFormData({
+        ...existingReport,
+        photos: []
+      });
+      setSelectedActivities(existingReport.activities || []);
+      setIsDraft(!existingReport.is_validated);
+    }
+  }, [existingReport]);
+
+  const loadChild = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('children')
+        .select('id, first_name, last_name, photo_url, section')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      setChild(data);
+      setFormData(prev => ({ ...prev, child_id: id }));
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'enfant:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les données de l'enfant",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleActivityToggle = (activity: string) => {
+    setSelectedActivities(prev => {
+      const newActivities = prev.includes(activity)
+        ? prev.filter(a => a !== activity)
+        : [...prev, activity];
+      
+      setFormData(prevData => ({ ...prevData, activities: newActivities }));
+      return newActivities;
+    });
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    setPhotoFiles(prev => [...prev, ...files]);
+    setFormData(prev => ({ ...prev, photos: [...prev.photos, ...files] }));
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index)
+    }));
+  };
+
+  const uploadPhotos = async (reportId: string): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+
+    for (const file of photoFiles) {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${reportId}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('daily-reports')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('daily-reports')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+      } catch (error) {
+        console.error('Erreur upload photo:', error);
+        toast({
+          title: "Erreur upload",
+          description: `Impossible d'uploader ${file.name}`,
+          variant: "destructive"
+        });
+      }
+    }
+
+    return uploadedUrls;
+  };
+
+  const saveReport = async (sendForValidation = false) => {
+    if (!profile || !child) return;
+
+    setIsSubmitting(true);
+    
+    try {
+      // Préparer les données du rapport
+      const reportData = {
+        child_id: child.id,
+        educator_id: profile.id,
+        report_date: formData.report_date,
+        arrival_time: formData.arrival_time,
+        departure_time: formData.departure_time,
+        health_status: formData.health_status,
+        health_notes: formData.health_notes,
+        activities: selectedActivities,
+        nap_taken: formData.nap_taken,
+        nap_duration_minutes: formData.nap_duration_minutes,
+        breakfast_eaten: formData.breakfast_eaten,
+        lunch_eaten: formData.lunch_eaten,
+        snack_eaten: formData.snack_eaten,
+        hygiene_bath: formData.hygiene_bath,
+        hygiene_bowel_movement: formData.hygiene_bowel_movement,
+        hygiene_frequency_notes: formData.hygiene_frequency_notes,
+        mood: formData.mood,
+        special_observations: formData.special_observations,
+        photos: [] // Will be updated after photo upload
+      };
+
+      let reportId: string;
+
+      if (existingReport?.id) {
+        // Mettre à jour le rapport existant
+        const { error } = await supabase
+          .from('daily_reports')
+          .update(reportData)
+          .eq('id', existingReport.id);
+
+        if (error) throw error;
+        reportId = existingReport.id;
+      } else {
+        // Créer un nouveau rapport
+        const { data, error } = await supabase
+          .from('daily_reports')
+          .insert(reportData)
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        reportId = data.id;
+      }
+
+      // Upload des photos si nécessaire
+      if (photoFiles.length > 0) {
+        const photoUrls = await uploadPhotos(reportId);
+        
+        if (photoUrls.length > 0) {
+          const { error: updateError } = await supabase
+            .from('daily_reports')
+            .update({ photos: photoUrls })
+            .eq('id', reportId);
+
+          if (updateError) throw updateError;
+        }
+      }
+
+      toast({
+        title: sendForValidation ? "Rapport envoyé" : "Rapport sauvegardé",
+        description: sendForValidation 
+          ? "Le rapport a été envoyé pour validation"
+          : "Le rapport a été sauvegardé en brouillon"
+      });
+
+      if (onSaved) onSaved();
+      
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder le rapport",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!child && childId) {
+    return <div className="p-6">Chargement...</div>;
+  }
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      {/* En-tête avec info enfant */}
+      {child && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={child.photo_url} />
+                <AvatarFallback>
+                  <Baby className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="text-2xl font-bold">
+                  Rapport journalier - {child.first_name} {child.last_name}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CalendarDays className="h-4 w-4" />
+                  {new Date(reportDate).toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                  {child.section && (
+                    <Badge variant="outline">{child.section}</Badge>
+                  )}
+                </div>
+              </div>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* Formulaire principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Horaires */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Horaires
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="arrival_time">Heure d'arrivée</Label>
+              <Input
+                id="arrival_time"
+                type="time"
+                value={formData.arrival_time || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, arrival_time: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="departure_time">Heure de départ</Label>
+              <Input
+                id="departure_time"
+                type="time"
+                value={formData.departure_time || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, departure_time: e.target.value }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* État de santé */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5" />
+              État de santé
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Select
+              value={formData.health_status}
+              onValueChange={(value: 'well' | 'monitor' | 'sick') => 
+                setFormData(prev => ({ ...prev, health_status: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="well">Bien</SelectItem>
+                <SelectItem value="monitor">À surveiller</SelectItem>
+                <SelectItem value="sick">Malade</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div>
+              <Label htmlFor="health_notes">Notes de santé (optionnel)</Label>
+              <Textarea
+                id="health_notes"
+                placeholder="Précisions sur l'état de santé..."
+                value={formData.health_notes || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, health_notes: e.target.value }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Repas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Utensils className="h-5 w-5" />
+              Repas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Petit-déjeuner</Label>
+              <Select
+                value={formData.breakfast_eaten}
+                onValueChange={(value: 'well' | 'little' | 'nothing') => 
+                  setFormData(prev => ({ ...prev, breakfast_eaten: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="well">Bien mangé</SelectItem>
+                  <SelectItem value="little">Peu mangé</SelectItem>
+                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Déjeuner</Label>
+              <Select
+                value={formData.lunch_eaten}
+                onValueChange={(value: 'well' | 'little' | 'nothing') => 
+                  setFormData(prev => ({ ...prev, lunch_eaten: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="well">Bien mangé</SelectItem>
+                  <SelectItem value="little">Peu mangé</SelectItem>
+                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Goûter</Label>
+              <Select
+                value={formData.snack_eaten}
+                onValueChange={(value: 'well' | 'little' | 'nothing') => 
+                  setFormData(prev => ({ ...prev, snack_eaten: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="well">Bien mangé</SelectItem>
+                  <SelectItem value="little">Peu mangé</SelectItem>
+                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sieste */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bed className="h-5 w-5" />
+              Sieste
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="nap_taken"
+                checked={formData.nap_taken}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, nap_taken: checked }))}
+              />
+              <Label htmlFor="nap_taken">A fait la sieste</Label>
+            </div>
+            
+            {formData.nap_taken && (
+              <div>
+                <Label htmlFor="nap_duration">Durée (en minutes)</Label>
+                <Input
+                  id="nap_duration"
+                  type="number"
+                  min="0"
+                  max="300"
+                  value={formData.nap_duration_minutes || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    nap_duration_minutes: parseInt(e.target.value) || undefined 
+                  }))}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Hygiène */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Droplets className="h-5 w-5" />
+              Hygiène
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="hygiene_bath"
+                checked={formData.hygiene_bath}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hygiene_bath: checked }))}
+              />
+              <Label htmlFor="hygiene_bath">Bain/Toilette</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="hygiene_bowel"
+                checked={formData.hygiene_bowel_movement}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hygiene_bowel_movement: checked }))}
+              />
+              <Label htmlFor="hygiene_bowel">Selles</Label>
+            </div>
+            
+            <div>
+              <Label htmlFor="hygiene_notes">Notes sur la fréquence</Label>
+              <Textarea
+                id="hygiene_notes"
+                placeholder="Notes sur l'hygiène..."
+                value={formData.hygiene_frequency_notes || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, hygiene_frequency_notes: e.target.value }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Humeur */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smile className="h-5 w-5" />
+              Humeur du jour
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3">
+              {MOOD_OPTIONS.map((mood) => (
+                <div
+                  key={mood.value}
+                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    formData.mood === mood.value 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                  onClick={() => setFormData(prev => ({ ...prev, mood: mood.value as any }))}
+                >
+                  <span className="text-2xl">{mood.icon}</span>
+                  <Label className={`cursor-pointer ${mood.color}`}>
+                    {mood.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activités */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Activités réalisées</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {ACTIVITY_OPTIONS.map((activity) => (
+              <div
+                key={activity}
+                className="flex items-center space-x-2"
+              >
+                <Checkbox
+                  id={activity}
+                  checked={selectedActivities.includes(activity)}
+                  onCheckedChange={() => handleActivityToggle(activity)}
+                />
+                <Label htmlFor={activity} className="text-sm cursor-pointer">
+                  {activity}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Observations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Observations particulières</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Notes additionnelles de l'éducatrice..."
+            value={formData.special_observations || ''}
+            onChange={(e) => setFormData(prev => ({ ...prev, special_observations: e.target.value }))}
+            rows={4}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Photos */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Camera className="h-5 w-5" />
+            Photos de la journée
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handlePhotoUpload}
+            />
+          </div>
+          
+          {photoFiles.length > 0 && (
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+              {photoFiles.map((file, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`Photo ${index + 1}`}
+                    className="w-full h-24 object-cover rounded-lg"
+                  />
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                    onClick={() => removePhoto(index)}
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => saveReport(false)}
+              disabled={isSubmitting}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder brouillon
+            </Button>
+            
+            <Button
+              onClick={() => saveReport(true)}
+              disabled={isSubmitting}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Envoyer pour validation
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default DailyReportForm;
