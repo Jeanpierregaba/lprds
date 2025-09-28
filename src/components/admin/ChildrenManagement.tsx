@@ -14,6 +14,7 @@ import { Plus, Edit, Eye, Users, FileText, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ChildDetailView from './children/ChildDetailView';
 import GroupManagementAdvanced from './children/GroupManagementAdvanced';
+import { QRCodeGeneratorTrigger } from './children/QRCodeGenerator';
 
 interface Child {
   id: string;
@@ -236,7 +237,7 @@ export default function ChildrenManagement() {
                     )}
                   </div>
                   
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex flex-wrap gap-2 mt-4">
                     <Button
                       size="sm"
                       variant="outline"
@@ -249,10 +250,13 @@ export default function ChildrenManagement() {
                       Voir
                     </Button>
                     {(profile?.role === 'admin' || profile?.role === 'secretary') && (
-                      <Button size="sm" variant="outline">
-                        <Edit className="w-4 h-4 mr-1" />
-                        Modifier
-                      </Button>
+                      <>
+                        <Button size="sm" variant="outline">
+                          <Edit className="w-4 h-4 mr-1" />
+                          Modifier
+                        </Button>
+                        <QRCodeGeneratorTrigger child={child} />
+                      </>
                     )}
                   </div>
                 </CardContent>
