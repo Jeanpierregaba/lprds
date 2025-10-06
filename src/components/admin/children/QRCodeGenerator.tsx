@@ -37,12 +37,9 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
   const generateQRCode = async () => {
     setIsGenerating(true);
     try {
-      // Générer le QR code avec les données de l'enfant
-      const qrData = JSON.stringify({
-        childId: child.id,
-        code: child.code_qr_id,
-        name: `${child.first_name} ${child.last_name}`
-      });
+      // Générer un QR code sans informations personnelles
+      // Encodage minimal: préfixe + identifiant opaque
+      const qrData = `LPRDS-${child.code_qr_id}`;
 
       const url = await QRCode.toDataURL(qrData, {
         width: 400,

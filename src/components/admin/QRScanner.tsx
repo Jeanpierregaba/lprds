@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrReader } from 'react-qr-reader';
+import BarcodeScanner from 'react-qr-barcode-scanner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface ScannedChild {
   id: string;
@@ -46,14 +47,56 @@ const QRScanner: React.FC = () => {
   const [scannedChild, setScannedChild] = useState<ScannedChild | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [cameraErrorNotified, setCameraErrorNotified] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const { isStaff } = usePermissions();
+  // Demander l'accès caméra proactivement (sur action utilisateur)
+  const requestCameraAccess = async () => {
+    try {
+      const constraints: MediaStreamConstraints = {
+        video: { facingMode }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Libérer immédiatement, le composant BarcodeScanner rouvrira le flux
+      stream.getTracks().forEach((t) => t.stop());
+      setHasCameraPermission(true);
+      setIsScanning(true);
+    } catch (err: any) {
+      setHasCameraPermission(false);
+      if (!cameraErrorNotified) {
+        toast({
+          title: "Accès caméra refusé",
+          description: err?.name === 'NotAllowedError' 
+            ? "Veuillez autoriser l'accès à la caméra dans votre navigateur."
+            : err?.name === 'NotFoundError'
+              ? "Aucune caméra détectée sur cet appareil."
+              : "Impossible d'accéder à la caméra.",
+          variant: "destructive"
+        });
+        setCameraErrorNotified(true);
+      }
+    }
+  };
+
 
   // Fonction pour valider et traiter le QR code
   const processQRCode = async (qrCode: string): Promise<ScanResult> => {
     try {
+      // Supporter l'ancien format JSON tout en privilégiant le format minimal "LPRDS-<code>"
+      let normalizedCode = qrCode;
+      try {
+        const parsed = JSON.parse(qrCode);
+        if (parsed && (parsed.code || parsed.code_qr_id)) {
+          normalizedCode = `LPRDS-${parsed.code || parsed.code_qr_id}`;
+        }
+      } catch (_) {
+        // not JSON, keep as-is
+      }
+
       // Valider le format du QR code (doit commencer par LPRDS-)
-      if (!qrCode.startsWith('LPRDS-')) {
+      if (!normalizedCode.startsWith('LPRDS-')) {
         return {
           success: false,
           message: 'QR Code invalide - Format non reconnu'
@@ -74,7 +117,7 @@ const QRScanner: React.FC = () => {
             name
           )
         `)
-        .eq('code_qr_id', qrCode)
+        .eq('code_qr_id', normalizedCode.replace('LPRDS-', ''))
         .eq('status', 'active')
         .maybeSingle();
 
@@ -245,12 +288,21 @@ const QRScanner: React.FC = () => {
 
   // Gestionnaire d'erreur
   const handleError = (error: any) => {
-    console.error('Erreur caméra:', error);
-    toast({
-      title: "Erreur caméra",
-      description: "Impossible d'accéder à la caméra",
-      variant: "destructive"
-    });
+    // Le composant peut remonter des erreurs transitoires fréquemment.
+    if (!error) return;
+    // Ne notifier qu'une fois pour les erreurs critiques
+    if (!cameraErrorNotified && (error.name === 'NotAllowedError' || error.name === 'NotFoundError')) {
+      console.error('Erreur caméra:', error);
+      toast({
+        title: "Erreur caméra",
+        description: error.name === 'NotAllowedError'
+          ? "Accès refusé. Autorisez la caméra dans les paramètres du site."
+          : "Aucune caméra disponible.",
+        variant: "destructive"
+      });
+      setCameraErrorNotified(true);
+      setIsScanning(false);
+    }
   };
 
   // Switch caméra
@@ -275,11 +327,21 @@ const QRScanner: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Protection d'accès: visible uniquement pour le personnel */}
+          {!isStaff() && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>Accès refusé. Cette fonctionnalité est réservée au personnel.</AlertDescription>
+            </Alert>
+          )}
+
+          {isStaff() && (
+            <>
           
           {/* Contrôles caméra */}
           <div className="flex gap-3">
             <Button
-              onClick={() => setIsScanning(!isScanning)}
+              onClick={() => (isScanning ? setIsScanning(false) : requestCameraAccess())}
               variant={isScanning ? "destructive" : "default"}
               className="flex-1"
             >
@@ -316,23 +378,33 @@ const QRScanner: React.FC = () => {
             )}
           </div>
 
+          {/* Avertissement contexte non sécurisé */}
+          {!window.isSecureContext && window.location.hostname !== 'localhost' && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Le scan nécessite HTTPS. Ouvrez le site en https:// ou utilisez localhost.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Scanner caméra */}
           {isScanning && (
             <div className="relative">
               <div className="aspect-square max-w-md mx-auto border-4 border-primary rounded-lg overflow-hidden bg-black">
-                <QrReader
-                  onResult={(result) => {
-                    if (result) {
-                      handleScan(result.getText());
+                <BarcodeScanner
+                  onUpdate={(err, result) => {
+                    const text = (result as any)?.text ?? (result as any)?.getText?.();
+                    if (text) {
+                      handleScan(text as string);
+                    }
+                    if (err) {
+                      handleError(err);
                     }
                   }}
-                  constraints={{
-                    facingMode: facingMode
-                  }}
-                  containerStyle={{
-                    width: '100%',
-                    height: '100%'
-                  }}
+                  width={500}
+                  height={500}
+                  facingMode={facingMode}
                 />
               </div>
               <div className="absolute inset-0 border-4 border-dashed border-primary/50 rounded-lg pointer-events-none">
@@ -431,6 +503,9 @@ const QRScanner: React.FC = () => {
                 
               </CardContent>
             </Card>
+          )}
+
+          </>
           )}
 
         </CardContent>
