@@ -89,7 +89,11 @@ const QRScanner: React.FC = () => {
       try {
         const parsed = JSON.parse(qrCode);
         if (parsed && (parsed.code || parsed.code_qr_id)) {
-          normalizedCode = `LPRDS-${parsed.code || parsed.code_qr_id}`;
+          const token = String(parsed.code || parsed.code_qr_id)
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .slice(0, 5);
+          normalizedCode = `LPRDS-${token}`;
         }
       } catch (_) {
         // not JSON, keep as-is
@@ -439,7 +443,7 @@ const QRScanner: React.FC = () => {
                       {scannedChild.first_name} {scannedChild.last_name}
                     </div>
                     <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Badge variant="outline">{scannedChild.code_qr_id}</Badge>
+                      <Badge variant="outline">{`LPRDS-${(scannedChild.code_qr_id || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,5)}`}</Badge>
                       {scannedChild.section && (
                         <Badge>{scannedChild.section}</Badge>
                       )}

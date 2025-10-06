@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Eye, Users, FileText, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ChildDetailView from './children/ChildDetailView';
+import CreateChildForm from '@/components/admin/children/CreateChildForm';
+import EditChildForm from '@/components/admin/children/EditChildForm';
 import GroupManagementAdvanced from './children/GroupManagementAdvanced';
 import { QRCodeGeneratorTrigger } from './children/QRCodeGenerator';
 
@@ -64,6 +66,7 @@ export default function ChildrenManagement() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('children');
 
   useEffect(() => {
@@ -220,7 +223,12 @@ export default function ChildrenManagement() {
                         {child.first_name} {child.last_name}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        Code: {child.code_qr_id}
+                        {(() => {
+                          const raw = (child.code_qr_id || '').toString();
+                          const stripped = raw.replace(/^LPRDS-/, '');
+                          const token = stripped.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+                          return `Code: LPRDS-${token}`;
+                        })()}
                       </p>
                     </div>
                     {getStatusBadge(child.status)}
@@ -251,7 +259,7 @@ export default function ChildrenManagement() {
                     </Button>
                     {(profile?.role === 'admin' || profile?.role === 'secretary') && (
                       <>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => { setSelectedChild(child); setIsEditDialogOpen(true); }}>
                           <Edit className="w-4 h-4 mr-1" />
                           Modifier
                         </Button>
@@ -291,160 +299,31 @@ export default function ChildrenManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog d'édition de l'enfant */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Modifier - {selectedChild?.first_name} {selectedChild?.last_name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedChild && (
+            <EditChildForm
+              child={selectedChild}
+              onSuccess={() => {
+                setIsEditDialogOpen(false);
+                fetchData();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// Composant pour créer un enfant
-function CreateChildForm({ onSuccess }: { onSuccess: () => void }) {
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    birth_date: '',
-    admission_date: '',
-    address: '',
-    allergies: '',
-    medical_info: '',
-    special_needs: '',
-    section: '' as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | '',
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const { error } = await supabase
-        .from('children')
-        .insert([{
-          ...formData,
-          section: formData.section || null
-        }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Succès",
-        description: "Enfant créé avec succès",
-      });
-      
-      onSuccess();
-    } catch (error) {
-      console.error('Error creating child:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de créer l'enfant",
-        variant: "destructive",
-      });
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="first_name">Prénom *</Label>
-          <Input
-            id="first_name"
-            value={formData.first_name}
-            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="last_name">Nom *</Label>
-          <Input
-            id="last_name"
-            value={formData.last_name}
-            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="birth_date">Date de naissance *</Label>
-          <Input
-            id="birth_date"
-            type="date"
-            value={formData.birth_date}
-            onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="admission_date">Date d'admission *</Label>
-          <Input
-            id="admission_date"
-            type="date"
-            value={formData.admission_date}
-            onChange={(e) => setFormData({ ...formData, admission_date: e.target.value })}
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="section">Section</Label>
-        <Select
-          value={formData.section}
-          onValueChange={(value) => setFormData({ ...formData, section: value as any })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner une section" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="creche">Crèche (3-12 mois)</SelectItem>
-            <SelectItem value="garderie">Garderie (3-8 ans)</SelectItem>
-            <SelectItem value="maternelle_etoile">Maternelle Étoile (12-24 mois)</SelectItem>
-            <SelectItem value="maternelle_soleil">Maternelle Soleil (24-36 mois)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label htmlFor="address">Adresse</Label>
-        <Textarea
-          id="address"
-          value={formData.address}
-          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="allergies">Allergies</Label>
-        <Textarea
-          id="allergies"
-          value={formData.allergies}
-          onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="medical_info">Informations médicales</Label>
-        <Textarea
-          id="medical_info"
-          value={formData.medical_info}
-          onChange={(e) => setFormData({ ...formData, medical_info: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="special_needs">Besoins spéciaux</Label>
-        <Textarea
-          id="special_needs"
-          value={formData.special_needs}
-          onChange={(e) => setFormData({ ...formData, special_needs: e.target.value })}
-        />
-      </div>
-
-      <Button type="submit" className="w-full">
-        Créer l'enfant
-      </Button>
-    </form>
-  );
-}
+// (Ancien formulaire de création supprimé au profit de CreateChildForm dédié)
 
 // Composant pour afficher les détails d'un enfant - Déplacé vers children/ChildDetailView.tsx
 

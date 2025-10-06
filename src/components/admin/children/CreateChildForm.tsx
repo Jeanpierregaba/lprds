@@ -41,7 +41,7 @@ interface MedicalInfo {
 
 export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState('child');
   const [loading, setLoading] = useState(false);
 
   // Informations personnelles
@@ -69,8 +69,8 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
   // Restrictions alimentaires
   const [dietaryRestrictions, setDietaryRestrictions] = useState<DietaryRestriction[]>([]);
 
-  // Contacts d'urgence
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
+  // Parents / Tuteurs
+  const [guardians, setGuardians] = useState<EmergencyContact[]>([
     {
       first_name: '',
       last_name: '',
@@ -83,27 +83,83 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
     }
   ]);
 
-  const addEmergencyContact = () => {
-    setEmergencyContacts([...emergencyContacts, {
+  const addGuardian = () => {
+    setGuardians([...guardians, {
       first_name: '',
       last_name: '',
       relationship: 'parent',
       phone: '',
       email: '',
-      is_emergency_contact: false,
+      is_emergency_contact: true,
       is_pickup_authorized: true,
       notes: ''
     }]);
   };
 
-  const removeEmergencyContact = (index: number) => {
-    setEmergencyContacts(emergencyContacts.filter((_, i) => i !== index));
+  const removeGuardian = (index: number) => {
+    setGuardians(guardians.filter((_, i) => i !== index));
   };
 
-  const updateEmergencyContact = (index: number, field: keyof EmergencyContact, value: any) => {
-    const updated = [...emergencyContacts];
+  const updateGuardian = (index: number, field: keyof EmergencyContact, value: any) => {
+    const updated = [...guardians];
     updated[index] = { ...updated[index], [field]: value };
-    setEmergencyContacts(updated);
+    setGuardians(updated);
+  };
+
+  // Personnes autorisées
+  const [authorizedPersons, setAuthorizedPersons] = useState<EmergencyContact[]>([]);
+
+  const addAuthorizedPerson = () => {
+    setAuthorizedPersons([
+      ...authorizedPersons,
+      {
+        first_name: '',
+        last_name: '',
+        relationship: 'other',
+        phone: '',
+        email: '',
+        is_emergency_contact: false,
+        is_pickup_authorized: true,
+        notes: ''
+      }
+    ]);
+  };
+
+  const removeAuthorizedPerson = (index: number) => {
+    setAuthorizedPersons(authorizedPersons.filter((_, i) => i !== index));
+  };
+
+  const updateAuthorizedPerson = (index: number, field: keyof EmergencyContact, value: any) => {
+    const updated = [...authorizedPersons];
+    updated[index] = { ...updated[index], [field]: value };
+    setAuthorizedPersons(updated);
+  };
+
+  // Génération d'un code unique (A-Z0-9, 5 caractères)
+  const generateRandomToken = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let out = '';
+    for (let i = 0; i < 5; i++) {
+      out += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return out;
+  };
+
+  const generateUniqueCodeQrId = async (): Promise<string> => {
+    // Essayer jusqu'à trouver un token libre
+    for (let attempts = 0; attempts < 10; attempts++) {
+      const token = generateRandomToken();
+      const { data, error } = await supabase
+        .from('children')
+        .select('id')
+        .eq('code_qr_id', token)
+        .limit(1);
+      if (!error && (!data || data.length === 0)) {
+        return token;
+      }
+    }
+    // Fallback improbable
+    return generateRandomToken();
   };
 
   const addAllergyOrMedication = (type: 'allergies' | 'medications' | 'chronic_conditions', value: string) => {
@@ -152,8 +208,23 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
       return;
     }
 
+    // Validation minimale des parents/tuteurs: au moins un avec nom et téléphone
+    const guardianValid = guardians.some(g => g.first_name && g.last_name && g.phone);
+    if (!guardianValid) {
+      setActiveTab('guardians');
+      toast({
+        title: "Parents/Tuteurs requis",
+        description: "Ajoutez au moins un parent/tuteur avec nom et téléphone.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
+
+      // Créer le code QR unique
+      const code_qr_id = await generateUniqueCodeQrId();
 
       // Create child record
       const childData = {
@@ -167,12 +238,14 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
         preferences: personalInfo.preferences || null,
         medical_info_detailed: medicalInfo as any,
         dietary_restrictions: dietaryRestrictions as any,
-        emergency_contacts_detailed: emergencyContacts.filter(contact => 
-          contact.first_name && contact.last_name && contact.phone
-        ) as any,
+        emergency_contacts_detailed: [
+          ...guardians,
+          ...authorizedPersons
+        ].filter(contact => contact.first_name && contact.last_name && contact.phone) as any,
         // Combine allergies for backward compatibility
         allergies: medicalInfo.allergies.join(', '),
         medical_info: medicalInfo.medical_notes || null,
+        code_qr_id
       };
 
       const { data: childRecord, error: childError } = await supabase
@@ -183,8 +256,8 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
 
       if (childError) throw childError;
 
-      // Create emergency contacts
-      const validContacts = emergencyContacts.filter(contact => 
+      // Create emergency contacts (guardians + authorized persons)
+      const validContacts = [...guardians, ...authorizedPersons].filter(contact => 
         contact.first_name && contact.last_name && contact.phone
       );
 
@@ -233,17 +306,17 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="personal" className="flex items-center gap-1">
+          <TabsTrigger value="child" className="flex items-center gap-1">
             <User className="w-4 h-4" />
-            Personnel
+            Enfant
           </TabsTrigger>
-          <TabsTrigger value="medical" className="flex items-center gap-1">
-            <Heart className="w-4 h-4" />
-            Médical
-          </TabsTrigger>
-          <TabsTrigger value="contacts" className="flex items-center gap-1">
+          <TabsTrigger value="guardians" className="flex items-center gap-1">
             <Users className="w-4 h-4" />
-            Contacts
+            Parents/Tuteurs
+          </TabsTrigger>
+          <TabsTrigger value="authorized" className="flex items-center gap-1">
+            <Users className="w-4 h-4" />
+            Personnes autorisées
           </TabsTrigger>
           <TabsTrigger value="summary" className="flex items-center gap-1">
             <FileText className="w-4 h-4" />
@@ -251,19 +324,15 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="personal" className="space-y-6">
+        <TabsContent value="child" className="space-y-6">
           <PersonalInfoTab 
             personalInfo={personalInfo}
             setPersonalInfo={setPersonalInfo}
           />
-        </TabsContent>
-
-        <TabsContent value="medical" className="space-y-6">
           <MedicalInfoTab
             medicalInfo={medicalInfo}
             setMedicalInfo={setMedicalInfo}
             dietaryRestrictions={dietaryRestrictions}
-            setDietaryRestrictions={setDietaryRestrictions}
             addAllergyOrMedication={addAllergyOrMedication}
             removeAllergyOrMedication={removeAllergyOrMedication}
             addDietaryRestriction={addDietaryRestriction}
@@ -272,12 +341,21 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
           />
         </TabsContent>
 
-        <TabsContent value="contacts" className="space-y-6">
+        <TabsContent value="guardians" className="space-y-6">
           <EmergencyContactsTab
-            emergencyContacts={emergencyContacts}
-            addEmergencyContact={addEmergencyContact}
-            removeEmergencyContact={removeEmergencyContact}
-            updateEmergencyContact={updateEmergencyContact}
+            emergencyContacts={guardians}
+            addEmergencyContact={addGuardian}
+            removeEmergencyContact={removeGuardian}
+            updateEmergencyContact={updateGuardian}
+          />
+        </TabsContent>
+
+        <TabsContent value="authorized" className="space-y-6">
+          <EmergencyContactsTab
+            emergencyContacts={authorizedPersons}
+            addEmergencyContact={addAuthorizedPerson}
+            removeEmergencyContact={removeAuthorizedPerson}
+            updateEmergencyContact={updateAuthorizedPerson}
           />
         </TabsContent>
 
@@ -286,19 +364,20 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
             personalInfo={personalInfo}
             medicalInfo={medicalInfo}
             dietaryRestrictions={dietaryRestrictions}
-            emergencyContacts={emergencyContacts}
+            guardians={guardians}
+            authorizedPersons={authorizedPersons}
           />
         </TabsContent>
       </Tabs>
 
       <div className="flex justify-between pt-6 border-t">
         <div className="flex gap-2">
-          {activeTab !== 'personal' && (
+          {activeTab !== 'child' && (
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => {
-                const tabs = ['personal', 'medical', 'contacts', 'summary'];
+                const tabs = ['child', 'guardians', 'authorized', 'summary'];
                 const currentIndex = tabs.indexOf(activeTab);
                 if (currentIndex > 0) setActiveTab(tabs[currentIndex - 1]);
               }}
@@ -313,7 +392,7 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
             <Button 
               type="button"
               onClick={() => {
-                const tabs = ['personal', 'medical', 'contacts', 'summary'];
+                const tabs = ['child', 'guardians', 'authorized', 'summary'];
                 const currentIndex = tabs.indexOf(activeTab);
                 if (currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1]);
               }}
@@ -788,8 +867,9 @@ function EmergencyContactsTab({
 }
 
 // Onglet Résumé
-function SummaryTab({ personalInfo, medicalInfo, dietaryRestrictions, emergencyContacts }: any) {
-  const validContacts = emergencyContacts.filter((c: EmergencyContact) => c.first_name && c.last_name && c.phone);
+function SummaryTab({ personalInfo, medicalInfo, dietaryRestrictions, guardians, authorizedPersons }: any) {
+  const validGuardians = guardians.filter((c: EmergencyContact) => c.first_name && c.last_name && c.phone);
+  const validAuthorized = authorizedPersons.filter((c: EmergencyContact) => c.first_name && c.last_name && c.phone);
   
   return (
     <div className="space-y-6">
@@ -831,16 +911,26 @@ function SummaryTab({ personalInfo, medicalInfo, dietaryRestrictions, emergencyC
           )}
 
           <div>
-            <h4 className="font-semibold mb-2">Contacts d'Urgence ({validContacts.length})</h4>
-            {validContacts.map((contact: EmergencyContact, index: number) => (
-              <div key={index} className="mb-2">
+            <h4 className="font-semibold mb-2">Parents/Tuteurs ({validGuardians.length})</h4>
+            {validGuardians.map((contact: EmergencyContact, index: number) => (
+              <div key={`g-${index}`} className="mb-2">
                 <p>
-                  <strong>{contact.first_name} {contact.last_name}</strong> ({contact.relationship})
-                  - {contact.phone}
+                  <strong>{contact.first_name} {contact.last_name}</strong> ({contact.relationship}) - {contact.phone}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-2">Personnes Autorisées ({validAuthorized.length})</h4>
+            {validAuthorized.map((contact: EmergencyContact, index: number) => (
+              <div key={`a-${index}`} className="mb-2">
+                <p>
+                  <strong>{contact.first_name} {contact.last_name}</strong> ({contact.relationship}) - {contact.phone}
                 </p>
                 <div className="flex gap-2 text-xs">
-                  {contact.is_emergency_contact && <Badge variant="destructive">Urgence</Badge>}
                   {contact.is_pickup_authorized && <Badge variant="secondary">Récupération</Badge>}
+                  {contact.is_emergency_contact && <Badge variant="destructive">Urgence</Badge>}
                 </div>
               </div>
             ))}

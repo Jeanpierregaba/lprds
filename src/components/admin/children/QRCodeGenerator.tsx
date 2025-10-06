@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Printer, QrCode, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import patternBg from '@/assets/pattern-bg.png';
+import logo from '@/assets/logo.png';
 
 interface Child {
   id: string;
@@ -38,8 +40,14 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
     setIsGenerating(true);
     try {
       // Générer un QR code sans informations personnelles
-      // Encodage minimal: préfixe + identifiant opaque
-      const qrData = `LPRDS-${child.code_qr_id}`;
+      // Encodage minimal: préfixe + identifiant opaque (A-Z0-9, max 5)
+      const token = (child.code_qr_id || '')
+        .toString()
+        .replace(/^LPRDS-/, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .slice(0, 5);
+      const qrData = `LPRDS-${token}`;
 
       const url = await QRCode.toDataURL(qrData, {
         width: 400,
@@ -69,6 +77,11 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
 
     try {
       // Créer un canvas pour le template d'impression
+      const token = (child.code_qr_id || '')
+        .toString()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .slice(0, 5);
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -81,26 +94,55 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Utilitaire pour charger une image
+      const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+
+      // Charger le motif de fond et le QR
+      const [bgImg] = await Promise.all([
+        loadImage(patternBg)
+      ]);
+
+      // Dessiner le motif avec opacité 40%
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
       // Bordure
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 2;
       ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
 
+      // Logo en-tête
+      const logoImg = await loadImage(logo);
+      const logoMaxWidth = 120;
+      const logoScale = Math.min(logoMaxWidth / logoImg.width, 1);
+      const logoW = Math.round(logoImg.width * logoScale);
+      const logoH = Math.round(logoImg.height * logoScale);
+      const logoX = Math.round((canvas.width - logoW) / 2);
+      const logoY = 36;
+      ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+
       // Titre
       ctx.fillStyle = '#1e293b';
       ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Code QR - Identification Enfant', canvas.width / 2, 70);
+      ctx.fillText('Code QR - Identification Enfant', canvas.width / 2, logoY + logoH + 24);
 
       // Nom de l'enfant
       ctx.font = 'bold 32px Arial';
       ctx.fillStyle = '#0f172a';
-      ctx.fillText(`${child.first_name} ${child.last_name}`, canvas.width / 2, 120);
+      ctx.fillText(`${child.first_name} ${child.last_name}`, canvas.width / 2, logoY + logoH + 74);
 
       // Code QR ID
       ctx.font = '18px Arial';
       ctx.fillStyle = '#64748b';
-      ctx.fillText(`Code: ${child.code_qr_id}`, canvas.width / 2, 150);
+      ctx.fillText(`Code: ${child.code_qr_id}`, canvas.width / 2, logoY + logoH + 104);
 
       // Section si disponible
       if (child.section) {
@@ -115,48 +157,43 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
       }
 
       // Charger et dessiner le QR code
-      const qrImage = new Image();
-      qrImage.onload = () => {
-        // Dessiner le QR code centré
-        const qrSize = 300;
-        const qrX = (canvas.width - qrSize) / 2;
-        const qrY = 220;
-        
-        ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
+      const qrImg = await loadImage(qrCodeUrl);
+      // Dessiner le QR code centré
+      const qrSize = 300;
+      const qrX = (canvas.width - qrSize) / 2;
+      const qrY = 220;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-        // Instructions
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#475569';
-        ctx.fillText('Scanner ce code pour identifier l\'enfant', canvas.width / 2, 580);
-        ctx.fillText('lors des arrivées et départs', canvas.width / 2, 605);
+      // Instructions
+      ctx.font = '16px Arial';
+      ctx.fillStyle = '#475569';
+      ctx.fillText('Scanner ce code pour identifier l\'enfant', canvas.width / 2, 580);
+      ctx.fillText('lors des arrivées et départs', canvas.width / 2, 605);
 
-        // Date de génération
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#94a3b8';
-        const now = new Date().toLocaleDateString('fr-FR');
-        ctx.fillText(`Généré le ${now}`, canvas.width / 2, 750);
+      // Date de génération
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#94a3b8';
+      const now = new Date().toLocaleDateString('fr-FR');
+      ctx.fillText(`Généré le ${now}`, canvas.width / 2, 750);
 
-        // Télécharger l'image
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `QR_${child.first_name}_${child.last_name}_${child.code_qr_id}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+      // Télécharger l'image
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `QR_${child.first_name}_${child.last_name}_LPRDS-${token}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
 
-            toast({
-              title: "Succès",
-              description: "QR code téléchargé avec succès",
-            });
-          }
-        }, 'image/png', 1.0);
-      };
-
-      qrImage.src = qrCodeUrl;
+          toast({
+            title: "Succès",
+            description: "QR code téléchargé avec succès",
+          });
+        }
+      }, 'image/png', 1.0);
     } catch (error) {
       console.error('Erreur téléchargement:', error);
       toast({
@@ -235,6 +272,9 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
         </head>
         <body>
           <div class="print-container">
+            <div class="logo">
+              <img src="${logo}" style="width: 100px;" />
+            </div>
             <div class="title">Code QR - Identification Enfant</div>
             <div class="child-name">${child.first_name} ${child.last_name}</div>
             <div class="code">Code: ${child.code_qr_id}</div>
@@ -297,7 +337,7 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
                     <p><strong>Nom:</strong> {child.first_name} {child.last_name}</p>
-                    <p><strong>Code:</strong> {child.code_qr_id}</p>
+                    <p><strong>Code:</strong> {child.code_qr_id} </p>
                     {child.section && (
                       <p><strong>Section:</strong> {child.section}</p>
                     )}
@@ -316,7 +356,7 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
             <div className="print-template bg-white p-8 border-2 border-gray-200 rounded-lg text-center max-w-md mx-auto">
               <h2 className="text-xl font-bold text-gray-800 mb-2">Code QR - Identification Enfant</h2>
               <h3 className="text-2xl font-bold text-gray-900 mb-1">{child.first_name} {child.last_name}</h3>
-              <p className="text-gray-600 mb-4">Code: {child.code_qr_id}</p>
+              <p className="text-gray-600 mb-4">Code: {`LPRDS-${(child.code_qr_id || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,5)}`}</p>
               {qrCodeUrl && (
                 <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64 mx-auto mb-4" />
               )}

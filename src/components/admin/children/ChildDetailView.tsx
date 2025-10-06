@@ -184,7 +184,14 @@ function GeneralInfoTab({ child, calculateAge }: { child: Child; calculateAge: (
         <CardContent className="grid grid-cols-2 gap-4">
           <div>
             <Label>Code QR</Label>
-            <p className="font-mono text-lg text-primary">{child.code_qr_id}</p>
+            <p className="font-mono text-lg text-primary">
+              {(() => {
+                const raw = (child.code_qr_id || '').toString();
+                const stripped = raw.replace(/^LPRDS-/, '');
+                const token = stripped.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+                return `LPRDS-${token}`;
+              })()}
+            </p>
           </div>
           <div>
             <Label>Statut</Label>
