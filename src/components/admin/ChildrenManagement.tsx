@@ -131,10 +131,13 @@ export default function ChildrenManagement() {
 
   const getSectionLabel = (section: string) => {
     const labels = {
-      'creche': 'Crèche (3-12 mois)',
+      'creche_etoile': 'Crèche Étoile (3-18 mois)',
+      'creche_nuage': 'Crèche Nuage (18-24 mois)',
+      'creche_soleil': 'Crèche Soleil TPS (24-36 mois)',
       'garderie': 'Garderie (3-8 ans)',
-      'maternelle_etoile': 'Maternelle Étoile (12-24 mois)',
-      'maternelle_soleil': 'Maternelle Soleil (24-36 mois)'
+      'maternelle_PS1': 'Maternelle Petite Section 1',
+      'maternelle_PS2': 'Maternelle Petite Section 2',
+      'maternelle_MS': 'Maternelle Moyenne Section'
     };
     return labels[section as keyof typeof labels] || section;
   };
@@ -465,10 +468,13 @@ function CreateGroupForm({ educators, onSuccess }: {
             <SelectValue placeholder="Sélectionner une section" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="creche">Crèche</SelectItem>
+            <SelectItem value="creche_etoile">Crèche Étoile</SelectItem>
+            <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
+            <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
             <SelectItem value="garderie">Garderie</SelectItem>
-            <SelectItem value="maternelle_etoile">Maternelle Étoile</SelectItem>
-            <SelectItem value="maternelle_soleil">Maternelle Soleil</SelectItem>
+            <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
+            <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
+            <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
           </SelectContent>
         </Select>
       </div>
