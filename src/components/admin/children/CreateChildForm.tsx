@@ -162,6 +162,33 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
     return generateRandomToken();
   };
 
+  const normalizeSection = (
+    value: string
+  ): 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null => {
+    if (!value) return null;
+    // Map UI-specific options to DB enum values
+    switch (value) {
+      case 'creche':
+      case 'creche_etoile':
+      case 'creche_nuage':
+      case 'creche_soleil':
+        return 'creche';
+      case 'garderie':
+        return 'garderie';
+      case 'maternelle_PS1':
+        return 'maternelle_etoile';
+      case 'maternelle_PS2':
+      case 'maternelle_MS':
+        return 'maternelle_soleil';
+      case 'maternelle_etoile':
+        return 'maternelle_etoile';
+      case 'maternelle_soleil':
+        return 'maternelle_soleil';
+      default:
+        return null;
+    }
+  };
+
   const addAllergyOrMedication = (type: 'allergies' | 'medications' | 'chronic_conditions', value: string) => {
     if (value.trim()) {
       setMedicalInfo({
@@ -233,7 +260,7 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
         birth_date: personalInfo.birth_date,
         admission_date: personalInfo.admission_date,
         address: personalInfo.address || null,
-        section: personalInfo.section || null,
+        section: normalizeSection(personalInfo.section),
         behavioral_notes: personalInfo.behavioral_notes || null,
         preferences: personalInfo.preferences || null,
         medical_info_detailed: medicalInfo as any,
@@ -942,4 +969,4 @@ function SummaryTab({ personalInfo, medicalInfo, dietaryRestrictions, guardians,
       </Card>
     </div>
   );
-}
+} 

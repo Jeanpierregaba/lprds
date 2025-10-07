@@ -31,7 +31,7 @@ interface Child {
   allergies?: string;
   medical_info?: string;
   special_needs?: string;
-  section?: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil';
+  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS';
   group_id?: string;
   medical_info_detailed?: any;
   emergency_contacts_detailed?: any;
@@ -78,7 +78,7 @@ export default function ChildrenManagement() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch children
       const { data: childrenData, error: childrenError } = await supabase
         .from('children')
@@ -114,14 +114,43 @@ export default function ChildrenManagement() {
 
       if (educatorsError) throw educatorsError;
 
-      setChildren(childrenData || []);
+      // Fix: Map childrenData to match Child type, especially for 'section' property
+      setChildren(
+        (childrenData || []).map((child) => ({
+          ...child,
+          // Map group section if present
+          groups: child.groups
+            ? {
+                ...child.groups,
+                // Map legacy section values to new ones if needed
+                section:
+                  child.groups.section === "creche"
+                    ? "creche_etoile"
+                    : child.groups.section === "maternelle_etoile"
+                    ? "maternelle_PS1"
+                    : child.groups.section === "maternelle_soleil"
+                    ? "maternelle_PS2"
+                    : child.groups.section, // keep as is if already correct
+              }
+            : child.groups,
+          // If child.section exists and needs mapping, do it here as well
+          section:
+            child.section === "creche"
+              ? "creche_etoile"
+              : child.section === "maternelle_etoile"
+              ? "maternelle_PS1"
+              : child.section === "maternelle_soleil"
+              ? "maternelle_PS2"
+              : child.section,
+        }))
+      );
       setGroups(groupsData || []);
       setEducators(educatorsData || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (error: any) {
+      console.error('Error loading children data:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les données",
+        description: error?.message || "Impossible de charger les données",
         variant: "destructive",
       });
     } finally {
@@ -298,7 +327,7 @@ export default function ChildrenManagement() {
             </DialogTitle>
           </DialogHeader>
           {selectedChild && (
-            <ChildDetailView child={selectedChild} />
+            <ChildDetailView child={selectedChild as any} />
           )}
         </DialogContent>
       </Dialog>
@@ -313,7 +342,7 @@ export default function ChildrenManagement() {
           </DialogHeader>
           {selectedChild && (
             <EditChildForm
-              child={selectedChild}
+              child={selectedChild as any}
               onSuccess={() => {
                 setIsEditDialogOpen(false);
                 fetchData();
@@ -403,7 +432,7 @@ function CreateGroupForm({ educators, onSuccess }: {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    section: '' as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | '',
+    section: '' as 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | '',
     type: 'mixed_group' as 'age_group' | 'mixed_group' | 'class',
     capacity: 15,
     assigned_educator_id: '',
@@ -411,16 +440,48 @@ function CreateGroupForm({ educators, onSuccess }: {
     age_max_months: '',
   });
 
+  // Map UI section values to current DB enum values
+  const mapSectionForDB = (
+    section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | ''
+  ): 'garderie' | 'creche' | 'maternelle_etoile' | 'maternelle_soleil' => {
+    switch (section) {
+      case 'creche_etoile':
+      case 'creche_nuage':
+      case 'creche_soleil':
+        return 'creche';
+      case 'maternelle_PS1':
+        return 'maternelle_etoile';
+      case 'maternelle_PS2':
+      case 'maternelle_MS':
+        return 'maternelle_soleil';
+      case 'garderie':
+        return 'garderie';
+      default:
+        return 'garderie';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      if (!formData.name || !formData.section) {
+        toast({
+          title: 'Section requise',
+          description: 'Veuillez sélectionner une section.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const dbSection = mapSectionForDB(formData.section);
+
       const { error } = await supabase
         .from('groups')
         .insert([{
           name: formData.name,
           description: formData.description || null,
-          section: formData.section as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil',
+          section: dbSection,
           type: formData.type,
           capacity: formData.capacity,
           age_min_months: formData.age_min_months ? parseInt(formData.age_min_months) : null,

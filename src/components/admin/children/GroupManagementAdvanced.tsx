@@ -111,32 +111,53 @@ export default function GroupManagementAdvanced() {
   const processSectionsData = (children: any[], groups: any[]): Section[] => {
     const sectionConfigs = [
       { 
-        id: 'creche', 
-        name: 'creche', 
-        label: 'Crèche', 
-        ageRange: '3-12 mois',
+        id: 'creche_etoile', 
+        name: 'creche_etoile', 
+        label: 'Crèche Étoile', 
+        ageRange: '3-18 mois',
         ratioRequired: 5 // 1 éducateur pour 5 bébés
+      },
+      { 
+        id: 'creche_nuage', 
+        name: 'creche_nuage', 
+        label: 'Crèche Nuage', 
+        ageRange: '18-24 mois',
+        ratioRequired: 8 // 1 éducateur pour 8 enfants
+      },
+      { 
+        id: 'creche_soleil', 
+        name: 'creche_soleil', 
+        label: 'Crèche Soleil TPS', 
+        ageRange: '24-36 mois',
+        ratioRequired: 8 // 1 éducateur pour 8 enfants
       },
       { 
         id: 'garderie', 
         name: 'garderie', 
         label: 'Garderie', 
         ageRange: '3-8 ans',
-        ratioRequired: 8 // 1 éducateur pour 8 enfants
+        ratioRequired: 10 // 1 éducateur pour 10 enfants
       },
       { 
-        id: 'maternelle_etoile', 
-        name: 'maternelle_etoile', 
-        label: 'Maternelle Étoile', 
-        ageRange: '12-24 mois',
+        id: 'maternelle_PS1', 
+        name: 'maternelle_PS1', 
+        label: 'Maternelle Petite Section 1', 
+        ageRange: '3-4ans',
         ratioRequired: 6 // 1 éducateur pour 6 tout-petits
       },
       { 
-        id: 'maternelle_soleil', 
-        name: 'maternelle_soleil', 
-        label: 'Maternelle Soleil', 
-        ageRange: '24-36 mois',
+        id: 'maternelle_PS2', 
+        name: 'maternelle_PS2', 
+        label: 'Maternelle Petite Section 2', 
+        ageRange: '4-5ans',
         ratioRequired: 8 // 1 éducateur pour 8 enfants
+      },
+      { 
+        id: 'maternelle_MS', 
+        name: 'maternelle_MS', 
+        label: 'Maternelle Moyenne Section', 
+        ageRange: '5-6ans',
+        ratioRequired: 10 // 1 éducateur pour 10 enfants
       }
     ];
 
