@@ -515,6 +515,7 @@ function CreateGroupForm({ educators, onSuccess }: {
           id="name"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500"
           required
         />
       </div>
@@ -525,7 +526,7 @@ function CreateGroupForm({ educators, onSuccess }: {
           value={formData.section}
           onValueChange={(value) => setFormData({ ...formData, section: value as any })}
         >
-          <SelectTrigger>
+          <SelectTrigger className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500">
             <SelectValue placeholder="Sélectionner une section" />
           </SelectTrigger>
           <SelectContent>
@@ -546,7 +547,7 @@ function CreateGroupForm({ educators, onSuccess }: {
           value={formData.type}
           onValueChange={(value) => setFormData({ ...formData, type: value as any })}
         >
-          <SelectTrigger>
+          <SelectTrigger className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -564,6 +565,7 @@ function CreateGroupForm({ educators, onSuccess }: {
           type="number"
           value={formData.capacity}
           onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+          className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500"
           min="1"
           max="30"
         />
@@ -575,7 +577,7 @@ function CreateGroupForm({ educators, onSuccess }: {
           value={formData.assigned_educator_id}
           onValueChange={(value) => setFormData({ ...formData, assigned_educator_id: value })}
         >
-          <SelectTrigger>
+          <SelectTrigger className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500">
             <SelectValue placeholder="Sélectionner un éducateur" />
           </SelectTrigger>
           <SelectContent>
@@ -596,6 +598,7 @@ function CreateGroupForm({ educators, onSuccess }: {
             type="number"
             value={formData.age_min_months}
             onChange={(e) => setFormData({ ...formData, age_min_months: e.target.value })}
+          className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500"
             min="0"
             max="120"
           />
@@ -607,6 +610,7 @@ function CreateGroupForm({ educators, onSuccess }: {
             type="number"
             value={formData.age_max_months}
             onChange={(e) => setFormData({ ...formData, age_max_months: e.target.value })}
+          className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500"
             min="0"
             max="120"
           />
@@ -619,10 +623,11 @@ function CreateGroupForm({ educators, onSuccess }: {
           id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="border-accent focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:border-green-500"
         />
       </div>
 
-      <Button type="submit" className="w-full">
+      <Button type="submit" className="w-full hover:bg-accent">
         Créer le groupe
       </Button>
     </form>
