@@ -24,6 +24,11 @@ export const PermissionGuard = ({
 }: PermissionGuardProps) => {
   const { hasPermission, hasAnyPermission, hasAllPermissions, profile } = usePermissions();
 
+  // Admins bypass all guard checks
+  if (profile?.role === 'admin') {
+    return <>{children}</>;
+  }
+
   // Vérification des rôles si spécifiés
   if (role.length > 0 && !role.includes(profile?.role || '')) {
     return showFallback ? (

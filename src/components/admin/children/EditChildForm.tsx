@@ -28,7 +28,7 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
     birth_date: child.birth_date || '',
     admission_date: child.admission_date || '',
     address: child.address || '',
-    section: (child.section || '') as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | '',
+    section: child.section || null,
     behavioral_notes: child.behavioral_notes || '',
     preferences: child.preferences || ''
   });
@@ -43,27 +43,131 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
 
     try {
       setLoading(true);
-      const { error } = await supabase
+      
+      // Vérifier la session utilisateur
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error('User not authenticated:', userError);
+        throw new Error('Utilisateur non authentifié');
+      }
+      console.log('Current user:', user.id);
+
+      // Vérifier le profil utilisateur
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        throw new Error('Erreur de profil utilisateur');
+      }
+      console.log('User profile:', profile);
+
+      // Test des permissions RLS
+      const { data: permissionTest, error: permissionError } = await supabase
         .from('children')
-        .update({
-          first_name: form.first_name,
-          last_name: form.last_name,
-          birth_date: form.birth_date,
-          admission_date: form.admission_date,
-          address: form.address || null,
-          section: form.section || null,
-          behavioral_notes: form.behavioral_notes || null,
-          preferences: form.preferences || null,
-        })
-        .eq('id', child.id);
+        .select('id')
+        .eq('id', child.id)
+        .limit(1);
+      
+      if (permissionError) {
+        console.error('Permission test failed:', permissionError);
+        throw new Error(`Erreur de permissions: ${permissionError.message}`);
+      }
+      console.log('Permission test passed:', permissionTest);
 
-      if (error) throw error;
+      // Test de la fonction de sécurité
+      const { data: securityTest, error: securityError } = await supabase
+        .rpc('is_admin_or_secretary', { user_uuid: user.id });
+      
+      if (securityError) {
+        console.error('Security function test failed:', securityError);
+      } else {
+        console.log('Security function result:', securityTest);
+      }
 
+      // Préparer les données de mise à jour
+      const updateData: any = {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        birth_date: form.birth_date,
+        admission_date: form.admission_date,
+        address: form.address || null,
+        behavioral_notes: form.behavioral_notes || null,
+        preferences: form.preferences || null,
+      };
+
+      // Gérer le champ section - seulement l'inclure si une valeur valide est sélectionnée
+      if (form.section) {
+        updateData.section = form.section;
+      } else {
+        updateData.section = null;
+      }
+
+      console.log('Child ID:', child.id);
+      console.log('Updating child with data:', updateData);
+      console.log('User role:', profile.role);
+
+      // Test de lecture avant mise à jour
+      const { data: existingChild, error: readError } = await supabase
+        .from('children')
+        .select('*')
+        .eq('id', child.id)
+        .single();
+      
+      if (readError) {
+        console.error('Read error:', readError);
+        throw new Error(`Impossible de lire les données de l'enfant: ${readError.message}`);
+      }
+      console.log('Existing child data:', existingChild);
+
+      // Tentative de mise à jour avec gestion d'erreur détaillée
+      const { data, error } = await supabase
+        .from('children')
+        .update(updateData)
+        .eq('id', child.id)
+        .select();
+
+      if (error) {
+        console.error('Supabase update error:', error);
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        
+        // Messages d'erreur plus spécifiques
+        let errorMessage = 'Erreur inconnue';
+        if (error.code === '42501') {
+          errorMessage = 'Permissions insuffisantes. Vérifiez que vous êtes admin ou secrétaire.';
+        } else if (error.code === '23505') {
+          errorMessage = 'Violation de contrainte unique. Une valeur existe déjà.';
+        } else if (error.code === '23503') {
+          errorMessage = 'Violation de contrainte de clé étrangère.';
+        } else if (error.message.includes('section')) {
+          errorMessage = 'Valeur de section invalide.';
+        } else if (error.message.includes('date')) {
+          errorMessage = 'Format de date invalide.';
+        } else {
+          errorMessage = error.message || 'Erreur de mise à jour';
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      console.log('Update successful:', data);
       toast({ title: 'Succès', description: 'Informations mises à jour' });
       onSuccess();
     } catch (err) {
       console.error('update child error', err);
-      toast({ title: 'Erreur', description: "Échec de la mise à jour", variant: 'destructive' });
+      toast({ 
+        title: 'Erreur', 
+        description: `Échec de la mise à jour: ${err instanceof Error ? err.message : 'Erreur inconnue'}`, 
+        variant: 'destructive' 
+      });
     } finally {
       setLoading(false);
     }
@@ -100,11 +204,15 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
 
           <div>
             <Label>Section</Label>
-            <Select value={form.section} onValueChange={(value) => setForm({ ...form, section: value as any })}>
+            <Select 
+              value={form.section || 'none'} 
+              onValueChange={(value) => setForm({ ...form, section: value === 'none' ? null : value as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' })}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une section" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">Aucune section</SelectItem>
                 <SelectItem value="creche">Crèche (3-12 mois)</SelectItem>
                 <SelectItem value="garderie">Garderie (3-8 ans)</SelectItem>
                 <SelectItem value="maternelle_etoile">Maternelle Étoile (12-24 mois)</SelectItem>

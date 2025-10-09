@@ -31,7 +31,7 @@ interface Child {
   allergies?: string;
   medical_info?: string;
   special_needs?: string;
-  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS';
+  section?: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null;
   group_id?: string;
   medical_info_detailed?: any;
   emergency_contacts_detailed?: any;
@@ -122,26 +122,11 @@ export default function ChildrenManagement() {
           groups: child.groups
             ? {
                 ...child.groups,
-                // Map legacy section values to new ones if needed
-                section:
-                  child.groups.section === "creche"
-                    ? "creche_etoile"
-                    : child.groups.section === "maternelle_etoile"
-                    ? "maternelle_PS1"
-                    : child.groups.section === "maternelle_soleil"
-                    ? "maternelle_PS2"
-                    : child.groups.section, // keep as is if already correct
+                section: child.groups.section
               }
-            : child.groups,
-          // If child.section exists and needs mapping, do it here as well
-          section:
-            child.section === "creche"
-              ? "creche_etoile"
-              : child.section === "maternelle_etoile"
-              ? "maternelle_PS1"
-              : child.section === "maternelle_soleil"
-              ? "maternelle_PS2"
-              : child.section,
+            : undefined,
+          // Map section to new values using our mapping function
+          section: mapSectionValue(child.section) as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null
         }))
       );
       setGroups(groupsData || []);
@@ -160,15 +145,29 @@ export default function ChildrenManagement() {
 
   const getSectionLabel = (section: string) => {
     const labels = {
-      'creche_etoile': 'Crèche Étoile (3-18 mois)',
-      'creche_nuage': 'Crèche Nuage (18-24 mois)',
-      'creche_soleil': 'Crèche Soleil TPS (24-36 mois)',
+      'creche': 'Crèche (3-12 mois)',
       'garderie': 'Garderie (3-8 ans)',
-      'maternelle_PS1': 'Maternelle Petite Section 1',
-      'maternelle_PS2': 'Maternelle Petite Section 2',
-      'maternelle_MS': 'Maternelle Moyenne Section'
+      'maternelle_etoile': 'Maternelle Étoile (12-24 mois)',
+      'maternelle_soleil': 'Maternelle Soleil (24-36 mois)'
     };
     return labels[section as keyof typeof labels] || section;
+  };
+
+  // Fonction pour mapper les anciennes valeurs de section vers les nouvelles
+  const mapSectionValue = (section: string | null): 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null => {
+    if (!section) return null;
+    
+    const mapping: Record<string, 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil'> = {
+      'creche_etoile': 'creche',
+      'creche_nuage': 'maternelle_etoile',
+      'creche_soleil': 'maternelle_soleil',
+      'garderie': 'garderie',
+      'maternelle_PS1': 'maternelle_etoile',
+      'maternelle_PS2': 'maternelle_soleil',
+      'maternelle_MS': 'maternelle_soleil'
+    };
+    
+    return mapping[section] || null;
   };
 
   const getStatusBadge = (status: string) => {
@@ -530,13 +529,10 @@ function CreateGroupForm({ educators, onSuccess }: {
             <SelectValue placeholder="Sélectionner une section" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="creche_etoile">Crèche Étoile</SelectItem>
-            <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
-            <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
-            <SelectItem value="garderie">Garderie</SelectItem>
-            <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
-            <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
-            <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
+            <SelectItem value="creche">Crèche (3-12 mois)</SelectItem>
+            <SelectItem value="garderie">Garderie (3-8 ans)</SelectItem>
+            <SelectItem value="maternelle_etoile">Maternelle Étoile (12-24 mois)</SelectItem>
+            <SelectItem value="maternelle_soleil">Maternelle Soleil (24-36 mois)</SelectItem>
           </SelectContent>
         </Select>
       </div>
