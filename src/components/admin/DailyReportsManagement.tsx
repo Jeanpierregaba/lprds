@@ -20,7 +20,8 @@ interface Child {
   first_name: string
   last_name: string
   photo_url?: string
-  section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS'
+  code_qr_id?: string
+  section: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil'
   group_id?: string
 }
 
@@ -143,7 +144,7 @@ const DailyReportsManagement = () => {
 
     try {
       // Fetch daily report for crèche/garderie
-      if (selectedChild.section === 'creche_etoile' || selectedChild.section === 'creche_nuage' || selectedChild.section === 'creche_soleil' || selectedChild.section === 'garderie') {
+      if (selectedChild.section === 'creche' || selectedChild.section === 'garderie') {
         const { data: reportData, error: reportError } = await supabase
           .from('daily_reports')
           .select('*, children(*)')
@@ -263,7 +264,7 @@ const DailyReportsManagement = () => {
   }
 
   const handleSaveReport = async () => {
-    if (!selectedChild || (selectedChild.section !== 'creche_etoile' && selectedChild.section !== 'creche_nuage' && selectedChild.section !== 'creche_soleil' && selectedChild.section !== 'garderie')) return
+    if (!selectedChild || (selectedChild.section !== 'creche' && selectedChild.section !== 'garderie')) return
 
     try {
       const reportData = {
@@ -460,7 +461,7 @@ const DailyReportsManagement = () => {
                   <Clock className="h-4 w-4" />
                   Enregistrer Départ
                 </Button>
-                {(selectedChild.section === 'maternelle_PS1' || selectedChild.section === 'maternelle_PS2' || selectedChild.section === 'maternelle_MS') && (
+                {(selectedChild.section === 'maternelle_etoile' || selectedChild.section === 'maternelle_soleil') && (
                   <Button
                     onClick={handleMarkAbsent}
                     variant="outline"
@@ -498,7 +499,7 @@ const DailyReportsManagement = () => {
           </Card>
 
           {/* Daily Report for Crèche/Garderie */}
-          {(selectedChild.section === 'creche_etoile' || selectedChild.section === 'creche_nuage' || selectedChild.section === 'creche_soleil' || selectedChild.section === 'garderie') && (
+          {(selectedChild.section === 'creche' || selectedChild.section === 'garderie') && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">

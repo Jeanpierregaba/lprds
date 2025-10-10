@@ -16,7 +16,8 @@ interface Child {
   id: string
   first_name: string
   last_name: string
-  section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS'
+  photo_url?: string
+  section: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil'
   code_qr_id: string
 }
 

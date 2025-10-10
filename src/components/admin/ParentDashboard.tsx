@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Baby, Calendar, MessageSquare, LogOut, Camera, Heart, Clock, User } from 'lucide-react';
+import { Baby, Calendar, MessageSquare, LogOut, Camera, Heart, Clock, User, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import DailyReportsViewer from '@/components/parent/DailyReportsViewer';
+import { ParentMessaging } from '@/components/parent/ParentMessaging';
 
 interface ParentStats {
   myChildren: number;
@@ -256,8 +258,14 @@ const ParentDashboard = () => {
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
             <TabsTrigger value="attendance">Présences</TabsTrigger>
-            <TabsTrigger value="activities">Activités</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
+            <TabsTrigger value="reports">
+              <FileText className="w-4 h-4 mr-2" />
+              Rapports
+            </TabsTrigger>
+            <TabsTrigger value="messages">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Messages
+            </TabsTrigger>
             <TabsTrigger value="profile">Mon Profil</TabsTrigger>
           </TabsList>
 
@@ -344,36 +352,12 @@ const ParentDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="activities">
-            <Card>
-              <CardHeader>
-                <CardTitle>Journal des Activités</CardTitle>
-                <CardDescription>
-                  Photos et descriptions des activités quotidiennes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Interface du journal d'activités en développement...
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="reports">
+            <DailyReportsViewer />
           </TabsContent>
 
           <TabsContent value="messages">
-            <Card>
-              <CardHeader>
-                <CardTitle>Messagerie</CardTitle>
-                <CardDescription>
-                  Communication avec l'équipe éducative
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Interface de messagerie en développement...
-                </p>
-              </CardContent>
-            </Card>
+            <ParentMessaging />
           </TabsContent>
 
           <TabsContent value="profile">

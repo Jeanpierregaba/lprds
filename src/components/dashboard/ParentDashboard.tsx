@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Baby, 
   Clock, 
@@ -12,8 +13,13 @@ import {
   AlertCircle,
   CheckCircle,
   Users,
-  Activity
+  Activity,
+  FileText
 } from 'lucide-react';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import DailyReportsViewer from '@/components/parent/DailyReportsViewer';
+import { ParentMessaging } from '@/components/parent/ParentMessaging';
 
 // Données fictives pour la démonstration
 const myChildren = [
@@ -123,6 +129,7 @@ export const ParentDashboard = () => {
 
   const presentChildren = myChildren.filter(child => child.isPresent);
   const totalChildren = myChildren.length;
+  const { profile } = useAuth();
 
   return (
     <div className="p-6 space-y-6">
@@ -134,13 +141,31 @@ export const ParentDashboard = () => {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-sm">
-            Famille Martin-Dubois
+            Famille {profile?.last_name}
           </Badge>
         </div>
       </div>
 
-      {/* Résumé du jour */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Tabs Navigation */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="overview">
+            <Activity className="mr-2 h-4 w-4" />
+            Vue d'ensemble
+          </TabsTrigger>
+          <TabsTrigger value="reports">
+            <FileText className="mr-2 h-4 w-4" />
+            Rapports Journaliers
+          </TabsTrigger>
+          <TabsTrigger value="messages">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Messages
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Résumé du jour */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Enfants Présents</CardTitle>
@@ -358,6 +383,16 @@ export const ParentDashboard = () => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <DailyReportsViewer />
+        </TabsContent>
+
+        <TabsContent value="messages">
+          <ParentMessaging />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
