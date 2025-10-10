@@ -22,10 +22,15 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if already logged in
+  // Redirect if already logged in based on role
   useEffect(() => {
     if (user && profile) {
-      navigate('/admin/dashboard');
+      // Redirect based on user role
+      if (profile.role === 'parent') {
+        navigate('/parent/dashboard');
+      } else {
+        navigate('/admin/dashboard');
+      }
     }
   }, [user, profile, navigate]);
 

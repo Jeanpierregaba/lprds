@@ -22,6 +22,7 @@ import MessagesPage from "./pages/admin/MessagesPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import ForgotPassword from "./pages/admin/ForgotPassword";
 import QRScanPage from "./pages/admin/QRScanPage";
+import ParentDashboard from "./pages/parent/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin/login" element={<Login />} />
             <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+            <Route path="/parent/dashboard" element={<ParentDashboard />} />
             <Route path="/admin/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="children" element={<ChildrenPage />} />
