@@ -2,21 +2,21 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Baby, Heart, BookOpen, Users, Clock, Euro } from 'lucide-react';
 import galleryMain from '@/assets/gallery-main.jpg';
+import ourSec from '@/assets/our-sec.jpg';
 
 const Sections = () => {
   const sections = [
     {
-      id: 'bebes',
-      title: 'Section Bébés',
-      ageRange: '3 - 12 mois',
-      capacity: '8 enfants',
+      id: 'creche_etoile',
+      title: 'Section Crèche Etoile',
+      ageRange: '3 - 18 mois',
+      capacity: '20 enfants',
       ratio: '1 adulte pour 5 bébés',
       color: 'primary',
       icon: Baby,
       description: 'Un cocon douillet pour les premiers mois de découverte',
       activities: [
         'Éveil sensoriel et moteur',
-        'Massage et relaxation',
         'Découverte des textures',
         'Musique douce et berceuses',
         'Jeux d\'eau et barbotage'
@@ -28,10 +28,10 @@ const Sections = () => {
       }
     },
     {
-      id: 'moyens',
-      title: 'Section Moyens',
-      ageRange: '12 - 24 mois',
-      capacity: '12 enfants',
+      id: 'creche_nuage',
+      title: 'Section Crèche Nuage',
+      ageRange: '18 - 24 mois',
+      capacity: '20 enfants',
       ratio: '1 adulte pour 8 enfants',
       color: 'secondary',
       icon: Heart,
@@ -41,7 +41,6 @@ const Sections = () => {
         'Peinture et arts plastiques',
         'Chansons et comptines',
         'Jeux de construction',
-        'Découverte de la nature'
       ],
       schedule: {
         morning: 'Activités d\'éveil, collation',
@@ -50,10 +49,10 @@ const Sections = () => {
       }
     },
     {
-      id: 'grands',
-      title: 'Section Grands',
+      id: 'creche_soleil',
+      title: 'Section Crèche Soleil',
       ageRange: '24 - 36 mois',
-      capacity: '15 enfants',
+      capacity: '30 enfants',
       ratio: '1 adulte pour 10 enfants',
       color: 'accent',
       icon: BookOpen,
@@ -62,7 +61,6 @@ const Sections = () => {
         'Pré-graphisme et découverte de l\'écrit',
         'Ateliers scientifiques simples',
         'Théâtre et expression corporelle',
-        'Jeux de société adaptés',
         'Sorties pédagogiques'
       ],
       schedule: {
@@ -75,11 +73,11 @@ const Sections = () => {
       id: 'garderie',
       title: 'Section Garderie',
       ageRange: '3 - 8 ans',
-      capacity: '20 enfants',
+      capacity: '30 enfants',
       ratio: '1 adulte pour 12 enfants',
       color: 'primary',
       icon: Users,
-      description: 'Accueil périscolaire et mercredi',
+      description: 'Accueil périscolaire',
       activities: [
         'Aide aux devoirs (primaire)',
         'Ateliers créatifs avancés',
@@ -92,15 +90,70 @@ const Sections = () => {
         midday: 'Cantine, temps calme',
         afternoon: 'Activités, goûter, jeux extérieurs'
       }
+    },
+    {
+      id: 'maternelle_PS',
+      title: 'Maternelle Petite Section ',
+      ageRange: '3 ans',
+      capacity: '20 enfants',
+      ratio: '1 adulte pour 10 enfants',
+      color: 'accent',
+      icon: BookOpen,
+      description: 'l\'école maternelle',
+      activities: [
+        'Pré-graphisme et découverte de l\'écrit',
+        'Ateliers scientifiques simples',
+        'Théâtre et expression corporelle',
+        'Sorties pédagogiques'
+      ],
+      schedule: {
+        morning: 'Activités dirigées, temps libre',
+        midday: 'Repas autonome, repos calme',
+        afternoon: 'Ateliers créatifs, préparation départ'
+      }
+    },
+    {
+      id: 'maternelle_MS',
+      title: 'Maternelle Moyenne Section',
+      ageRange: '3 - 4 ans',
+      capacity: '20 enfants',
+      ratio: '1 adulte pour 10 enfants',
+      color: 'accent',
+      icon: BookOpen,
+      description: 'l\'école maternelle',
+      activities: [
+        'Pré-graphisme et découverte de l\'écrit',
+        'Ateliers scientifiques simples',
+        'Théâtre et expression corporelle',
+        'Sorties pédagogiques'
+      ],
+      schedule: {
+        morning: 'Activités dirigées, temps libre',
+        midday: 'Repas autonome, repos calme',
+        afternoon: 'Ateliers créatifs, préparation départ'
+      }
+    },
+    {
+      id: 'maternelle_GS',
+      title: 'Maternelle Grande Section',
+      ageRange: '4 - 5 ans',
+      capacity: '20 enfants',
+      ratio: '1 adulte pour 10 enfants',
+      color: 'accent',
+      icon: BookOpen,
+      description: 'l\'école maternelle',
+      activities: [
+        'Pré-graphisme et découverte de l\'écrit',
+        'Ateliers scientifiques simples',
+        'Théâtre et expression corporelle',
+        'Sorties pédagogiques'
+      ],
+      schedule: {
+        morning: 'Activités dirigées, temps libre',
+        midday: 'Repas autonome, repos calme',
+        afternoon: 'Ateliers créatifs, préparation départ'
+      }
     }
-  ];
-
-  const pricing = [
-    { service: 'Temps plein (8h-10h/jour)', price: '850-1200€/mois', note: 'Selon revenus' },
-    { service: 'Temps partiel (4h-6h/jour)', price: '450-700€/mois', note: 'Selon revenus' },
-    { service: 'Occasionnel', price: '8-12€/heure', note: 'Selon disponibilités' },
-    { service: 'Garderie périscolaire', price: '15€/jour', note: 'Avec repas' },
-    { service: 'Mercredi garderie', price: '35€/jour', note: 'Activités incluses' }
   ];
 
   return (
@@ -113,10 +166,10 @@ const Sections = () => {
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${galleryMain})`
+              backgroundImage: `url(${ourSec})`
             }}
           >
-            <div className="absolute inset-0 bg-secondary/90"></div>
+            <div className="absolute inset-0 bg-secondary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
           </div>
           
           <div className="container-custom relative z-10">
@@ -229,62 +282,6 @@ const Sections = () => {
             </section>
           );
         })}
-
-        {/* Pricing section */}
-        <section className="section-padding bg-primary text-primary-foreground">
-          <div className="container-custom">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-fredoka mb-4">
-                Tarifs et horaires
-              </h2>
-              <p className="text-primary-foreground/80 max-w-2xl mx-auto">
-                Des tarifs adaptés à vos besoins avec des aides possibles selon vos revenus (CAF, employeur...).
-              </p>
-            </div>
-
-            <div className="max-w-4xl mx-auto">
-              <div className="card-soft bg-background text-foreground">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="text-center">
-                    <Clock className="w-8 h-8 text-primary mx-auto mb-2" />
-                    <div className="font-fredoka text-lg mb-1">Horaires</div>
-                    <div className="text-sm text-muted-foreground">Lun-Ven: 7h30-18h30</div>
-                  </div>
-                  <div className="text-center">
-                    <Euro className="w-8 h-8 text-secondary mx-auto mb-2" />
-                    <div className="font-fredoka text-lg mb-1">Aides possibles</div>
-                    <div className="text-sm text-muted-foreground">CAF, employeur, CESU</div>
-                  </div>
-                  <div className="text-center">
-                    <Heart className="w-8 h-8 text-accent mx-auto mb-2" />
-                    <div className="font-fredoka text-lg mb-1">Repas inclus</div>
-                    <div className="text-sm text-muted-foreground">Bio et fait maison</div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {pricing.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center py-3 border-b border-border last:border-b-0">
-                      <div>
-                        <div className="font-medium">{item.service}</div>
-                        <div className="text-sm text-muted-foreground">{item.note}</div>
-                      </div>
-                      <div className="font-fredoka text-lg text-primary">
-                        {item.price}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground text-center">
-                    <strong>Inscription:</strong> Frais d'inscription de 50€ + caution de 200€ (remboursable)
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
       <Footer />
     </div>

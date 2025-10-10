@@ -3,6 +3,8 @@ import Footer from '@/components/Footer';
 import { Calendar, Tag, Search, Bell, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import whyChooseUsMain from '@/assets/why-choose-us-main.jpg';
+import newsGard from '@/assets/news-gard.jpg';
+
 
 const News = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -118,10 +120,10 @@ const News = () => {
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${whyChooseUsMain})`
+              backgroundImage: `url(${newsGard})`
             }}
           >
-            <div className="absolute inset-0 bg-primary/90"></div>
+            <div className="absolute inset-0 bg-primary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
           </div>
           
           <div className="container-custom relative z-10">
@@ -302,7 +304,7 @@ const News = () => {
             {/* Load more button */}
             {regularArticles.length > 0 && (
               <div className="text-center mt-12">
-                <button className="btn-primary">
+                <button className="btn-primary hover:bg-accent">
                   Charger plus d'articles
                 </button>
               </div>

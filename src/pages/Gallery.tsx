@@ -11,6 +11,7 @@ import aboutImage2 from '@/assets/about-image-2.jpg';
 import aboutImage3 from '@/assets/about-image-3.jpg';
 import heroImage from '@/assets/hero-image.jpg';
 import whyChooseUsMain from '@/assets/why-choose-us-main.jpg';
+import lifeGard from '@/assets/life-gard.jpg';
 
 const Gallery = () => {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -81,10 +82,10 @@ const Gallery = () => {
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${heroImage})`
+              backgroundImage: `url(${lifeGard})`
             }}
           >
-            <div className="absolute inset-0 bg-accent/90"></div>
+            <div className="absolute inset-0 bg-accent/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
           </div>
           
           <div className="container-custom relative z-10">
@@ -243,7 +244,7 @@ const Gallery = () => {
         </section>
 
         {/* CTA section */}
-        <section className="section-padding bg-primary text-primary-foreground">
+        <section className="section-padding bg-accent text-primary-foreground">
           <div className="container-custom">
             <div className="text-center max-w-2xl mx-auto">
               <Camera className="w-12 h-12 mx-auto mb-6 text-secondary" />
@@ -254,7 +255,7 @@ const Gallery = () => {
                 Chaque moment passé à la crèche est précieux. Nous capturons ces instants 
                 magiques pour que vous puissiez les revivre avec votre enfant.
               </p>
-              <button className="btn-secondary">
+              <button className="btn-secondary" onClick={() => (window.location.href = '/contact')}>
                 Visiter la crèche
               </button>
             </div>

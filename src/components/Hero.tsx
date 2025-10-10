@@ -35,7 +35,11 @@ const Hero = () => {
 
           {/* CTA Button */}
           <div className="flex justify-center animate-fade-in-up px-4" style={{animationDelay: '0.6s'}}>
-            <Button className="btn-primary text-base sm:text-lg px-8 sm:px-12 py-4 sm:py-6 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <Button 
+              className="btn-primary text-base sm:text-lg px-8 sm:px-12 py-4 sm:py-6 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+              onClick={() => (window.location.href = '/contact')}
+            
+            >
               Contactez-nous
             </Button>
           </div>

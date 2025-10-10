@@ -2,6 +2,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Heart, Users, Award, Clock } from 'lucide-react';
 import aboutImage1 from '@/assets/about-image-1.jpg';
+import aboutSec from '@/assets/about-sec.jpg';
+import heroBg from '@/assets/hero-bg-v.jpg';
 
 const About = () => {
   return (
@@ -14,10 +16,10 @@ const About = () => {
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${aboutImage1})`
+              backgroundImage: `url(${aboutSec})`
             }}
           >
-            <div className="absolute inset-0 bg-primary/90"></div>
+            <div className="absolute inset-0 bg-primary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
           </div>
           
           <div className="container-custom section-padding relative z-10">
@@ -53,27 +55,32 @@ const About = () => {
                 </h2>
                 <div className="space-y-4 text-muted-foreground">
                   <p>
-                    Fondée en 2015 par Marie Durand, éducatrice de jeunes enfants passionnée, 
-                    Les Petits Rayons de Soleil est née d'une vision simple : créer un lieu où 
-                    chaque enfant peut s'épanouir dans un environnement bienveillant et sécurisé.
+                  Chez Les Petits Rayons de Soleil, nous croyons fermement que chaque enfant
+possède un potentiel unique et infini. Notre vision est de permettre à chaque
+enfant de développer ses compétences à son propre rythme, dans un
+environnement bienveillant et sécurisé.
                   </p>
                   <p>
-                    Après 10 années d'expérience dans diverses structures d'accueil, Marie a 
-                    souhaité développer une approche pédagogique innovante, respectueuse du 
-                    rythme de chaque enfant et centrée sur l'épanouissement personnel.
+                  Nous nous inspirons des méthodes Montessori et proposons un
+programme bilingue (anglais et français) tout en intégrant l'apprentissage de la
+langue des signes (le bébé signe), afin de favoriser une communication efficace et
+un développement linguistique enrichi dès le plus jeune âge.
                   </p>
                   <p>
                     Aujourd'hui, notre crèche accueille plus de 80 enfants et emploie une équipe 
-                    de 12 professionnels qualifiés, tous unis par la même passion : accompagner 
+                    d'une dizaine de professionnels qualifiés, tous unis par la même passion : accompagner 
                     les enfants dans leur développement avec bienveillance et professionnalisme.
                   </p>
                 </div>
               </div>
               <div className="card-soft">
                 <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl flex items-center justify-center">
-                  <div className="text-center">
-                    <Users className="w-16 h-16 text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Photo de l'équipe fondatrice</p>
+                  <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-xlx">
+                    <img 
+                      src={heroBg} 
+                      alt="Children and educators in a loving daycare environment"
+                      className="w-full h-full object-cover object-center"
+                    />
                   </div>
                 </div>
               </div>
@@ -128,7 +135,7 @@ const About = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Team members placeholder - will be populated with real data */}
               {[
-                { name: 'Marie Durand', role: 'Directrice', qualification: 'EJE, 15 ans d\'expérience' },
+                { name: 'Victoire ATAKPLA', role: 'Directrice', qualification: '' },
                 { name: 'Sophie Martin', role: 'Éducatrice référente', qualification: 'CAP Petite Enfance, 8 ans' },
                 { name: 'Julie Moreau', role: 'Auxiliaire puéricultrice', qualification: 'Diplôme d\'État, 6 ans' },
                 { name: 'Claire Dubois', role: 'Psychomotricienne', qualification: 'DE Psychomotricité, 4 ans' },
@@ -159,7 +166,7 @@ const About = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div>
                 <Clock className="w-8 h-8 mx-auto mb-4 text-secondary" />
-                <div className="text-3xl font-fredoka mb-2">9</div>
+                <div className="text-3xl font-fredoka mb-2">3</div>
                 <div className="text-sm opacity-80">Années d'expérience</div>
               </div>
               <div>
@@ -169,12 +176,12 @@ const About = () => {
               </div>
               <div>
                 <Award className="w-8 h-8 mx-auto mb-4 text-secondary" />
-                <div className="text-3xl font-fredoka mb-2">12</div>
+                <div className="text-3xl font-fredoka mb-2">15</div>
                 <div className="text-sm opacity-80">Professionnels qualifiés</div>
               </div>
               <div>
                 <Heart className="w-8 h-8 mx-auto mb-4 text-secondary" />
-                <div className="text-3xl font-fredoka mb-2">98%</div>
+                <div className="text-3xl font-fredoka mb-2">100%</div>
                 <div className="text-sm opacity-80">Parents satisfaits</div>
               </div>
             </div>

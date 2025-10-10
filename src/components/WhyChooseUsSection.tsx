@@ -1,6 +1,7 @@
 import { Heart, Shield, Users, BookOpen, Send } from 'lucide-react';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import whyChooseUsImage from '@/assets/why-choose-us-main.jpg';
+import whyDiff from '@/assets/why-diff.jpg';
 
 const WhyChooseUsSection = () => {
   const [ref, isVisible] = useScrollAnimation();
@@ -75,7 +76,7 @@ const WhyChooseUsSection = () => {
               {/* Image principale */}
               <div className="relative overflow-hidden rounded-3xl">
                 <img 
-                  src={whyChooseUsImage} 
+                  src={whyDiff} 
                   alt="Éducateur jouant avec un enfant" 
                   className="w-full h-auto object-cover"
                 />
@@ -83,13 +84,6 @@ const WhyChooseUsSection = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-3xl"></div>
               </div>
               
-              {/* Éléments décoratifs autour de l'image */}
-              <div className="absolute -top-6 -left-6 w-12 h-12 bg-secondary rounded-full animate-bounce"></div>
-              <div className="absolute -bottom-4 -right-4 w-8 h-8 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0.7s' }}></div>
-              <div className="absolute top-1/4 -right-8 w-6 h-6 bg-primary rounded-full animate-pulse"></div>
-              
-              {/* Forme décorative */}
-              <div className="absolute top-8 right-8 w-20 h-20 border-4 border-white/40 rounded-full"></div>
             </div>
           </div>
         </div>

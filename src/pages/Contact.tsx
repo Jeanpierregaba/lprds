@@ -3,6 +3,9 @@ import Footer from '@/components/Footer';
 import { MapPin, Phone, Mail, Clock, MessageCircle, Send, Star, Navigation } from 'lucide-react';
 import { useState } from 'react';
 import daycareHeroBg from '@/assets/daycare-hero-bg.jpg';
+import contact from '@/assets/contactPic.jpg';
+import MapEmbed from '@/components/mapEmbed';
+
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -32,7 +35,7 @@ const Contact = () => {
     { day: 'Mercredi', hours: '7h30 - 18h30', isOpen: true },
     { day: 'Jeudi', hours: '7h30 - 18h30', isOpen: true },
     { day: 'Vendredi', hours: '7h30 - 18h30', isOpen: true },
-    { day: 'Samedi', hours: 'Fermé', isOpen: false },
+    { day: 'Samedi (Espace de jeu en plein air)', hours: '12h30 - 17h30', isOpen: true },
     { day: 'Dimanche', hours: 'Fermé', isOpen: false },
   ];
 
@@ -46,10 +49,10 @@ const Contact = () => {
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${daycareHeroBg})`
+              backgroundImage: `url(${contact})`
             }}
           >
-            <div className="absolute inset-0 bg-secondary/90"></div>
+            <div className="absolute inset-0 bg-secondary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
           </div>
           
           <div className="container-custom relative z-10">
@@ -97,7 +100,7 @@ const Contact = () => {
                         value={formData.name}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="Votre nom"
+                        placeholder="Votre nom complet"
                       />
                     </div>
                     <div>
@@ -129,7 +132,7 @@ const Contact = () => {
                         value={formData.phone}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                        placeholder="06 12 34 56 78"
+                        placeholder="+228 00 00 00 00"
                       />
                     </div>
                     <div>
@@ -144,8 +147,8 @@ const Contact = () => {
                         className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                       >
                         <option value="">Sélectionner</option>
-                        <option value="3-12mois">3 - 12 mois</option>
-                        <option value="12-24mois">12 - 24 mois</option>
+                        <option value="3-18mois">3 - 18 mois</option>
+                        <option value="12-24mois">18 - 24 mois</option>
                         <option value="24-36mois">24 - 36 mois</option>
                         <option value="3-8ans">3 - 8 ans</option>
                         <option value="autre">Autre</option>
@@ -169,8 +172,7 @@ const Contact = () => {
                     ></textarea>
                   </div>
 
-                  <button type="submit" className="btn-primary w-full">
-                    <Send className="w-4 h-4 mr-2" />
+                  <button type="submit" className="btn-primary w-full hover:bg-accent">
                     Envoyer le message
                   </button>
 
@@ -256,10 +258,16 @@ const Contact = () => {
                     <p className="text-muted-foreground text-sm mb-4">
                       Pour une réponse immédiate, contactez-nous via WhatsApp
                     </p>
-                    <button className="btn-accent w-full">
-                      <MessageCircle className="w-4 h-4 mr-2" />
+                    <a 
+                    href="https://wa.me/22890554121"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <button className="btn-accent w-full hover:bg-primary">
                       WhatsApp
                     </button>
+                  </a>
+
                   </div>
                 </div>
               </div>
@@ -280,51 +288,10 @@ const Contact = () => {
             </div>
 
             {/* Map placeholder */}
-            <div className="card-soft">
-              <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 rounded-xl flex items-center justify-center">
-                <div className="text-center">
-                  <Navigation className="w-16 h-16 text-primary mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">Carte interactive Google Maps</p>
-                  <button className="btn-primary">
-                    Voir sur Google Maps
-                  </button>
-                </div>
-              </div>
+            <div className="card-soft ">
+              <MapEmbed />
             </div>
 
-            {/* Transport info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <div className="card-soft text-center">
-                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  🚌
-                </div>
-                <h3 className="font-fredoka text-foreground mb-2">Bus</h3>
-                <p className="text-sm text-muted-foreground">
-                  Lignes 15, 28, 42<br />
-                  Arrêt "République"
-                </p>
-              </div>
-              <div className="card-soft text-center">
-                <div className="w-12 h-12 bg-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  🚊
-                </div>
-                <h3 className="font-fredoka text-foreground mb-2">Tram</h3>
-                <p className="text-sm text-muted-foreground">
-                  Ligne T2<br />
-                  Arrêt "Place Guichard"
-                </p>
-              </div>
-              <div className="card-soft text-center">
-                <div className="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  🚗
-                </div>
-                <h3 className="font-fredoka text-foreground mb-2">Parking</h3>
-                <p className="text-sm text-muted-foreground">
-                  Parking gratuit<br />
-                  15 places disponibles
-                </p>
-              </div>
-            </div>
           </div>
         </section>
       </main>

@@ -236,10 +236,10 @@ export const ParentMessaging = () => {
                 <Label htmlFor="child">Enfant concerné (optionnel)</Label>
                 <Select value={selectedChild} onValueChange={setSelectedChild}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un enfant" />
+                    <SelectValue placeholder="Sélectionner un enfant (optionnel)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun enfant spécifique</SelectItem>
+                    <SelectItem value="none">Aucun enfant spécifique</SelectItem>
                     {children.map(child => (
                       <SelectItem key={child.id} value={child.id}>
                         {child.first_name} {child.last_name}

@@ -87,8 +87,8 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
       if (!ctx) return;
 
       // Dimensions du template
-      canvas.width = 600;
-      canvas.height = 800;
+      canvas.width = 1080;
+      canvas.height = 1080;
 
       // Fond blanc
       ctx.fillStyle = '#ffffff';
@@ -109,40 +109,40 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
 
       // Dessiner le motif avec opacité 40%
       ctx.save();
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.2;
       ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
       ctx.restore();
 
       // Bordure
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#00a099';
+      ctx.lineWidth = 10;
       ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
 
       // Logo en-tête
       const logoImg = await loadImage(logo);
-      const logoMaxWidth = 120;
+      const logoMaxWidth = 300;
       const logoScale = Math.min(logoMaxWidth / logoImg.width, 1);
       const logoW = Math.round(logoImg.width * logoScale);
       const logoH = Math.round(logoImg.height * logoScale);
       const logoX = Math.round((canvas.width - logoW) / 2);
-      const logoY = 36;
+      const logoY = 100;
       ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
 
       // Titre
-      ctx.fillStyle = '#1e293b';
-      ctx.font = 'bold 24px Arial';
+      ctx.fillStyle = '#164f2b';
+      ctx.font = 'bold 36px Poppins';
       ctx.textAlign = 'center';
-      ctx.fillText('Code QR - Identification Enfant', canvas.width / 2, logoY + logoH + 24);
+      ctx.fillText('Code QR - Identification Enfant', canvas.width / 2, logoY + logoH + 100);
 
       // Nom de l'enfant
-      ctx.font = 'bold 32px Arial';
-      ctx.fillStyle = '#0f172a';
-      ctx.fillText(`${child.first_name} ${child.last_name}`, canvas.width / 2, logoY + logoH + 74);
+      ctx.font = 'bold 40px Poppins';
+      ctx.fillStyle = '#f4a92b';
+      ctx.fillText(`${child.first_name} ${child.last_name}`, canvas.width / 2, logoY + logoH + 175);
 
       // Code QR ID
       ctx.font = '18px Arial';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText(`Code: ${child.code_qr_id}`, canvas.width / 2, logoY + logoH + 104);
+      //ctx.fillStyle = '#64748b';
+      //ctx.fillText(`Code: ${child.code_qr_id}`, canvas.width / 2, logoY + logoH + 104);
 
       // Section si disponible
       if (child.section) {
@@ -162,22 +162,22 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
       // Charger et dessiner le QR code
       const qrImg = await loadImage(qrCodeUrl);
       // Dessiner le QR code centré
-      const qrSize = 300;
+      const qrSize = 400;
       const qrX = (canvas.width - qrSize) / 2;
-      const qrY = 220;
+      const qrY = 520;
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
       // Instructions
-      ctx.font = '16px Arial';
-      ctx.fillStyle = '#475569';
-      ctx.fillText('Scanner ce code pour identifier l\'enfant', canvas.width / 2, 580);
-      ctx.fillText('lors des arrivées et départs', canvas.width / 2, 605);
+      //ctx.font = '16px Arial';
+      //ctx.fillStyle = '#475569';
+      //ctx.fillText('Scanner ce code pour identifier l\'enfant', canvas.width / 2, 580);
+      //ctx.fillText('lors des arrivées et départs', canvas.width / 2, 605);
 
       // Date de génération
-      ctx.font = '14px Arial';
-      ctx.fillStyle = '#94a3b8';
-      const now = new Date().toLocaleDateString('fr-FR');
-      ctx.fillText(`Généré le ${now}`, canvas.width / 2, 750);
+      //ctx.font = '14px Arial';
+      //ctx.fillStyle = '#94a3b8';
+      //const now = new Date().toLocaleDateString('fr-FR');
+      //ctx.fillText(`Généré le ${now}`, canvas.width / 2, 750);
 
       // Télécharger l'image
       canvas.toBlob((blob) => {

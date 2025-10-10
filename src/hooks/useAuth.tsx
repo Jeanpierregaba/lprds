@@ -144,7 +144,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      // Tente une déconnexion globale (peut renvoyer 403 si déjà invalidé côté serveur)
+      await supabase.auth.signOut({ scope: 'global' as any });
+    } catch (e) {
+      // Ignore erreurs réseau/403 et continue de nettoyer l'état local
+      console.warn('signOut warning:', e);
+    } finally {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    }
   };
 
   const resetPassword = async (email: string) => {
