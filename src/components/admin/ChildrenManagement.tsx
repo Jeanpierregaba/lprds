@@ -68,6 +68,10 @@ export default function ChildrenManagement() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('children');
+  // Nouveaux états: filtre et tri
+  const [sectionFilter, setSectionFilter] = useState<'all' | 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'age' | 'admission' | 'section'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     if (profile) {
@@ -202,6 +206,44 @@ export default function ChildrenManagement() {
     }
   };
 
+  const getAgeMonths = (birthDate: string) => {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    return (today.getFullYear() - birth.getFullYear()) * 12 + (today.getMonth() - birth.getMonth());
+  };
+
+  const filteredAndSortedChildren = (() => {
+    const filtered = children.filter((c) => sectionFilter === 'all' ? true : c.section === sectionFilter);
+    const sorted = [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case 'name': {
+          const an = `${a.first_name} ${a.last_name}`.toLowerCase();
+          const bn = `${b.first_name} ${b.last_name}`.toLowerCase();
+          cmp = an.localeCompare(bn);
+          break;
+        }
+        case 'age': {
+          // plus d'âge en premier si desc, sinon plus jeune
+          cmp = getAgeMonths(a.birth_date) - getAgeMonths(b.birth_date);
+          break;
+        }
+        case 'admission': {
+          cmp = new Date(a.admission_date).getTime() - new Date(b.admission_date).getTime();
+          break;
+        }
+        case 'section': {
+          const as = (a.section || '').toString();
+          const bs = (b.section || '').toString();
+          cmp = as.localeCompare(bs);
+          break;
+        }
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  })();
+
   if (loading) {
     return <div>Chargement...</div>;
   }
@@ -231,6 +273,8 @@ export default function ChildrenManagement() {
         )}
       </div>
 
+      
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="children">Enfants</TabsTrigger>
@@ -242,8 +286,55 @@ export default function ChildrenManagement() {
         </TabsList>
 
         <TabsContent value="children">
+          {/* Barre de filtres et tri (déplacée ici) */}
+          <div className="flex flex-wrap gap-3 items-end mb-4">
+            <div>
+              <Label>Filtrer par section</Label>
+              <Select value={sectionFilter} onValueChange={(v) => setSectionFilter(v as any)}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Toutes les sections" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les sections</SelectItem>
+                  <SelectItem value="creche_etoile">Crèche Étoile</SelectItem>
+                  <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
+                  <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
+                  <SelectItem value="garderie">Garderie</SelectItem>
+                  <SelectItem value="maternelle_PS1">Maternelle PS1</SelectItem>
+                  <SelectItem value="maternelle_PS2">Maternelle PS2</SelectItem>
+                  <SelectItem value="maternelle_MS">Maternelle MS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Trier par</Label>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Nom</SelectItem>
+                  <SelectItem value="age">Âge</SelectItem>
+                  <SelectItem value="admission">Date d'admission</SelectItem>
+                  <SelectItem value="section">Section</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Direction</Label>
+              <Select value={sortDir} onValueChange={(v) => setSortDir(v as any)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asc">Ascendant</SelectItem>
+                  <SelectItem value="desc">Descendant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {children.map((child) => (
+            {filteredAndSortedChildren.map((child) => (
               <Card key={child.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
@@ -314,7 +405,6 @@ export default function ChildrenManagement() {
           <GroupManagementAdvanced />
         </TabsContent>
       </Tabs>
-
       {/* Dialog de détails de l'enfant */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
