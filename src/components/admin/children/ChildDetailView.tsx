@@ -17,14 +17,14 @@ interface Child {
   first_name: string;
   last_name: string;
   birth_date: string;
-  admission_date: string;
-  status: string;
+  admission_date?: string;
+  status?: string;
   address?: string;
   photo_url?: string;
   allergies?: string;
   medical_info?: string;
   special_needs?: string;
-  section?: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil';
+  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS';
   group_id?: string;
   medical_info_detailed?: any;
   emergency_contacts_detailed?: any;
@@ -116,6 +116,21 @@ export default function ChildDetailView({ child }: { child: Child }) {
       const remainingMonths = months % 12;
       return remainingMonths > 0 ? `${years} an${years > 1 ? 's' : ''} ${remainingMonths} mois` : `${years} an${years > 1 ? 's' : ''}`;
     }
+  };
+
+  // Helper accessible pour formater l'affichage de la section
+  const getSectionLabel = (section?: string): string => {
+    if (!section) return 'Non définie';
+    const labels: Record<string, string> = {
+      'creche_etoile': 'Crèche Étoile (3-18 mois)',
+      'creche_nuage': 'Crèche Nuage (18-24 mois)',
+      'creche_soleil': 'Crèche Soleil TPS (24-36 mois)',
+      'garderie': 'Garderie (3-8 ans)',
+      'maternelle_PS1': 'Maternelle Petite Section 1',
+      'maternelle_PS2': 'Maternelle Petite Section 2',
+      'maternelle_MS': 'Maternelle Moyenne Section'
+    };
+    return labels[section] || section;
   };
 
   return (
@@ -211,11 +226,22 @@ function GeneralInfoTab({ child, calculateAge }: { child: Child; calculateAge: (
           </div>
           <div>
             <Label>Date d'admission</Label>
-            <p>{new Date(child.admission_date).toLocaleDateString('fr-FR')}</p>
+            <p>{new Date(child.admission_date || '').toLocaleDateString('fr-FR')}</p>
           </div>
           <div>
             <Label>Section</Label>
-            <p>{child.section ? getSectionLabel(child.section) : 'Non définie'}</p>
+            <p>{(() => {
+              const labels: Record<string, string> = {
+                'creche_etoile': 'Crèche Étoile (3-18 mois)',
+                'creche_nuage': 'Crèche Nuage (18-24 mois)',
+                'creche_soleil': 'Crèche Soleil TPS (24-36 mois)',
+                'garderie': 'Garderie (3-8 ans)',
+                'maternelle_PS1': 'Maternelle Petite Section 1',
+                'maternelle_PS2': 'Maternelle Petite Section 2',
+                'maternelle_MS': 'Maternelle Moyenne Section'
+              };
+              return child.section ? (labels[child.section] || child.section) : 'Non définie';
+            })()}</p>
           </div>
         </CardContent>
       </Card>
@@ -498,14 +524,4 @@ function HistoryTab({ childId }: { childId: string }) {
       </Card>
     </div>
   );
-}
-
-function getSectionLabel(section: string) {
-  const labels = {
-    'creche': 'Crèche (3-12 mois)',
-    'garderie': 'Garderie (3-8 ans)',
-    'maternelle_etoile': 'Maternelle Étoile (12-24 mois)',
-    'maternelle_soleil': 'Maternelle Soleil (24-36 mois)'
-  };
-  return labels[section as keyof typeof labels] || section;
 }

@@ -51,9 +51,10 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
     birth_date: '',
     admission_date: '',
     address: '',
-    section: '' as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | '',
+    section: '' as 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | '',
+    photo_url: '',
     behavioral_notes: '',
-    preferences: '',
+    preferences: ''
   });
 
   // Informations médicales
@@ -500,10 +501,13 @@ function PersonalInfoTab({ personalInfo, setPersonalInfo }: any) {
                 <SelectValue placeholder="Sélectionner une section" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="creche">Crèche (3-12 mois)</SelectItem>
+                <SelectItem value="creche_etoile">Crèche Étoile (3-18 mois)</SelectItem>
+                <SelectItem value="creche_nuage">Crèche Nuage (18-24 mois)</SelectItem>
+                <SelectItem value="creche_soleil">Crèche Soleil TPS (24-36 mois)</SelectItem>
                 <SelectItem value="garderie">Garderie (3-8 ans)</SelectItem>
-                <SelectItem value="maternelle_etoile">Maternelle Étoile (12-24 mois)</SelectItem>
-                <SelectItem value="maternelle_soleil">Maternelle Soleil (24-36 mois)</SelectItem>
+                <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
+                <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
+                <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
               </SelectContent>
             </Select>
           </div>

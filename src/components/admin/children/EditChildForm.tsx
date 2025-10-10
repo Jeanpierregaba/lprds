@@ -15,10 +15,48 @@ interface Child {
   birth_date: string;
   admission_date: string;
   address?: string | null;
-  section?: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null;
+  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null;
   behavioral_notes?: string | null;
   preferences?: string | null;
 }
+
+// Mapping helpers entre valeurs legacy (UI) et enum BD
+const toDbSection = (
+  legacy: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null | undefined
+): 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null => {
+  switch (legacy) {
+    case 'creche_etoile':
+    case 'creche_nuage':
+    case 'creche_soleil':
+      return 'creche';
+    case 'garderie':
+      return 'garderie';
+    case 'maternelle_PS1':
+      return 'maternelle_etoile';
+    case 'maternelle_PS2':
+    case 'maternelle_MS':
+      return 'maternelle_soleil';
+    default:
+      return null;
+  }
+};
+
+const fromDbSection = (
+  db: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | string | null | undefined
+): 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null => {
+  switch (db) {
+    case 'creche':
+      return 'creche_etoile';
+    case 'garderie':
+      return 'garderie';
+    case 'maternelle_etoile':
+      return 'maternelle_PS1';
+    case 'maternelle_soleil':
+      return 'maternelle_PS2';
+    default:
+      return null;
+  }
+};
 
 export default function EditChildForm({ child, onSuccess }: { child: Child; onSuccess: () => void }) {
   const { toast } = useToast();
@@ -28,7 +66,7 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
     birth_date: child.birth_date || '',
     admission_date: child.admission_date || '',
     address: child.address || '',
-    section: child.section || null,
+    section: fromDbSection(child.section as any),
     behavioral_notes: child.behavioral_notes || '',
     preferences: child.preferences || ''
   });
@@ -99,12 +137,8 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
         preferences: form.preferences || null,
       };
 
-      // Gérer le champ section - seulement l'inclure si une valeur valide est sélectionnée
-      if (form.section) {
-        updateData.section = form.section;
-      } else {
-        updateData.section = null;
-      }
+      // Gérer le champ section: mapper la valeur legacy (UI) vers l'enum BD
+      updateData.section = toDbSection(form.section as any);
 
       console.log('Child ID:', child.id);
       console.log('Updating child with data:', updateData);
@@ -206,17 +240,20 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
             <Label>Section</Label>
             <Select 
               value={form.section || 'none'} 
-              onValueChange={(value) => setForm({ ...form, section: value === 'none' ? null : value as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' })}
+              onValueChange={(value) => setForm({ ...form, section: value === 'none' ? null : value as 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une section" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Aucune section</SelectItem>
-                <SelectItem value="creche">Crèche (3-12 mois)</SelectItem>
+                <SelectItem value="creche_etoile">Crèche Étoile (3-18 mois)</SelectItem>
+                <SelectItem value="creche_nuage">Crèche Nuage (18-24 mois)</SelectItem>
+                <SelectItem value="creche_soleil">Crèche Soleil TPS (24-36 mois)</SelectItem>
                 <SelectItem value="garderie">Garderie (3-8 ans)</SelectItem>
-                <SelectItem value="maternelle_etoile">Maternelle Étoile (12-24 mois)</SelectItem>
-                <SelectItem value="maternelle_soleil">Maternelle Soleil (24-36 mois)</SelectItem>
+                <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
+                <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
+                <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
               </SelectContent>
             </Select>
           </div>

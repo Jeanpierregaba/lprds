@@ -16,9 +16,8 @@ interface Child {
   id: string
   first_name: string
   last_name: string
-  photo_url?: string
-  section: string
-  group_id?: string
+  section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS'
+  code_qr_id: string
 }
 
 interface AttendanceStats {
@@ -53,8 +52,29 @@ const AttendancePage = () => {
       // First get all children
       let childrenQuery = supabase.from('children').select('*')
       
+      const mapFilterToDb = (val: string): 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null => {
+        switch (val) {
+          case 'creche_etoile':
+          case 'creche_nuage':
+          case 'creche_soleil':
+            return 'creche'
+          case 'garderie':
+            return 'garderie'
+          case 'maternelle_PS1':
+            return 'maternelle_etoile'
+          case 'maternelle_PS2':
+          case 'maternelle_MS':
+            return 'maternelle_soleil'
+          default:
+            return null
+        }
+      }
+      
       if (selectedSection !== 'all') {
-        childrenQuery = childrenQuery.eq('section', selectedSection as 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil')
+        const dbSection = mapFilterToDb(selectedSection)
+        if (dbSection) {
+          childrenQuery = childrenQuery.eq('section', dbSection)
+        }
       }
       
       const { data: children, error: childrenError } = await childrenQuery
@@ -275,9 +295,13 @@ const AttendancePage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les sections</SelectItem>
-                <SelectItem value="creche">Crèche</SelectItem>
+                <SelectItem value="creche_etoile">Crèche Étoile</SelectItem>
+                <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
+                <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
                 <SelectItem value="garderie">Garderie</SelectItem>
-                <SelectItem value="maternelle">Maternelle</SelectItem>
+                <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
+                <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
+                <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
               </SelectContent>
             </Select>
             

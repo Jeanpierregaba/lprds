@@ -146,11 +146,14 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
 
       // Section si disponible
       if (child.section) {
-        const sectionLabels = {
-          'creche': 'Crèche (3-12 mois)',
+        const sectionLabels: Record<string, string> = {
+          'creche_etoile': 'Crèche Étoile (3-18 mois)',
+          'creche_nuage': 'Crèche Nuage (18-24 mois)',
+          'creche_soleil': 'Crèche Soleil TPS (24-36 mois)',
           'garderie': 'Garderie (3-8 ans)',
-          'maternelle_etoile': 'Maternelle Étoile (12-24 mois)',
-          'maternelle_soleil': 'Maternelle Soleil (24-36 mois)'
+          'maternelle_PS1': 'Maternelle Petite Section 1',
+          'maternelle_PS2': 'Maternelle Petite Section 2',
+          'maternelle_MS': 'Maternelle Moyenne Section'
         };
         const sectionLabel = sectionLabels[child.section as keyof typeof sectionLabels] || child.section;
         ctx.fillText(`Section: ${sectionLabel}`, canvas.width / 2, 180);
