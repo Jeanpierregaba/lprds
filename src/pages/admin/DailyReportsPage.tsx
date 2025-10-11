@@ -9,19 +9,15 @@ const DailyReportsPage = () => {
     <div className="p-6">
       <Tabs defaultValue="create" className="space-y-6">
         <TabsList>
-          <EducatorOnly>
-            <TabsTrigger value="create">Créer un rapport</TabsTrigger>
-          </EducatorOnly>
+          <TabsTrigger value="create">Créer un rapport</TabsTrigger>
           <AdminOrSecretary>
             <TabsTrigger value="validate">Validation</TabsTrigger>
           </AdminOrSecretary>
         </TabsList>
 
-        <EducatorOnly>
-          <TabsContent value="create">
-            <DailyReportForm />
-          </TabsContent>
-        </EducatorOnly>
+        <TabsContent value="create">
+          <DailyReportForm />
+        </TabsContent>
 
         <AdminOrSecretary>
           <TabsContent value="validate">

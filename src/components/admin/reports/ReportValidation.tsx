@@ -98,17 +98,8 @@ const ReportValidation: React.FC = () => {
           special_observations,
           photos,
           created_at,
-          children (
-            id,
-            first_name,
-            last_name,
-            photo_url,
-            section
-          ),
-          profiles (
-            first_name,
-            last_name
-          )
+          child_id,
+          educator_id
         `)
         .eq('is_validated', false)
         .order('created_at', { ascending: false });
@@ -128,12 +119,29 @@ const ReportValidation: React.FC = () => {
 
       if (error) throw error;
 
-      // Transformer les données pour correspondre à notre interface
-      const transformedReports = (data || []).map((report: any) => ({
-        ...report,
-        child: report.children || {},
-        educator: report.profiles || {}
+      // Charger les détails des enfants et éducateurs séparément
+      const transformedReports = await Promise.all((data || []).map(async (report: any) => {
+        // Charger l'enfant
+        const { data: childData } = await supabase
+          .from('children')
+          .select('id, first_name, last_name, photo_url, section')
+          .eq('id', report.child_id)
+          .single();
+
+        // Charger l'éducateur
+        const { data: educatorData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', report.educator_id)
+          .single();
+
+        return {
+          ...report,
+          child: childData || {},
+          educator: educatorData || {}
+        };
       }));
+
       setPendingReports(transformedReports as PendingReport[]);
       
     } catch (error) {
