@@ -35,9 +35,12 @@ const Header = () => {
       <div className="container-custom section-padding py-4">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <img src={logo} alt="Logo" className="w-16 sm:w-20" />
-          </div>
+          <a href="/">
+            <div className="flex items-center space-x-3">
+              <img src={logo} alt="Logo" className="w-16 sm:w-20" />
+            </div>
+          </a>
+
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8">
