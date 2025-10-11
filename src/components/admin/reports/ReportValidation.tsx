@@ -15,11 +15,13 @@ import {
   Calendar,
   MessageSquare,
   Download,
-  Filter
+  Filter,
+  Edit
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import EditReportForm from './EditReportForm';
 
 interface PendingReport {
   id: string;
@@ -61,6 +63,7 @@ const ReportValidation: React.FC = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [filter, setFilter] = useState<'today' | 'week' | 'all'>('today');
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -146,7 +149,7 @@ const ReportValidation: React.FC = () => {
   };
 
   const validateReport = async (reportId: string, isApproved: boolean) => {
-    if (!profile) return;
+    if (!profile || !selectedReport) return;
 
     setIsValidating(true);
     
@@ -163,10 +166,15 @@ const ReportValidation: React.FC = () => {
 
       if (error) throw error;
 
+      // Si le rapport est approuvé, envoyer un message au parent
+      if (isApproved) {
+        await sendReportToParent(selectedReport);
+      }
+
       toast({
         title: isApproved ? "Rapport validé" : "Rapport rejeté",
         description: isApproved 
-          ? "Le rapport a été validé et est maintenant visible par les parents"
+          ? "Le rapport a été validé et un message a été envoyé au parent"
           : "Le rapport a été rejeté et retourné à l'éducatrice"
       });
 
@@ -185,6 +193,56 @@ const ReportValidation: React.FC = () => {
     } finally {
       setIsValidating(false);
     }
+  };
+
+  const sendReportToParent = async (report: PendingReport) => {
+    try {
+      // Récupérer les parents de l'enfant
+      const { data: parentLinks, error: parentError } = await supabase
+        .from('parent_children')
+        .select('parent_id')
+        .eq('child_id', report.child.id);
+
+      if (parentError) throw parentError;
+
+      // Créer un message pour chaque parent
+      for (const link of parentLinks || []) {
+        const messageContent = `
+Nouveau rapport journalier disponible pour ${report.child.first_name} ${report.child.last_name}
+
+Date: ${new Date(report.report_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+
+${validationNote ? `Note de validation: ${validationNote}` : ''}
+
+Consultez l'onglet "Rapports journaliers" pour voir tous les détails.
+        `.trim();
+
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            sender_id: profile!.id,
+            recipient_id: link.parent_id,
+            child_id: report.child.id,
+            subject: `Rapport journalier - ${report.child.first_name} ${report.child.last_name}`,
+            content: messageContent
+          });
+
+        if (messageError) throw messageError;
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du message:', error);
+      // Ne pas bloquer la validation si l'envoi du message échoue
+      toast({
+        title: "Attention",
+        description: "Le rapport a été validé mais l'envoi du message a échoué",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditSaved = () => {
+    setIsEditing(false);
+    loadPendingReports();
   };
 
   const getMoodEmoji = (mood: string) => {
@@ -327,32 +385,54 @@ const ReportValidation: React.FC = () => {
               {/* En-tête du rapport */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={selectedReport.child.photo_url} />
-                      <AvatarFallback>
-                        <User className="h-6 w-6" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="text-xl">
-                        {selectedReport.child.first_name} {selectedReport.child.last_name}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(selectedReport.report_date).toLocaleDateString('fr-FR', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={selectedReport.child.photo_url} />
+                        <AvatarFallback>
+                          <User className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-xl">
+                          {selectedReport.child.first_name} {selectedReport.child.last_name}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(selectedReport.report_date).toLocaleDateString('fr-FR', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </div>
                       </div>
                     </div>
+                    
+                    {!isEditing && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Modifier
+                      </Button>
+                    )}
                   </CardTitle>
                 </CardHeader>
               </Card>
 
-              {/* Contenu du rapport */}
-              <Card>
+              {/* Mode édition ou affichage */}
+              {isEditing ? (
+                <EditReportForm
+                  report={selectedReport}
+                  onSaved={handleEditSaved}
+                  onCancel={() => setIsEditing(false)}
+                />
+              ) : (
+                <>
+                  {/* Contenu du rapport */}
+                  <Card>
                 <CardHeader>
                   <CardTitle>Détails du rapport</CardTitle>
                 </CardHeader>
@@ -549,14 +629,15 @@ const ReportValidation: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
+                </>
+              )}
             </>
           ) : (
             <Card>
-              <CardContent className="py-12 text-center">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">Sélectionner un rapport</h3>
-                <p className="text-muted-foreground">
-                  Choisissez un rapport dans la liste pour voir ses détails et le valider.
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <Eye className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  Sélectionnez un rapport pour voir les détails
                 </p>
               </CardContent>
             </Card>

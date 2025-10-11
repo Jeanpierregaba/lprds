@@ -86,6 +86,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   existingReport,
   onSaved
 }) => {
+  const [availableChildren, setAvailableChildren] = useState<Child[]>([]);
   const [child, setChild] = useState<Child | null>(null);
   const [formData, setFormData] = useState<DailyReportData>({
     child_id: childId || '',
@@ -110,12 +111,14 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   const { toast } = useToast();
   const { profile } = useAuth();
 
-  // Charger les données de l'enfant
+  // Charger la liste des enfants si pas de childId fourni
   useEffect(() => {
-    if (childId) {
+    if (!childId && profile) {
+      loadAvailableChildren();
+    } else if (childId) {
       loadChild(childId);
     }
-  }, [childId]);
+  }, [childId, profile]);
 
   // Charger un rapport existant
   useEffect(() => {
@@ -128,6 +131,27 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       setIsDraft(!existingReport.is_validated);
     }
   }, [existingReport]);
+
+  const loadAvailableChildren = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('children')
+        .select('id, first_name, last_name, photo_url, section')
+        .eq('assigned_educator_id', profile!.id)
+        .eq('status', 'active')
+        .order('first_name');
+
+      if (error) throw error;
+      setAvailableChildren(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des enfants:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger la liste des enfants",
+        variant: "destructive"
+      });
+    }
+  };
 
   const loadChild = async (id: string) => {
     try {
@@ -147,6 +171,14 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         description: "Impossible de charger les données de l'enfant",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleChildSelection = (childId: string) => {
+    const selectedChild = availableChildren.find(c => c.id === childId);
+    if (selectedChild) {
+      setChild(selectedChild);
+      setFormData(prev => ({ ...prev, child_id: childId }));
     }
   };
 
@@ -300,6 +332,43 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
+      {/* Sélection d'enfant si pas de childId fourni */}
+      {!childId && !child && availableChildren.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sélectionner un enfant</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {availableChildren.map((availChild) => (
+                <div
+                  key={availChild.id}
+                  className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => handleChildSelection(availChild.id)}
+                >
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={availChild.photo_url} />
+                    <AvatarFallback>
+                      <Baby className="h-6 w-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">
+                      {availChild.first_name} {availChild.last_name}
+                    </div>
+                    {availChild.section && (
+                      <Badge variant="outline" className="text-xs mt-1">
+                        {availChild.section}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* En-tête avec info enfant */}
       {child && (
         <Card>
