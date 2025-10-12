@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Eye, Users, FileText, Settings2 } from 'lucide-react';
+import { Plus, Edit, Eye, Users, FileText, Settings2, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ChildDetailView from './children/ChildDetailView';
 import CreateChildForm from '@/components/admin/children/CreateChildForm';
 import EditChildForm from '@/components/admin/children/EditChildForm';
 import GroupManagementAdvanced from './children/GroupManagementAdvanced';
 import { QRCodeGeneratorTrigger } from './children/QRCodeGenerator';
+import ParentChildAssignment from './children/ParentChildAssignment';
 
 interface Child {
   id: string;
@@ -279,6 +280,10 @@ export default function ChildrenManagement() {
         <TabsList>
           <TabsTrigger value="children">Enfants</TabsTrigger>
           <TabsTrigger value="groups">Groupes & Sections</TabsTrigger>
+          <TabsTrigger value="parents">
+            <UserCircle className="w-4 h-4 mr-1" />
+            Parents-Enfants
+          </TabsTrigger>
           <TabsTrigger value="advanced">
             <Settings2 className="w-4 h-4 mr-1" />
             Gestion Avancée
@@ -399,6 +404,10 @@ export default function ChildrenManagement() {
             educators={educators}
             onRefresh={fetchData}
           />
+        </TabsContent>
+
+        <TabsContent value="parents">
+          <ParentChildAssignment />
         </TabsContent>
 
         <TabsContent value="advanced">
