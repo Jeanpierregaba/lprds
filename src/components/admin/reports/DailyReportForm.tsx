@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -332,77 +332,126 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Sélection d'enfant si pas de childId fourni */}
-      {!childId && !child && availableChildren.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Sélectionner un enfant</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {availableChildren.map((availChild) => (
-                <div
-                  key={availChild.id}
-                  className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => handleChildSelection(availChild.id)}
-                >
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={availChild.photo_url} />
+      {/* Sélection d'enfant - Étape 1 */}
+      {!childId && !child && (
+        <>
+          {availableChildren.length === 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Aucun enfant assigné</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertDescription>
+                    Vous n'avez pas encore d'enfants assignés à votre groupe. 
+                    Contactez l'administration pour l'assignation des enfants.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl">
+                  Étape 1: Sélectionnez un enfant de votre groupe
+                </CardTitle>
+                <CardDescription>
+                  Choisissez l'enfant pour lequel vous souhaitez créer un rapport quotidien. 
+                  Vous avez {availableChildren.length} enfant(s) dans votre groupe.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availableChildren.map((availChild) => (
+                    <div
+                      key={availChild.id}
+                      className="flex items-center gap-4 p-5 border-2 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all hover:shadow-md"
+                      onClick={() => handleChildSelection(availChild.id)}
+                    >
+                      <Avatar className="h-16 w-16 border-2 border-primary/20">
+                        <AvatarImage src={availChild.photo_url} />
+                        <AvatarFallback className="bg-primary/10">
+                          <Baby className="h-8 w-8 text-primary" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">
+                          {availChild.first_name} {availChild.last_name}
+                        </div>
+                        {availChild.section && (
+                          <Badge variant="secondary" className="mt-1">
+                            {availChild.section}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* En-tête avec info enfant - Étape 2 */}
+      {child && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={child.photo_url} />
                     <AvatarFallback>
-                      <Baby className="h-6 w-6" />
+                      <Baby className="h-8 w-8" />
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium">
-                      {availChild.first_name} {availChild.last_name}
+                    <div className="text-2xl font-bold">
+                      Rapport journalier - {child.first_name} {child.last_name}
                     </div>
-                    {availChild.section && (
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {availChild.section}
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CalendarDays className="h-4 w-4" />
+                      {new Date(reportDate).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                      {child.section && (
+                        <Badge variant="outline">{child.section}</Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                {!childId && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setChild(null);
+                      setFormData(prev => ({ ...prev, child_id: '' }));
+                    }}
+                  >
+                    Changer d'enfant
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertDescription className="text-blue-900">
+              <strong>Étape 2:</strong> Remplissez le formulaire de suivi quotidien ci-dessous. 
+              Une fois complété, envoyez-le à l'administration qui le transmettra aux parents.
+            </AlertDescription>
+          </Alert>
+        </>
       )}
 
-      {/* En-tête avec info enfant */}
+      {/* Formulaire principal - Affiché uniquement si un enfant est sélectionné */}
       {child && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={child.photo_url} />
-                <AvatarFallback>
-                  <Baby className="h-8 w-8" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="text-2xl font-bold">
-                  Rapport journalier - {child.first_name} {child.last_name}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CalendarDays className="h-4 w-4" />
-                  {new Date(reportDate).toLocaleDateString('fr-FR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                  {child.section && (
-                    <Badge variant="outline">{child.section}</Badge>
-                  )}
-                </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      )}
-
-      {/* Formulaire principal */}
+        <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Horaires */}
@@ -753,6 +802,8 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };
