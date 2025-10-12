@@ -114,7 +114,16 @@ export default function ParentChildAssignment() {
         .eq('role', 'parent')
         .order('last_name');
 
-      if (parentsError) throw parentsError;
+      if (parentsError) {
+        console.error('Error loading parents:', parentsError);
+        toast({
+          title: "Erreur",
+          description: `Impossible de charger les parents: ${parentsError.message}`,
+          variant: "destructive",
+        });
+      }
+      
+      console.log('Parents loaded:', parentsData?.length || 0);
       setParents(parentsData || []);
 
       // Fetch all children
@@ -295,14 +304,23 @@ export default function ParentChildAssignment() {
                     <SelectValue placeholder="Sélectionner un parent" />
                   </SelectTrigger>
                   <SelectContent>
-                    {parents.map((parent) => (
-                      <SelectItem key={parent.id} value={parent.id}>
-                        {parent.first_name} {parent.last_name}
-                        {parent.phone && ` - ${parent.phone}`}
-                      </SelectItem>
-                    ))}
+                    {parents.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Aucun parent trouvé. Créez d'abord des comptes parents.
+                      </div>
+                    ) : (
+                      parents.map((parent) => (
+                        <SelectItem key={parent.id} value={parent.id}>
+                          {parent.first_name} {parent.last_name}
+                          {parent.phone && ` - ${parent.phone}`}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {parents.length} parent(s) disponible(s)
+                </p>
               </div>
 
               <div>
@@ -312,14 +330,23 @@ export default function ParentChildAssignment() {
                     <SelectValue placeholder="Sélectionner un enfant" />
                   </SelectTrigger>
                   <SelectContent>
-                    {children.map((child) => (
-                      <SelectItem key={child.id} value={child.id}>
-                        {child.first_name} {child.last_name}
-                        {child.section && ` - ${getSectionLabel(child.section)}`}
-                      </SelectItem>
-                    ))}
+                    {children.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Aucun enfant actif trouvé.
+                      </div>
+                    ) : (
+                      children.map((child) => (
+                        <SelectItem key={child.id} value={child.id}>
+                          {child.first_name} {child.last_name}
+                          {child.section && ` - ${getSectionLabel(child.section)}`}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {children.length} enfant(s) actif(s)
+                </p>
               </div>
 
               <div>
