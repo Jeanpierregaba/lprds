@@ -28,6 +28,8 @@ const Login = () => {
       // Redirect based on user role
       if (profile.role === 'parent') {
         navigate('/parent/dashboard');
+      } else if (profile.role === 'educator') {
+        navigate('/educator/dashboard');
       } else {
         navigate('/admin/dashboard');
       }

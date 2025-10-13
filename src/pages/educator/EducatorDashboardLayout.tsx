@@ -7,21 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 
-const DashboardLayout = () => {
+const EducatorDashboardLayout = () => {
   const { user, profile, loading } = useAuth()
-  const { isStaff, isEducator } = usePermissions()
+  const { isEducator } = usePermissions()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/admin/login')
-    } else if (!loading && user && profile) {
-      // Rediriger les éducateurs vers leur dashboard spécifique
-      if (isEducator()) {
-        navigate('/educator/dashboard')
-      }
     }
-  }, [user, loading, profile, navigate, isEducator])
+  }, [user, loading, navigate])
 
   if (loading) {
     return (
@@ -69,8 +64,8 @@ const DashboardLayout = () => {
     )
   }
 
-  // Check if user has appropriate role
-  if (!isStaff()) {
+  // Check if user is an educator
+  if (!isEducator()) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
         <Card>
@@ -78,7 +73,7 @@ const DashboardLayout = () => {
             <CardTitle>Accès non autorisé</CardTitle>
             <CardDescription>
               Vous n'avez pas les permissions nécessaires pour accéder à cette page.
-              Seuls les membres du personnel peuvent accéder à cette section.
+              Seuls les éducateurs peuvent accéder à cette section.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -94,15 +89,9 @@ const DashboardLayout = () => {
           <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
             <SidebarTrigger className="-ml-1" />
             <div className="flex items-center gap-2 text-sm">
-              <span className="font-semibold">
-                {profile?.role === 'admin' ? 'Administration' : 
-                 profile?.role === 'secretary' ? 'Secrétariat' : 
-                 profile?.role === 'educator' ? 'Espace Éducateur' : 'Interface Staff'}
-              </span>
+              <span className="font-semibold">Espace Éducateur</span>
               <span className="text-muted-foreground">
-                {profile?.role === 'admin' ? 'Direction' : 
-                 profile?.role === 'secretary' ? 'Secrétariat' : 
-                 profile?.role === 'educator' ? 'Éducateur' : 'Utilisateur'}
+                {profile.first_name} {profile.last_name}
               </span>
             </div>
           </header>
@@ -115,4 +104,4 @@ const DashboardLayout = () => {
   )
 }
 
-export default DashboardLayout
+export default EducatorDashboardLayout

@@ -23,6 +23,9 @@ import SettingsPage from "./pages/admin/SettingsPage";
 import ForgotPassword from "./pages/admin/ForgotPassword";
 import QRScanPage from "./pages/admin/QRScanPage";
 import ParentDashboard from "./pages/parent/Dashboard";
+import EducatorDashboardLayout from "./pages/educator/EducatorDashboardLayout";
+import EducatorGroupPage from "./pages/educator/EducatorGroupPage";
+import EducatorDailyReportsPage from "./pages/educator/EducatorDailyReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +55,10 @@ const App = () => (
               <Route path="daily-reports" element={<DailyReportsPage />} />
               <Route path="messages" element={<MessagesPage />} />
               <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="/educator/dashboard" element={<EducatorDashboardLayout />}>
+              <Route index element={<EducatorGroupPage />} />
+              <Route path="daily-reports" element={<EducatorDailyReportsPage />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
