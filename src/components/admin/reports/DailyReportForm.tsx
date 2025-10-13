@@ -134,12 +134,18 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
   const loadAvailableChildren = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('children')
         .select('id, first_name, last_name, photo_url, section')
-        .eq('assigned_educator_id', profile!.id)
-        .eq('status', 'active')
-        .order('first_name');
+        .eq('status', 'active');
+
+      // Les éducateurs ne voient que leurs enfants assignés
+      // Les admins et secrétaires voient tous les enfants
+      if (profile!.role === 'educator') {
+        query = query.eq('assigned_educator_id', profile!.id);
+      }
+
+      const { data, error } = await query.order('first_name');
 
       if (error) throw error;
       setAvailableChildren(data || []);
