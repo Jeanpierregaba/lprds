@@ -43,18 +43,18 @@ interface DailyReportData {
   report_date: string;
   arrival_time?: string;
   departure_time?: string;
-  health_status: 'well' | 'monitor' | 'sick';
+  health_status: 'bien' | 'surveiller' | 'malade';
   health_notes?: string;
   activities: string[];
   nap_taken: boolean;
   nap_duration_minutes?: number;
-  breakfast_eaten: 'well' | 'little' | 'nothing';
-  lunch_eaten: 'well' | 'little' | 'nothing';
-  snack_eaten: 'well' | 'little' | 'nothing';
+  breakfast_eaten: 'bien_mange' | 'peu_mange' | 'rien_mange';
+  lunch_eaten: 'bien_mange' | 'peu_mange' | 'rien_mange';
+  snack_eaten: 'bien_mange' | 'peu_mange' | 'rien_mange';
   hygiene_bath: boolean;
   hygiene_bowel_movement: boolean;
   hygiene_frequency_notes?: string;
-  mood: 'happy' | 'calm' | 'agitated' | 'sad' | 'tired';
+  mood: 'joyeux' | 'calme' | 'agite' | 'triste' | 'fatigue';
   special_observations?: string;
   photos: File[];
 }
@@ -73,11 +73,11 @@ const ACTIVITY_OPTIONS = [
 ];
 
 const MOOD_OPTIONS = [
-  { value: 'happy', label: 'Joyeux', icon: '😊', color: 'text-green-500' },
-  { value: 'calm', label: 'Calme', icon: '😌', color: 'text-blue-500' },
-  { value: 'agitated', label: 'Agité', icon: '😤', color: 'text-orange-500' },
-  { value: 'sad', label: 'Triste', icon: '😢', color: 'text-red-500' },
-  { value: 'tired', label: 'Fatigué', icon: '😴', color: 'text-purple-500' }
+  { value: 'joyeux', label: 'Joyeux', icon: '😊', color: 'text-green-500' },
+  { value: 'calme', label: 'Calme', icon: '😌', color: 'text-blue-500' },
+  { value: 'agite', label: 'Agité', icon: '😤', color: 'text-orange-500' },
+  { value: 'triste', label: 'Triste', icon: '😢', color: 'text-red-500' },
+  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' }
 ];
 
 const DailyReportForm: React.FC<DailyReportFormProps> = ({
@@ -91,15 +91,15 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   const [formData, setFormData] = useState<DailyReportData>({
     child_id: childId || '',
     report_date: reportDate,
-    health_status: 'well',
+    health_status: 'bien',
     activities: [],
     nap_taken: false,
-    breakfast_eaten: 'well',
-    lunch_eaten: 'well',
-    snack_eaten: 'well',
+    breakfast_eaten: 'bien_mange',
+    lunch_eaten: 'bien_mange',
+    snack_eaten: 'bien_mange',
     hygiene_bath: false,
     hygiene_bowel_movement: false,
-    mood: 'happy',
+    mood: 'calme',
     photos: []
   });
   
@@ -501,7 +501,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
           <CardContent className="space-y-4">
             <Select
               value={formData.health_status}
-              onValueChange={(value: 'well' | 'monitor' | 'sick') => 
+              onValueChange={(value: 'bien' | 'surveiller' | 'malade') => 
                 setFormData(prev => ({ ...prev, health_status: value }))
               }
             >
@@ -509,9 +509,9 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="well">Bien</SelectItem>
-                <SelectItem value="monitor">À surveiller</SelectItem>
-                <SelectItem value="sick">Malade</SelectItem>
+                <SelectItem value="bien">Bien</SelectItem>
+                <SelectItem value="surveiller">À surveiller</SelectItem>
+                <SelectItem value="malade">Malade</SelectItem>
               </SelectContent>
             </Select>
             
@@ -540,7 +540,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               <Label>Petit-déjeuner</Label>
               <Select
                 value={formData.breakfast_eaten}
-                onValueChange={(value: 'well' | 'little' | 'nothing') => 
+                onValueChange={(value: 'bien_mange' | 'peu_mange' | 'rien_mange') => 
                   setFormData(prev => ({ ...prev, breakfast_eaten: value }))
                 }
               >
@@ -548,9 +548,9 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="well">Bien mangé</SelectItem>
-                  <SelectItem value="little">Peu mangé</SelectItem>
-                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                  <SelectItem value="bien_mange">Bien mangé</SelectItem>
+                  <SelectItem value="peu_mange">Peu mangé</SelectItem>
+                  <SelectItem value="rien_mange">Rien mangé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -559,7 +559,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               <Label>Déjeuner</Label>
               <Select
                 value={formData.lunch_eaten}
-                onValueChange={(value: 'well' | 'little' | 'nothing') => 
+                onValueChange={(value: 'bien_mange' | 'peu_mange' | 'rien_mange') => 
                   setFormData(prev => ({ ...prev, lunch_eaten: value }))
                 }
               >
@@ -567,9 +567,9 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="well">Bien mangé</SelectItem>
-                  <SelectItem value="little">Peu mangé</SelectItem>
-                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                  <SelectItem value="bien_mange">Bien mangé</SelectItem>
+                  <SelectItem value="peu_mange">Peu mangé</SelectItem>
+                  <SelectItem value="rien_mange">Rien mangé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -578,7 +578,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               <Label>Goûter</Label>
               <Select
                 value={formData.snack_eaten}
-                onValueChange={(value: 'well' | 'little' | 'nothing') => 
+                onValueChange={(value: 'bien_mange' | 'peu_mange' | 'rien_mange') => 
                   setFormData(prev => ({ ...prev, snack_eaten: value }))
                 }
               >
@@ -586,9 +586,9 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="well">Bien mangé</SelectItem>
-                  <SelectItem value="little">Peu mangé</SelectItem>
-                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                  <SelectItem value="bien_mange">Bien mangé</SelectItem>
+                  <SelectItem value="peu_mange">Peu mangé</SelectItem>
+                  <SelectItem value="rien_mange">Rien mangé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
