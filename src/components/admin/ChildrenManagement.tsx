@@ -10,12 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Eye, Users, FileText, Settings2, UserCircle } from 'lucide-react';
+import { Plus, Edit, Eye, Users, FileText, UserCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
 import ChildDetailView from './children/ChildDetailView';
 import CreateChildForm from '@/components/admin/children/CreateChildForm';
 import EditChildForm from '@/components/admin/children/EditChildForm';
-import GroupManagementAdvanced from './children/GroupManagementAdvanced';
 import { QRCodeGeneratorTrigger } from './children/QRCodeGenerator';
 import ParentChildAssignment from './children/ParentChildAssignment';
 
@@ -284,10 +284,6 @@ export default function ChildrenManagement() {
             <UserCircle className="w-4 h-4 mr-1" />
             Parents-Enfants
           </TabsTrigger>
-          <TabsTrigger value="advanced">
-            <Settings2 className="w-4 h-4 mr-1" />
-            Gestion Avancée
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="children">
@@ -402,16 +398,13 @@ export default function ChildrenManagement() {
           <GroupsManagement
             groups={groups}
             educators={educators}
+            children={children}
             onRefresh={fetchData}
           />
         </TabsContent>
 
         <TabsContent value="parents">
           <ParentChildAssignment />
-        </TabsContent>
-
-        <TabsContent value="advanced">
-          <GroupManagementAdvanced />
         </TabsContent>
       </Tabs>
       {/* Dialog de détails de l'enfant */}
@@ -456,16 +449,93 @@ export default function ChildrenManagement() {
 // Composant pour afficher les détails d'un enfant - Déplacé vers children/ChildDetailView.tsx
 
 // Composant pour la gestion des groupes
-function GroupsManagement({ groups, educators, onRefresh }: {
+function GroupsManagement({ groups, educators, children, onRefresh }: {
   groups: Group[];
   educators: any[];
+  children: Child[];
   onRefresh: () => void;
 }) {
   const { toast } = useToast();
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
+  // Process sections data with real child counts
+  const getSectionLabel = (section: string) => {
+    const labels = {
+      'creche_etoile': 'Crèche Étoile',
+      'creche_nuage': 'Crèche Nuage',
+      'creche_soleil': 'Crèche Soleil TPS',
+      'garderie': 'Garderie',
+      'maternelle_PS1': 'Maternelle Petite Section 1',
+      'maternelle_PS2': 'Maternelle Petite Section 2',
+      'maternelle_MS': 'Maternelle Moyenne Section'
+    };
+    return labels[section as keyof typeof labels] || section;
+  };
+
+  const getAgeRange = (section: string) => {
+    const ranges = {
+      'creche_etoile': '3-18 mois',
+      'creche_nuage': '18-24 mois',
+      'creche_soleil': '24-36 mois',
+      'garderie': '3-8 ans',
+      'maternelle_PS1': '3-4 ans',
+      'maternelle_PS2': '4-5 ans',
+      'maternelle_MS': '5-6 ans'
+    };
+    return ranges[section as keyof typeof ranges] || '';
+  };
+
+  const sectionConfigs = [
+    { id: 'creche_etoile', name: 'creche_etoile' },
+    { id: 'creche_nuage', name: 'creche_nuage' },
+    { id: 'creche_soleil', name: 'creche_soleil' },
+    { id: 'garderie', name: 'garderie' },
+    { id: 'maternelle_PS1', name: 'maternelle_PS1' },
+    { id: 'maternelle_PS2', name: 'maternelle_PS2' },
+    { id: 'maternelle_MS', name: 'maternelle_MS' }
+  ];
+
+  // Map old DB sections to new ones
+  const mapDbSectionToNew = (dbSection: string): string => {
+    const mapping: Record<string, string> = {
+      'creche': 'creche_etoile',
+      'maternelle_etoile': 'maternelle_PS1',
+      'maternelle_soleil': 'maternelle_PS2',
+      'garderie': 'garderie'
+    };
+    return mapping[dbSection] || dbSection;
+  };
+
+  const sectionsData = sectionConfigs.map(config => {
+    // Find groups that belong to this section (considering DB mapping)
+    const sectionGroups = groups.filter(group => {
+      const mappedSection = mapDbSectionToNew(group.section);
+      return mappedSection === config.name;
+    }).map(group => {
+      const groupChildren = children.filter(child => child.group_id === group.id);
+      return {
+        ...group,
+        children: groupChildren,
+        children_count: groupChildren.length
+      };
+    });
+
+    const totalChildren = sectionGroups.reduce((sum, group) => sum + group.children_count, 0);
+    const totalCapacity = sectionGroups.reduce((sum, group) => sum + group.capacity, 0);
+
+    return {
+      id: config.id,
+      name: config.name,
+      label: getSectionLabel(config.name),
+      ageRange: getAgeRange(config.name),
+      groups: sectionGroups,
+      totalChildren,
+      totalCapacity
+    };
+  });
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Groupes et Sections</h3>
         <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
@@ -490,27 +560,83 @@ function GroupsManagement({ groups, educators, onRefresh }: {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {groups.map((group) => (
-          <Card key={group.id}>
+      {/* Vue par sections */}
+      <div className="space-y-6">
+        {sectionsData.map((section) => (
+          <Card key={section.id}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                {group.name}
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Users className="w-6 h-6 text-primary" />
+                  <div>
+                    <h3>{section.label}</h3>
+                    <p className="text-sm font-normal text-muted-foreground">{section.ageRange}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <Badge variant="outline">
+                    {section.totalChildren}/{section.totalCapacity} enfants
+                  </Badge>
+                  <Progress 
+                    value={section.totalCapacity > 0 ? (section.totalChildren / section.totalCapacity) * 100 : 0} 
+                    className="w-24"
+                  />
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm">
-                <p><strong>Section:</strong> {group.section}</p>
-                <p><strong>Type:</strong> {group.type}</p>
-                <p><strong>Capacité:</strong> {group.capacity} enfants</p>
-                {group.assigned_educator && (
-                  <p><strong>Éducateur:</strong> {group.assigned_educator.first_name} {group.assigned_educator.last_name}</p>
-                )}
-                {group.description && (
-                  <p><strong>Description:</strong> {group.description}</p>
-                )}
-              </div>
+              {section.groups.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {section.groups.map((group) => (
+                    <Card key={group.id} className="border-2">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center justify-between">
+                          {group.name}
+                          <Badge 
+                            variant={group.children_count >= group.capacity ? "destructive" : "default"}
+                          >
+                            {group.children_count}/{group.capacity}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {group.assigned_educator ? (
+                          <p className="text-sm">
+                            <strong>Éducateur:</strong> {group.assigned_educator.first_name} {group.assigned_educator.last_name}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-destructive">
+                            <AlertTriangle className="w-4 h-4 inline mr-1" />
+                            Aucun éducateur assigné
+                          </p>
+                        )}
+                        
+                        {group.children.length > 0 ? (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Enfants:</p>
+                            {group.children.slice(0, 3).map((child) => (
+                              <p key={child.id} className="text-xs">
+                                {child.first_name} {child.last_name}
+                              </p>
+                            ))}
+                            {group.children.length > 3 && (
+                              <p className="text-xs text-muted-foreground">
+                                +{group.children.length - 3} autres...
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Aucun enfant assigné</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Aucun groupe créé pour cette section
+                </p>
+              )}
             </CardContent>
           </Card>
         ))}
