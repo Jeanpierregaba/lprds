@@ -349,6 +349,7 @@ export type Database = {
           updated_at: string
           validated_at: string | null
           validated_by: string | null
+          validation_notes: string | null
         }
         Insert: {
           activities?: Json | null
@@ -376,6 +377,7 @@ export type Database = {
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
+          validation_notes?: string | null
         }
         Update: {
           activities?: Json | null
@@ -403,6 +405,7 @@ export type Database = {
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
+          validation_notes?: string | null
         }
         Relationships: []
       }
