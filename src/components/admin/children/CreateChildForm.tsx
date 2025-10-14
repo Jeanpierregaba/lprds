@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, User, Heart, Users, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { autoAssignChildToGroup } from '@/lib/groupAssignment';
 
 interface EmergencyContact {
   id?: string;
@@ -283,6 +284,15 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
         .single();
 
       if (childError) throw childError;
+
+      // Auto-assigner l'enfant à un groupe selon sa section
+      if (childRecord.section) {
+        await autoAssignChildToGroup(
+          childRecord.id,
+          childRecord.section,
+          childRecord.birth_date
+        );
+      }
 
       // Create emergency contacts (guardians + authorized persons)
       const validContacts = [...guardians, ...authorizedPersons].filter(contact => 

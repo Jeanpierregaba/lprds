@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { reassignChildOnSectionChange } from '@/lib/groupAssignment';
 
 interface Child {
   id: string;
@@ -157,6 +158,11 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
       }
       console.log('Existing child data:', existingChild);
 
+      // Vérifier si la section a changé pour réassigner automatiquement
+      const oldSection = toDbSection(child.section as any);
+      const newSection = updateData.section;
+      const sectionChanged = oldSection !== newSection;
+
       // Tentative de mise à jour avec gestion d'erreur détaillée
       const { data, error } = await supabase
         .from('children')
@@ -193,7 +199,22 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
       }
 
       console.log('Update successful:', data);
-      toast({ title: 'Succès', description: 'Informations mises à jour' });
+
+      // Si la section a changé, réassigner automatiquement au groupe approprié
+      if (sectionChanged && newSection) {
+        await reassignChildOnSectionChange(
+          child.id,
+          newSection,
+          form.birth_date
+        );
+      }
+
+      toast({ 
+        title: 'Succès', 
+        description: sectionChanged 
+          ? 'Informations mises à jour et enfant réassigné au groupe approprié' 
+          : 'Informations mises à jour'
+      });
       onSuccess();
     } catch (err) {
       console.error('update child error', err);
