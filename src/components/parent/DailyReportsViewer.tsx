@@ -159,14 +159,14 @@ const DailyReportsViewer: React.FC = () => {
           special_observations,
           photos,
           validated_at,
-          children (
+          child:children!child_id (
             id,
             first_name,
             last_name,
             photo_url,
             section
           ),
-          profiles (
+          educator:profiles!educator_id (
             first_name,
             last_name
           )
@@ -187,8 +187,8 @@ const DailyReportsViewer: React.FC = () => {
       // Transformer les données
       const transformedReports = (data || []).map((report: any) => ({
         ...report,
-        child: report.children || {},
-        educator: report.profiles || {}
+        child: report.child || {},
+        educator: report.educator || {}
       }));
       setReports(transformedReports as ChildReport[]);
       setCurrentPage(1);
@@ -214,29 +214,29 @@ const DailyReportsViewer: React.FC = () => {
 
   const getMoodEmoji = (mood: string) => {
     const moods: Record<string, string> = {
-      happy: '😊',
-      calm: '😌', 
-      agitated: '😤',
-      sad: '😢',
-      tired: '😴'
+      joyeux: '😊',
+      calme: '😌', 
+      agite: '😤',
+      triste: '😢',
+      fatigue: '😴'
     };
     return moods[mood] || '😊';
   };
 
   const getMealLabel = (level: string) => {
     const labels: Record<string, string> = {
-      well: 'Bien mangé',
-      little: 'Peu mangé', 
-      nothing: 'Rien mangé'
+      bien_mange: 'Bien mangé',
+      peu_mange: 'Peu mangé', 
+      rien_mange: 'Rien mangé'
     };
     return labels[level] || level;
   };
 
   const getHealthLabel = (status: string) => {
     const labels: Record<string, string> = {
-      well: 'Bien',
-      monitor: 'À surveiller',
-      sick: 'Malade'
+      bien: 'Bien',
+      surveiller: 'À surveiller',
+      malade: 'Malade'
     };
     return labels[status] || status;
   };
