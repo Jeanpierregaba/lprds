@@ -457,6 +457,7 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
 }) {
   const { toast } = useToast();
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [selectedSectionForView, setSelectedSectionForView] = useState<string | null>(null);
 
   // Process sections data with real child counts
   const getSectionLabel = (section: string) => {
@@ -520,7 +521,9 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
       };
     });
 
-    const totalChildren = sectionGroups.reduce((sum, group) => sum + group.children_count, 0);
+    // Also count children directly assigned to this section (not just through groups)
+    const directSectionChildren = children.filter(child => child.section === config.name);
+    const totalChildren = directSectionChildren.length;
     const totalCapacity = sectionGroups.reduce((sum, group) => sum + group.capacity, 0);
 
     return {
@@ -529,6 +532,9 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
       label: getSectionLabel(config.name),
       ageRange: getAgeRange(config.name),
       groups: sectionGroups,
+      allSectionChildren: directSectionChildren.sort((a, b) => 
+        `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`)
+      ),
       totalChildren,
       totalCapacity
     };
@@ -564,7 +570,12 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
       <div className="space-y-6">
         {sectionsData.map((section) => (
           <Card key={section.id}>
-            <CardHeader>
+            <CardHeader 
+              className="cursor-pointer hover:bg-accent/50 transition-colors"
+              onClick={() => setSelectedSectionForView(
+                selectedSectionForView === section.id ? null : section.id
+              )}
+            >
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Users className="w-6 h-6 text-primary" />
@@ -575,16 +586,48 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <Badge variant="outline">
-                    {section.totalChildren}/{section.totalCapacity} enfants
+                    {section.totalChildren} {section.totalChildren > 1 ? 'enfants' : 'enfant'}
                   </Badge>
-                  <Progress 
-                    value={section.totalCapacity > 0 ? (section.totalChildren / section.totalCapacity) * 100 : 0} 
-                    className="w-24"
-                  />
+                  {section.totalCapacity > 0 && (
+                    <>
+                      <span className="text-muted-foreground">sur {section.totalCapacity}</span>
+                      <Progress 
+                        value={(section.totalChildren / section.totalCapacity) * 100} 
+                        className="w-24"
+                      />
+                    </>
+                  )}
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Liste alphabétique des enfants (affichée au clic) */}
+              {selectedSectionForView === section.id && (
+                <div className="mb-6 p-4 bg-accent/20 rounded-lg border-2 border-primary">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Liste des enfants de {section.label} ({section.allSectionChildren.length})
+                  </h4>
+                  {section.allSectionChildren.length > 0 ? (
+                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                      {section.allSectionChildren.map((child) => (
+                        <div key={child.id} className="text-sm p-2 bg-background rounded border">
+                          <p className="font-medium">
+                            {child.last_name} {child.first_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Code: {child.code_qr_id}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Aucun enfant dans cette section</p>
+                  )}
+                </div>
+              )}
+
+              {/* Vue des groupes */}
               {section.groups.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {section.groups.map((group) => (
