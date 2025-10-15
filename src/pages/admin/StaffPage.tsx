@@ -7,8 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Mail, Phone, MapPin, Edit, UserCircle, Briefcase, AlertTriangle } from 'lucide-react';
+import { Users, Mail, Phone, MapPin, Edit, UserCircle, Briefcase, AlertTriangle, Plus } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 interface Profile {
   id: string;
@@ -35,6 +40,17 @@ interface StaffWithAssignments extends Profile {
   assigned_groups: Group[];
 }
 
+const staffFormSchema = z.object({
+  first_name: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
+  last_name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  email: z.string().email('Email invalide'),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  role: z.enum(['admin', 'secretary', 'educator'], {
+    required_error: 'Veuillez sélectionner un rôle'
+  })
+});
+
 const StaffPage = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -44,6 +60,20 @@ const StaffPage = () => {
   const [selectedStaff, setSelectedStaff] = useState<StaffWithAssignments | null>(null);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedGroupsForAssignment, setSelectedGroupsForAssignment] = useState<string[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const form = useForm<z.infer<typeof staffFormSchema>>({
+    resolver: zodResolver(staffFormSchema),
+    defaultValues: {
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      address: '',
+      role: 'educator'
+    }
+  });
 
   useEffect(() => {
     if (profile) {
@@ -189,6 +219,59 @@ const StaffPage = () => {
     );
   };
 
+  const onSubmitStaff = async (values: z.infer<typeof staffFormSchema>) => {
+    try {
+      setIsCreating(true);
+
+      // Create user account with email confirmation
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: values.email,
+        password: Math.random().toString(36).slice(-8) + 'Aa1!', // Temporary password
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin/login`,
+          data: {
+            first_name: values.first_name,
+            last_name: values.last_name,
+            role: values.role
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      // Update profile with additional information
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            phone: values.phone,
+            address: values.address
+          })
+          .eq('user_id', authData.user.id);
+
+        if (profileError) throw profileError;
+      }
+
+      toast({
+        title: 'Succès',
+        description: `Un email de confirmation a été envoyé à ${values.email}. Le personnel pourra créer son mot de passe en suivant le lien.`
+      });
+
+      setIsCreateDialogOpen(false);
+      form.reset();
+      fetchData();
+    } catch (error: any) {
+      console.error('Error creating staff account:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de créer le compte',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
@@ -209,9 +292,15 @@ const StaffPage = () => {
             Liste et affectations de l'équipe éducative
           </p>
         </div>
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          {staff.length} {staff.length > 1 ? 'membres' : 'membre'}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            {staff.length} {staff.length > 1 ? 'membres' : 'membre'}
+          </Badge>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter un personnel
+          </Button>
+        </div>
       </div>
 
       {/* Équipe Éducative */}
@@ -425,6 +514,129 @@ const StaffPage = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour créer un nouveau personnel */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajouter un nouveau personnel</DialogTitle>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmitStaff)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prénom *</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom *</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email *</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rôle *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionnez un rôle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrateur</SelectItem>
+                        <SelectItem value="secretary">Secrétaire</SelectItem>
+                        <SelectItem value="educator">Éducateur/Éducatrice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Téléphone</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Adresse</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    form.reset();
+                  }}
+                  disabled={isCreating}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={isCreating}>
+                  {isCreating ? 'Création...' : 'Créer et envoyer invitation'}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
