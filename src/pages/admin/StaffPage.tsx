@@ -228,7 +228,7 @@ const StaffPage = () => {
         email: values.email,
         password: Math.random().toString(36).slice(-8) + 'Aa1!', // Temporary password
         options: {
-          emailRedirectTo: `${window.location.origin}/admin/login`,
+          emailRedirectTo: `${window.location.origin}/admin/reset-password`,
           data: {
             first_name: values.first_name,
             last_name: values.last_name,

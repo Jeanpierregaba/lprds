@@ -21,6 +21,7 @@ import DailyReportsPage from "./pages/admin/DailyReportsPage";
 import MessagesPage from "./pages/admin/MessagesPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import ForgotPassword from "./pages/admin/ForgotPassword";
+import ResetPassword from "./pages/admin/ResetPassword";
 import QRScanPage from "./pages/admin/QRScanPage";
 import ParentDashboard from "./pages/parent/Dashboard";
 import EducatorDashboardLayout from "./pages/educator/EducatorDashboardLayout";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin/login" element={<Login />} />
             <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+            <Route path="/admin/reset-password" element={<ResetPassword />} />
             <Route path="/parent/dashboard" element={<ParentDashboard />} />
             <Route path="/admin/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
