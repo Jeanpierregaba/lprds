@@ -58,6 +58,7 @@ interface Child {
   code_qr_id: string;
   first_name: string;
   last_name: string;
+  usual_name: string;
   birth_date: string;
   section?: string;
 }
@@ -111,12 +112,42 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
     }
   };
 
+  // Fonction pour diviser le texte en plusieurs lignes si nécessaire
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i];
+      const width = ctx.measureText(currentLine + ' ' + word).width;
+      if (width < maxWidth) {
+        currentLine += ' ' + word;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    lines.push(currentLine);
+    return lines;
+  };
+
   const downloadQRCode = async () => {
     if (!qrCodeUrl) return;
 
     try {
       // Créer un canvas pour le template d'impression
       const encodedChildId = encodeChildId(child.id);
+
+      // Charger et enregistrer la police MuseoSansRounded pour le canvas
+      try {
+        // Utilise un poids moyen par défaut; adapter si besoin
+        const museoFont = new FontFace('MuseoSansRounded', 'url(/fonts/Museo/MuseoSansRounded500.woff)');
+        await museoFont.load();
+        (document as any).fonts && document.fonts.add(museoFont);
+      } catch (e) {
+        console.warn('Impossible de charger la police MuseoSansRounded, fallback appliqué.');
+      }
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -142,10 +173,17 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
         loadImage(patternBg)
       ]);
 
-      // Dessiner le motif avec opacité 40%
+      // Dessiner le motif en mode cover avec opacité 40%
       ctx.save();
       ctx.globalAlpha = 0.2;
-      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      {
+        const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
+        const drawW = Math.round(bgImg.width * scale);
+        const drawH = Math.round(bgImg.height * scale);
+        const drawX = Math.round((canvas.width - drawW) / 2);
+        const drawY = Math.round((canvas.height - drawH) / 2);
+        ctx.drawImage(bgImg, drawX, drawY, drawW, drawH);
+      }
       ctx.restore();
 
       // Bordure
@@ -155,29 +193,35 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
 
       // Logo en-tête
       const logoImg = await loadImage(logo);
-      const logoMaxWidth = 300;
+      const logoMaxWidth = 175;
       const logoScale = Math.min(logoMaxWidth / logoImg.width, 1);
       const logoW = Math.round(logoImg.width * logoScale);
       const logoH = Math.round(logoImg.height * logoScale);
-      const logoX = Math.round((canvas.width - logoW) / 2);
-      const logoY = 100;
+      const logoX = (canvas.width - logoW) / 2;
+      const logoY = 50;
       ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
 
+          
       // Titre
       ctx.fillStyle = '#164f2b';
-      ctx.font = 'bold 36px Poppins';
+      ctx.font = 'bold 36px MuseoSansRounded, Poppins, Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Code QR - Identification Enfant', canvas.width / 2, logoY + logoH + 100);
+      ctx.fillText('Code QR - Identification Enfant', canvas.width / 2, logoY + logoH  + 50);
 
-      // Nom de l'enfant
-      ctx.font = 'bold 40px Poppins';
+      // Nom de l'enfant avec gestion du retour à la ligne
+      ctx.font = 'bold 50px Fredoka One, Poppins, Arial';
       ctx.fillStyle = '#f4a92b';
-      ctx.fillText(`${child.first_name} ${child.last_name}`, canvas.width / 2, logoY + logoH + 175);
+      const fullName = `${child.usual_name} ${child.last_name}`;
+      const maxWidth = canvas.width - 100; // Marge de 50px de chaque côté
+      const nameLines = wrapText(ctx, fullName, maxWidth);
+      
+      // Dessiner chaque ligne du nom
+      const lineHeight = 50; // Espacement entre les lignes
+      const startY = logoY + logoH + 120;
+      nameLines.forEach((line, index) => {
+        ctx.fillText(line, canvas.width / 2, startY + (index * lineHeight));
+      });
 
-      // Code QR ID
-      ctx.font = '18px Arial';
-      //ctx.fillStyle = '#64748b';
-      //ctx.fillText(`Code: ${child.code_qr_id}`, canvas.width / 2, logoY + logoH + 104);
 
       // Section si disponible
       if (child.section) {
@@ -191,28 +235,27 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
           'maternelle_MS': 'Maternelle Moyenne Section'
         };
         const sectionLabel = sectionLabels[child.section as keyof typeof sectionLabels] || child.section;
-        ctx.fillText(`Section: ${sectionLabel}`, canvas.width / 2, 180);
+        ctx.font = 'bold 20px MuseoSansRounded, Poppins, Arial';
+        ctx.fillStyle = '#00a099';
+        // Ajuster la position de la section en fonction du nombre de lignes du nom
+        const sectionY = startY + (nameLines.length * lineHeight);
+        ctx.fillText(`Section: ${sectionLabel}`, canvas.width / 2, sectionY);
       }
 
       // Charger et dessiner le QR code
       const qrImg = await loadImage(qrCodeUrl);
       // Dessiner le QR code centré
-      const qrSize = 400;
+      const qrSize = 210;
       const qrX = (canvas.width - qrSize) / 2;
-      const qrY = 520;
+      const qrY = 350;
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-      // Instructions
-      //ctx.font = '16px Arial';
-      //ctx.fillStyle = '#475569';
-      //ctx.fillText('Scanner ce code pour identifier l\'enfant', canvas.width / 2, 580);
-      //ctx.fillText('lors des arrivées et départs', canvas.width / 2, 605);
+
 
       // Date de génération
-      //ctx.font = '14px Arial';
-      //ctx.fillStyle = '#94a3b8';
-      //const now = new Date().toLocaleDateString('fr-FR');
-      //ctx.fillText(`Généré le ${now}`, canvas.width / 2, 750);
+      ctx.font = '14px MuseoSansRounded, Poppins, Arial';
+      ctx.fillStyle = '#164f2b';
+      ctx.fillText('www.lespetitsrayonsdesoleil.fr', canvas.width / 2, 600);
 
       // Télécharger l'image
       canvas.toBlob((blob) => {
