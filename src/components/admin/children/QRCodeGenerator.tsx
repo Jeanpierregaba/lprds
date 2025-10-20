@@ -8,6 +8,51 @@ import { useToast } from '@/hooks/use-toast';
 import patternBg from '@/assets/pattern-bg.png';
 import logo from '@/assets/logo.png';
 
+// Fonctions d'encodage/décodage pour sécuriser le QR code
+const ENCRYPTION_KEY = 'LPRDS_SECURE_KEY_2024'; // Clé de chiffrement
+
+const encodeChildId = (childId: string): string => {
+  try {
+    // Créer un payload avec timestamp pour éviter les collisions
+    const timestamp = Date.now().toString(36);
+    const payload = `${childId}:${timestamp}`;
+    
+    // Chiffrement XOR simple mais efficace
+    let encrypted = '';
+    for (let i = 0; i < payload.length; i++) {
+      const charCode = payload.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
+      encrypted += String.fromCharCode(charCode);
+    }
+    
+    // Encoder en Base64 pour éviter les caractères problématiques
+    return btoa(encrypted);
+  } catch (error) {
+    console.error('Erreur encodage:', error);
+    return childId; // Fallback vers l'ID original
+  }
+};
+
+const decodeChildId = (encodedData: string): string | null => {
+  try {
+    // Décoder Base64
+    const encrypted = atob(encodedData);
+    
+    // Déchiffrement XOR
+    let decrypted = '';
+    for (let i = 0; i < encrypted.length; i++) {
+      const charCode = encrypted.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
+      decrypted += String.fromCharCode(charCode);
+    }
+    
+    // Extraire l'ID enfant (avant le ':')
+    const [childId] = decrypted.split(':');
+    return childId;
+  } catch (error) {
+    console.error('Erreur décodage:', error);
+    return null;
+  }
+};
+
 interface Child {
   id: string;
   code_qr_id: string;
@@ -39,15 +84,9 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
   const generateQRCode = async () => {
     setIsGenerating(true);
     try {
-      // Générer un QR code sans informations personnelles
-      // Encodage minimal: préfixe + identifiant opaque (A-Z0-9, max 5)
-      const token = (child.code_qr_id || '')
-        .toString()
-        .replace(/^LPRDS-/, '')
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '')
-        .slice(0, 5);
-      const qrData = `LPRDS-${token}`;
+      // Générer un QR code sécurisé avec l'ID enfant encodé
+      const encodedChildId = encodeChildId(child.id);
+      const qrData = `LPRDS:${encodedChildId}`;
 
       const url = await QRCode.toDataURL(qrData, {
         width: 400,
@@ -77,18 +116,14 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
 
     try {
       // Créer un canvas pour le template d'impression
-      const token = (child.code_qr_id || '')
-        .toString()
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '')
-        .slice(0, 5);
+      const encodedChildId = encodeChildId(child.id);
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
       // Dimensions du template
-      canvas.width = 1080;
-      canvas.height = 1080;
+      canvas.width = 1004;
+      canvas.height = 650;
 
       // Fond blanc
       ctx.fillStyle = '#ffffff';
@@ -185,7 +220,7 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `QR_${child.first_name}_${child.last_name}_LPRDS-${token}.png`;
+          a.download = `QR_${child.first_name}_${child.last_name}_${encodedChildId.slice(0, 8)}.png`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -280,7 +315,7 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
             </div>
             <div class="title">Code QR - Identification Enfant</div>
             <div class="child-name">${child.first_name} ${child.last_name}</div>
-            <div class="code">Code: ${child.code_qr_id}</div>
+            <div class="code">Code: ${encodeChildId(child.id).slice(0, 8)}...</div>
             ${child.section ? `<div class="section">Section: ${child.section}</div>` : ''}
             <div class="qr-code">
               <img src="${qrCodeUrl}" alt="QR Code" style="width: 300px; height: 300px;" />
@@ -340,7 +375,7 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
                     <p><strong>Nom:</strong> {child.first_name} {child.last_name}</p>
-                    <p><strong>Code:</strong> {child.code_qr_id} </p>
+                    <p><strong>Code sécurisé:</strong> {encodeChildId(child.id).slice(0, 12)}...</p>
                     {child.section && (
                       <p><strong>Section:</strong> {child.section}</p>
                     )}
@@ -359,7 +394,7 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
             <div className="print-template bg-white p-8 border-2 border-gray-200 rounded-lg text-center max-w-md mx-auto">
               <h2 className="text-xl font-bold text-gray-800 mb-2">Code QR - Identification Enfant</h2>
               <h3 className="text-2xl font-bold text-gray-900 mb-1">{child.first_name} {child.last_name}</h3>
-              <p className="text-gray-600 mb-4">Code: {`LPRDS-${(child.code_qr_id || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,5)}`}</p>
+              <p className="text-gray-600 mb-4">Code: {encodeChildId(child.id).slice(0, 8)}...</p>
               {qrCodeUrl && (
                 <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64 mx-auto mb-4" />
               )}

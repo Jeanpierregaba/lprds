@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Eye, Users, FileText, UserCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Eye, Users, FileText, UserCircle, AlertTriangle, Trash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import ChildDetailView from './children/ChildDetailView';
@@ -74,6 +74,21 @@ export default function ChildrenManagement() {
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'admission' | 'section'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleDeleteChild = async (childId: string, childName: string) => {
+    const confirmed = window.confirm(`Confirmer la suppression de ${childName} ? Cette action est irréversible.`);
+    if (!confirmed) return;
+    try {
+      const { error } = await supabase.from('children').delete().eq('id', childId);
+      if (error) throw error;
+      toast({ title: 'Supprimé', description: "L'enfant a été supprimé avec succès." });
+      // Rafraîchir la liste
+      fetchData();
+    } catch (err: any) {
+      console.error('Error deleting child:', err);
+      toast({ title: 'Erreur', description: err?.message || "Suppression impossible", variant: 'destructive' });
+    }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -384,6 +399,14 @@ export default function ChildrenManagement() {
                           Modifier
                         </Button>
                         <QRCodeGeneratorTrigger child={child} />
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteChild(child.id, `${child.first_name} ${child.last_name}`)}
+                        >
+                          <Trash className="w-4 h-4 mr-1" />
+                          Supprimer
+                        </Button>
                       </>
                     )}
                   </div>

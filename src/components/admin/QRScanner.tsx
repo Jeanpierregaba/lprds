@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
+import { parseQRCodeData } from '@/lib/qrDecoder';
 
 interface ScannedChild {
   id: string;
@@ -84,7 +85,80 @@ const QRScanner: React.FC = () => {
   // Fonction pour valider et traiter le QR code
   const processQRCode = async (qrCode: string): Promise<ScanResult> => {
     try {
-      // Supporter l'ancien format JSON tout en privilégiant le format minimal "LPRDS-<code>"
+      // Nouveau format sécurisé: LPRDS:<encoded>
+      if (qrCode.startsWith('LPRDS:')) {
+        const { childId, isValid } = parseQRCodeData(qrCode);
+        if (!isValid || !childId) {
+          return {
+            success: false,
+            message: 'QR Code invalide - Données illisibles'
+          };
+        }
+        // Rechercher par ID décodé
+        const { data: child, error } = await supabase
+          .from('children')
+          .select(`
+            id,
+            first_name,
+            last_name,
+            photo_url,
+            code_qr_id,
+            section,
+            groups (
+              name
+            )
+          `)
+          .eq('id', childId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (error || !child) {
+          return {
+            success: false,
+            message: 'Enfant non trouvé ou inactif'
+          };
+        }
+
+        // Vérifier les derniers pointages
+        const { data: lastScan } = await supabase
+          .from('qr_scan_logs')
+          .select('scan_type, scan_time')
+          .eq('child_id', child.id)
+          .order('scan_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const suggestedAction = !lastScan || lastScan.scan_type === 'departure' ? 'arrival' : 'departure';
+
+        if (lastScan) {
+          const lastScanTime = new Date(lastScan.scan_time);
+          const timeDiff = Date.now() - lastScanTime.getTime();
+          const minutesDiff = timeDiff / (1000 * 60);
+
+          if (minutesDiff < 5) {
+            return {
+              success: false,
+              message: `Dernière action il y a ${Math.round(minutesDiff)} minutes. Attendez au moins 5 minutes entre les pointages.`
+            };
+          }
+        }
+
+        return {
+          success: true,
+          message: 'QR Code valide',
+          child: {
+            ...child,
+            group_name: child.groups?.name,
+            last_attendance: lastScan ? {
+              scan_type: lastScan.scan_type as 'arrival' | 'departure',
+              scan_time: lastScan.scan_time
+            } : undefined
+          },
+          suggested_action: suggestedAction
+        };
+      }
+
+      // Ancien format: supporter JSON et LPRDS-<token>
       let normalizedCode = qrCode;
       try {
         const parsed = JSON.parse(qrCode);
@@ -99,7 +173,6 @@ const QRScanner: React.FC = () => {
         // not JSON, keep as-is
       }
 
-      // Valider le format du QR code (doit commencer par LPRDS-)
       if (!normalizedCode.startsWith('LPRDS-')) {
         return {
           success: false,
@@ -107,7 +180,6 @@ const QRScanner: React.FC = () => {
         };
       }
 
-      // Rechercher l'enfant dans la base de données
       const { data: child, error } = await supabase
         .from('children')
         .select(`
