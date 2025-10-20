@@ -16,48 +16,11 @@ interface Child {
   birth_date: string;
   admission_date: string;
   address?: string | null;
-  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null;
+  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS' | null;
   behavioral_notes?: string | null;
   preferences?: string | null;
 }
 
-// Mapping helpers entre valeurs legacy (UI) et enum BD
-const toDbSection = (
-  legacy: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null | undefined
-): 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null => {
-  switch (legacy) {
-    case 'creche_etoile':
-    case 'creche_nuage':
-    case 'creche_soleil':
-      return 'creche';
-    case 'garderie':
-      return 'garderie';
-    case 'maternelle_PS1':
-      return 'maternelle_etoile';
-    case 'maternelle_PS2':
-    case 'maternelle_MS':
-      return 'maternelle_soleil';
-    default:
-      return null;
-  }
-};
-
-const fromDbSection = (
-  db: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | string | null | undefined
-): 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null => {
-  switch (db) {
-    case 'creche':
-      return 'creche_etoile';
-    case 'garderie':
-      return 'garderie';
-    case 'maternelle_etoile':
-      return 'maternelle_PS1';
-    case 'maternelle_soleil':
-      return 'maternelle_PS2';
-    default:
-      return null;
-  }
-};
 
 export default function EditChildForm({ child, onSuccess }: { child: Child; onSuccess: () => void }) {
   const { toast } = useToast();
@@ -67,7 +30,7 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
     birth_date: child.birth_date || '',
     admission_date: child.admission_date || '',
     address: child.address || '',
-    section: fromDbSection(child.section as any),
+    section: child.section,
     behavioral_notes: child.behavioral_notes || '',
     preferences: child.preferences || ''
   });
@@ -138,8 +101,8 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
         preferences: form.preferences || null,
       };
 
-      // Gérer le champ section: mapper la valeur legacy (UI) vers l'enum BD
-      updateData.section = toDbSection(form.section as any);
+      // Section field - no mapping needed as DB uses same values
+      updateData.section = form.section;
 
       console.log('Child ID:', child.id);
       console.log('Updating child with data:', updateData);
@@ -159,7 +122,7 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
       console.log('Existing child data:', existingChild);
 
       // Vérifier si la section a changé pour réassigner automatiquement
-      const oldSection = toDbSection(child.section as any);
+      const oldSection = child.section;
       const newSection = updateData.section;
       const sectionChanged = oldSection !== newSection;
 

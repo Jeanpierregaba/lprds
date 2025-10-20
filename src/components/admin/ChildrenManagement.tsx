@@ -32,7 +32,7 @@ interface Child {
   allergies?: string;
   medical_info?: string;
   special_needs?: string;
-  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null;
+  section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS' | null;
   group_id?: string;
   medical_info_detailed?: any;
   emergency_contacts_detailed?: any;
@@ -70,7 +70,7 @@ export default function ChildrenManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('children');
   // Nouveaux états: filtre et tri
-  const [sectionFilter, setSectionFilter] = useState<'all' | 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS'>('all');
+  const [sectionFilter, setSectionFilter] = useState<'all' | 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'admission' | 'section'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,21 +120,8 @@ export default function ChildrenManagement() {
 
       if (educatorsError) throw educatorsError;
 
-      // Fix: Map childrenData to match Child type, especially for 'section' property
-      setChildren(
-        (childrenData || []).map((child) => ({
-          ...child,
-          // Map group section if present
-          groups: child.groups
-            ? {
-                ...child.groups,
-                section: child.groups.section
-              }
-            : undefined,
-          // Map section to new values using our mapping function
-          section: mapSectionValue(child.section) as 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null
-        }))
-      );
+      // Set children data directly - no mapping needed as DB already uses correct values
+      setChildren(childrenData || []);
       setGroups(groupsData || []);
       setEducators(educatorsData || []);
     } catch (error: any) {
@@ -157,22 +144,12 @@ export default function ChildrenManagement() {
       'garderie': 'Garderie (3-8 ans)',
       'maternelle_PS1': 'Maternelle Petite Section 1',
       'maternelle_PS2': 'Maternelle Petite Section 2',
-      'maternelle_MS': 'Maternelle Moyenne Section'
+      'maternelle_MS': 'Maternelle Moyenne Section',
+      'maternelle_GS': 'Maternelle Grande Section'
     };
     return labels[section as keyof typeof labels] || section;
   };
 
-  // Fonction pour mapper les anciennes valeurs de section vers les nouvelles
-  const mapSectionValue = (section: string | null): 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | null => {
-    if (!section) return null;
-    const mapping: Record<string, 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS'> = {
-      'creche': 'creche_etoile',
-      'garderie': 'garderie',
-      'maternelle_etoile': 'maternelle_PS1',
-      'maternelle_soleil': 'maternelle_PS2'
-    };
-    return mapping[section] || (section as any);
-  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -322,9 +299,10 @@ export default function ChildrenManagement() {
                   <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
                   <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
                   <SelectItem value="garderie">Garderie</SelectItem>
-                  <SelectItem value="maternelle_PS1">Maternelle PS1</SelectItem>
-                  <SelectItem value="maternelle_PS2">Maternelle PS2</SelectItem>
-                  <SelectItem value="maternelle_MS">Maternelle MS</SelectItem>
+                  <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
+                  <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
+                  <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
+                  <SelectItem value="maternelle_GS">Maternelle Grande Section</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -489,7 +467,8 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
       'garderie': 'Garderie',
       'maternelle_PS1': 'Maternelle Petite Section 1',
       'maternelle_PS2': 'Maternelle Petite Section 2',
-      'maternelle_MS': 'Maternelle Moyenne Section'
+      'maternelle_MS': 'Maternelle Moyenne Section',
+      'maternelle_GS': 'Maternelle Grande Section'
     };
     return labels[section as keyof typeof labels] || section;
   };
@@ -502,38 +481,27 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
       'garderie': '3-8 ans',
       'maternelle_PS1': '3-4 ans',
       'maternelle_PS2': '4-5 ans',
-      'maternelle_MS': '5-6 ans'
+      'maternelle_MS': '5-6 ans',
+      'maternelle_GS': '6-7 ans'
     };
     return ranges[section as keyof typeof ranges] || '';
   };
 
   const sectionConfigs = [
-    { id: 'creche_etoile', name: 'creche_etoile' },
-    { id: 'creche_nuage', name: 'creche_nuage' },
-    { id: 'creche_soleil', name: 'creche_soleil' },
-    { id: 'garderie', name: 'garderie' },
-    { id: 'maternelle_PS1', name: 'maternelle_PS1' },
-    { id: 'maternelle_PS2', name: 'maternelle_PS2' },
-    { id: 'maternelle_MS', name: 'maternelle_MS' }
+    { id: 'creche_etoile', name: 'Crèche Étoile' },
+    { id: 'creche_nuage', name: 'Crèche Nuage' },
+    { id: 'creche_soleil', name: 'Crèche Soleil TPS' },
+    { id: 'garderie', name: 'Garderie' },
+    { id: 'maternelle_PS1', name: 'Maternelle Petite Section 1' },
+    { id: 'maternelle_PS2', name: 'Maternelle Petite Section 2' },
+    { id: 'maternelle_MS', name: 'Maternelle Moyenne Section' },
+    { id: 'maternelle_GS', name: 'Maternelle Grande Section' }
   ];
 
-  // Map old DB sections to new ones
-  const mapDbSectionToNew = (dbSection: string): string => {
-    const mapping: Record<string, string> = {
-      'creche': 'creche_etoile',
-      'maternelle_etoile': 'maternelle_PS1',
-      'maternelle_soleil': 'maternelle_PS2',
-      'garderie': 'garderie'
-    };
-    return mapping[dbSection] || dbSection;
-  };
 
   const sectionsData = sectionConfigs.map(config => {
-    // Find groups that belong to this section (considering DB mapping)
-    const sectionGroups = groups.filter(group => {
-      const mappedSection = mapDbSectionToNew(group.section);
-      return mappedSection === config.name;
-    }).map(group => {
+    // Find groups that belong to this section
+    const sectionGroups = groups.filter(group => group.section === config.id).map(group => {
       const groupChildren = children.filter(child => child.group_id === group.id);
       return {
         ...group,
@@ -718,7 +686,7 @@ function CreateGroupForm({ educators, onSuccess }: {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    section: '' as 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | '',
+    section: '' as 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS' | '',
     type: 'mixed_group' as 'age_group' | 'mixed_group' | 'class',
     capacity: 15,
     assigned_educator_id: '',
@@ -726,26 +694,6 @@ function CreateGroupForm({ educators, onSuccess }: {
     age_max_months: '',
   });
 
-  // Map UI section values to current DB enum values
-  const mapSectionForDB = (
-    section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | ''
-  ): 'garderie' | 'creche' | 'maternelle_etoile' | 'maternelle_soleil' => {
-    switch (section) {
-      case 'creche_etoile':
-      case 'creche_nuage':
-      case 'creche_soleil':
-        return 'creche';
-      case 'maternelle_PS1':
-        return 'maternelle_etoile';
-      case 'maternelle_PS2':
-      case 'maternelle_MS':
-        return 'maternelle_soleil';
-      case 'garderie':
-        return 'garderie';
-      default:
-        return 'garderie';
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -760,7 +708,7 @@ function CreateGroupForm({ educators, onSuccess }: {
         return;
       }
 
-      const dbSection = mapSectionForDB(formData.section);
+      const dbSection = formData.section || 'garderie';
 
       const { error } = await supabase
         .from('groups')
@@ -823,6 +771,7 @@ function CreateGroupForm({ educators, onSuccess }: {
             <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
             <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
             <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
+            <SelectItem value="maternelle_GS">Maternelle Grande Section</SelectItem>
           </SelectContent>
         </Select>
       </div>

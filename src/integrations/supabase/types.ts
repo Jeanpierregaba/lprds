@@ -195,7 +195,7 @@ export type Database = {
           medical_info_detailed: Json | null
           photo_url: string | null
           preferences: string | null
-          section: Database["public"]["Enums"]["child_section"] | null
+          section: Database["public"]["Enums"]["child_section_new"] | null
           special_needs: string | null
           status: Database["public"]["Enums"]["child_status"]
           updated_at: string
@@ -222,7 +222,7 @@ export type Database = {
           medical_info_detailed?: Json | null
           photo_url?: string | null
           preferences?: string | null
-          section?: Database["public"]["Enums"]["child_section"] | null
+          section?: Database["public"]["Enums"]["child_section_new"] | null
           special_needs?: string | null
           status?: Database["public"]["Enums"]["child_status"]
           updated_at?: string
@@ -249,7 +249,7 @@ export type Database = {
           medical_info_detailed?: Json | null
           photo_url?: string | null
           preferences?: string | null
-          section?: Database["public"]["Enums"]["child_section"] | null
+          section?: Database["public"]["Enums"]["child_section_new"] | null
           special_needs?: string | null
           status?: Database["public"]["Enums"]["child_status"]
           updated_at?: string
@@ -441,7 +441,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          section: Database["public"]["Enums"]["child_section"]
+          section: Database["public"]["Enums"]["child_section_new"]
           type: Database["public"]["Enums"]["group_type"]
           updated_at: string
         }
@@ -454,7 +454,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          section: Database["public"]["Enums"]["child_section"]
+          section: Database["public"]["Enums"]["child_section_new"]
           type?: Database["public"]["Enums"]["group_type"]
           updated_at?: string
         }
@@ -467,7 +467,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          section?: Database["public"]["Enums"]["child_section"]
+          section?: Database["public"]["Enums"]["child_section_new"]
           type?: Database["public"]["Enums"]["group_type"]
           updated_at?: string
         }
@@ -761,11 +761,15 @@ export type Database = {
       }
     }
     Enums: {
-      child_section:
-        | "creche"
+      child_section_new:
+        | "creche_etoile"
+        | "creche_nuage"
+        | "creche_soleil"
         | "garderie"
-        | "maternelle_etoile"
-        | "maternelle_soleil"
+        | "maternelle_PS1"
+        | "maternelle_PS2"
+        | "maternelle_MS"
+        | "maternelle_GS"
       child_status: "active" | "inactive" | "waiting_list"
       group_type: "age_group" | "mixed_group" | "class"
       user_role: "admin" | "secretary" | "educator" | "parent"
@@ -896,11 +900,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      child_section: [
-        "creche",
+      child_section_new: [
+        "creche_etoile",
+        "creche_nuage",
+        "creche_soleil",
         "garderie",
-        "maternelle_etoile",
-        "maternelle_soleil",
+        "maternelle_PS1",
+        "maternelle_PS2",
+        "maternelle_MS",
+        "maternelle_GS",
       ],
       child_status: ["active", "inactive", "waiting_list"],
       group_type: ["age_group", "mixed_group", "class"],

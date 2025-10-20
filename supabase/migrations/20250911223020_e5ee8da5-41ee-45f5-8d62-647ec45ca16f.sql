@@ -1,5 +1,5 @@
 -- Create enum for child sections
-CREATE TYPE child_section AS ENUM ('creche', 'garderie', 'maternelle_etoile', 'maternelle_soleil');
+CREATE TYPE child_section AS ENUM ('creche_etoile', 'creche_nuage', 'creche_soleil','garderie', 'maternelle_PS1', 'maternelle_PS2', 'maternelle_MS');
 
 -- Create enum for group types
 CREATE TYPE group_type AS ENUM ('age_group', 'mixed_group', 'class');

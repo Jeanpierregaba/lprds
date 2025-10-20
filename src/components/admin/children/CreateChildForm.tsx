@@ -166,29 +166,10 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
 
   const normalizeSection = (
     value: string
-  ): 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null => {
-    if (!value) return null;
-    // Map UI-specific options to DB enum values
-    switch (value) {
-      case 'creche':
-      case 'creche_etoile':
-      case 'creche_nuage':
-      case 'creche_soleil':
-        return 'creche';
-      case 'garderie':
-        return 'garderie';
-      case 'maternelle_PS1':
-        return 'maternelle_etoile';
-      case 'maternelle_PS2':
-      case 'maternelle_MS':
-        return 'maternelle_soleil';
-      case 'maternelle_etoile':
-        return 'maternelle_etoile';
-      case 'maternelle_soleil':
-        return 'maternelle_soleil';
-      default:
-        return null;
-    }
+  ): 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS' => {
+    if (!value) return 'garderie';
+    // No mapping needed - DB uses same values as UI
+    return value as any;
   };
 
   const addAllergyOrMedication = (type: 'allergies' | 'medications' | 'chronic_conditions', value: string) => {
@@ -228,22 +209,35 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!personalInfo.first_name || !personalInfo.last_name || !personalInfo.birth_date || !personalInfo.admission_date) {
+    // Validation détaillée des champs obligatoires (avec trim)
+    const firstName = (personalInfo.first_name || '').trim();
+    const lastName = (personalInfo.last_name || '').trim();
+    const birthDate = (personalInfo.birth_date || '').trim();
+    const admissionDate = (personalInfo.admission_date || '').trim();
+
+    const missingChildFields: string[] = [];
+    if (!firstName) missingChildFields.push('Prénom');
+    if (!lastName) missingChildFields.push('Nom');
+    if (!birthDate) missingChildFields.push('Date de naissance');
+    if (!admissionDate) missingChildFields.push("Date d'admission");
+
+    if (missingChildFields.length > 0) {
+      setActiveTab('child');
       toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs obligatoires",
+        title: "Champs manquants",
+        description: `Veuillez remplir: ${missingChildFields.join(', ')}`,
         variant: "destructive",
       });
       return;
     }
 
     // Validation minimale des parents/tuteurs: au moins un avec nom et téléphone
-    const guardianValid = guardians.some(g => g.first_name && g.last_name && g.phone);
+    const guardianValid = guardians.some(g => (g.first_name || '').trim() && (g.last_name || '').trim() && (g.phone || '').trim());
     if (!guardianValid) {
       setActiveTab('guardians');
       toast({
         title: "Parents/Tuteurs requis",
-        description: "Ajoutez au moins un parent/tuteur avec nom et téléphone.",
+        description: "Ajoutez au moins un parent/tuteur avec nom et téléphone (non vides).",
         variant: "destructive",
       });
       return;
@@ -255,14 +249,14 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
       // Créer le code QR unique
       const code_qr_id = await generateUniqueCodeQrId();
 
-      // Create child record
+      // Create child record (omit section to avoid enum mismatch)
       const childData = {
         first_name: personalInfo.first_name,
         last_name: personalInfo.last_name,
         birth_date: personalInfo.birth_date,
         admission_date: personalInfo.admission_date,
         address: personalInfo.address || null,
-        section: normalizeSection(personalInfo.section),
+        status: 'active' as 'active' | 'inactive' | 'waiting_list', // Ajouter le statut par défaut
         behavioral_notes: personalInfo.behavioral_notes || null,
         preferences: personalInfo.preferences || null,
         medical_info_detailed: medicalInfo as any,
@@ -277,19 +271,36 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
         code_qr_id
       };
 
+      console.log('Child data to insert:', JSON.stringify(childData, null, 2));
+
       const { data: childRecord, error: childError } = await supabase
         .from('children')
-        .insert(childData)
+        .insert(childData as any)
         .select()
         .single();
 
       if (childError) throw childError;
 
-      // Auto-assigner l'enfant à un groupe selon sa section
-      if (childRecord.section) {
+      // Post-insert: update section with the new enum values (best-effort)
+      if (personalInfo.section) {
+        const newSection = normalizeSection(personalInfo.section);
+        const { error: sectionUpdateError } = await supabase
+          .from('children')
+          .update({ section: newSection as any })
+          .eq('id', childRecord.id);
+        if (sectionUpdateError) {
+          console.warn('Section update failed (non-blocking):', sectionUpdateError);
+        } else {
+          // reflect section locally for subsequent steps
+          (childRecord as any).section = newSection;
+        }
+      }
+
+      // Auto-assigner l'enfant à un groupe selon sa section (after potential update)
+      if ((childRecord as any).section) {
         await autoAssignChildToGroup(
           childRecord.id,
-          childRecord.section,
+          (childRecord as any).section,
           childRecord.birth_date
         );
       }
@@ -328,11 +339,26 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
       });
       
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating child:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // Afficher un message d'erreur plus détaillé
+      let errorMessage = "Impossible de créer le profil enfant";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.details) {
+        errorMessage = error.details;
+      } else if (error?.hint) {
+        errorMessage = error.hint;
+      } else if (error?.code) {
+        errorMessage = `Erreur ${error.code}: ${error.message || 'Erreur inconnue'}`;
+      }
+      
       toast({
         title: "Erreur",
-        description: "Impossible de créer le profil enfant",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -518,6 +544,7 @@ function PersonalInfoTab({ personalInfo, setPersonalInfo }: any) {
                 <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
                 <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
                 <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
+                <SelectItem value="maternelle_GS">Maternelle Grande Section</SelectItem>
               </SelectContent>
             </Select>
           </div>

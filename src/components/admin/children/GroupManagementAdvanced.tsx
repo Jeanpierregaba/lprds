@@ -158,6 +158,13 @@ export default function GroupManagementAdvanced() {
         label: 'Maternelle Moyenne Section', 
         ageRange: '5-6ans',
         ratioRequired: 10 // 1 éducateur pour 10 enfants
+      },
+      { 
+        id: 'maternelle_GS', 
+        name: 'maternelle_GS', 
+        label: 'Maternelle Grande Section', 
+        ageRange: '6-7ans',
+        ratioRequired: 10 // 1 éducateur pour 10 enfants
       }
     ];
 
