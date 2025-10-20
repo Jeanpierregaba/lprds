@@ -73,6 +73,7 @@ export default function ChildrenManagement() {
   const [sectionFilter, setSectionFilter] = useState<'all' | 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'admission' | 'section'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (profile) {
@@ -214,7 +215,18 @@ export default function ChildrenManagement() {
   };
 
   const filteredAndSortedChildren = (() => {
-    const filtered = children.filter((c) => sectionFilter === 'all' ? true : c.section === sectionFilter);
+    const filtered = children.filter((c) => {
+      // Filtre par section
+      const sectionMatch = sectionFilter === 'all' ? true : c.section === sectionFilter;
+      
+      // Filtre par recherche (nom ou prénom)
+      const searchMatch = searchQuery === '' || 
+        `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.last_name.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return sectionMatch && searchMatch;
+    });
     const sorted = [...filtered].sort((a, b) => {
       let cmp = 0;
       switch (sortBy) {
@@ -289,6 +301,15 @@ export default function ChildrenManagement() {
         <TabsContent value="children">
           {/* Barre de filtres et tri (déplacée ici) */}
           <div className="flex flex-wrap gap-3 items-end mb-4">
+            <div>
+              <Label>Rechercher un enfant</Label>
+              <Input
+                placeholder="Nom ou prénom..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64"
+              />
+            </div>
             <div>
               <Label>Filtrer par section</Label>
               <Select value={sectionFilter} onValueChange={(v) => setSectionFilter(v as any)}>
