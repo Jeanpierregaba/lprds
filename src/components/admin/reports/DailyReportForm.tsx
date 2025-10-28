@@ -139,15 +139,31 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         .select('id, first_name, last_name, photo_url, section')
         .eq('status', 'active');
 
-      // Les éducateurs ne voient que leurs enfants assignés
+      // Les éducateurs ne voient que leurs enfants assignés via le groupe
       // Les admins et secrétaires voient tous les enfants
       if (profile!.role === 'educator') {
-        query = query.eq('assigned_educator_id', profile!.id);
+        // D'abord récupérer le groupe de l'éducateur
+        const { data: educatorGroup, error: groupError } = await supabase
+          .from('groups')
+          .select('id')
+          .eq('assigned_educator_id', profile!.id)
+          .single();
+
+        if (groupError || !educatorGroup) {
+          console.log('No group found for educator:', profile!.id);
+          setAvailableChildren([]);
+          return;
+        }
+
+        // Puis filtrer les enfants par group_id
+        query = query.eq('group_id', educatorGroup.id);
+        console.log('DailyReportForm - Educator group ID:', educatorGroup.id);
       }
 
       const { data, error } = await query.order('first_name');
 
       if (error) throw error;
+      console.log('DailyReportForm - Available children:', data?.length || 0);
       setAvailableChildren(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des enfants:', error);

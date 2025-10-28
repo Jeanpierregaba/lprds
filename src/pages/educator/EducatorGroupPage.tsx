@@ -14,7 +14,8 @@ import {
   Calendar,
   AlertCircle,
   Heart,
-  Info
+  Info,
+  Users
 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
@@ -30,6 +31,7 @@ interface Child {
   allergies?: string
   medical_info?: string
   address?: string
+  code_qr_id?: string
 }
 
 interface Group {
@@ -58,7 +60,7 @@ const EducatorGroupPage = () => {
     try {
       setLoading(true)
 
-      // Charger les informations du groupe
+      // Charger les informations du groupe de l'éducateur
       const { data: groupData, error: groupError } = await supabase
         .from('groups')
         .select('*')
@@ -67,21 +69,29 @@ const EducatorGroupPage = () => {
 
       if (groupError && groupError.code !== 'PGRST116') {
         console.error('Erreur chargement groupe:', groupError)
-      } else if (groupData) {
-        setGroup(groupData)
+        setGroup(null)
+        setChildren([])
+        return
       }
 
-      // Charger les enfants assignés à l'éducateur
-      const { data: childrenData, error: childrenError } = await supabase
-        .from('children')
-        .select('id, first_name, last_name, birth_date, photo_url, section, allergies, medical_info, address')
-        .eq('assigned_educator_id', profile.id)
-        .eq('status', 'active')
-        .order('first_name')
+      if (groupData) {
+        setGroup(groupData)
+        
+        // Charger les enfants assignés au groupe de l'éducateur
+        const { data: childrenData, error: childrenError } = await supabase
+          .from('children')
+          .select('id, first_name, last_name, birth_date, photo_url, section, allergies, medical_info, address, code_qr_id')
+          .eq('group_id', groupData.id)
+          .order('first_name')
 
-      if (childrenError) throw childrenError
+        if (childrenError) throw childrenError
 
-      setChildren(childrenData || [])
+        setChildren(childrenData || [])
+      } else {
+        // Aucun groupe assigné
+        setGroup(null)
+        setChildren([])
+      }
     } catch (error) {
       console.error('Erreur:', error)
       toast({
@@ -107,6 +117,20 @@ const EducatorGroupPage = () => {
       const remainingMonths = months % 12
       return remainingMonths > 0 ? `${years} ans ${remainingMonths} mois` : `${years} ans`
     }
+  }
+
+  const getSectionLabel = (section: string) => {
+    const labels = {
+      'creche_etoile': 'Crèche Étoile',
+      'creche_nuage': 'Crèche Nuage',
+      'creche_soleil': 'Crèche Soleil TPS',
+      'garderie': 'Garderie',
+      'maternelle_PS1': 'Maternelle Petite Section 1',
+      'maternelle_PS2': 'Maternelle Petite Section 2',
+      'maternelle_MS': 'Maternelle Moyenne Section',
+      'maternelle_GS': 'Maternelle Grande Section'
+    }
+    return labels[section as keyof typeof labels] || section
   }
 
   const filteredChildren = children.filter(child =>
@@ -141,11 +165,11 @@ const EducatorGroupPage = () => {
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Baby className="h-5 w-5" />
+              <Users className="h-5 w-5" />
               {group.name}
             </CardTitle>
             <CardDescription>
-              Section: {group.section} • Capacité: {children.length}/{group.capacity} enfants
+              Section: {getSectionLabel(group.section)} • Capacité: {children.length}/{group.capacity} enfants
             </CardDescription>
           </CardHeader>
           {group.description && (
@@ -216,7 +240,7 @@ const EducatorGroupPage = () => {
                     </div>
                     {child.section && (
                       <Badge variant="outline" className="mt-2">
-                        {child.section}
+                        {getSectionLabel(child.section)}
                       </Badge>
                     )}
                   </div>

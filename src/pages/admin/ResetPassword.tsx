@@ -22,11 +22,38 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we have a recovery token in the URL
-    const type = searchParams.get('type');
-    if (type !== 'recovery') {
-      setError('Lien invalide ou expiré');
-    }
+    const initializeAuth = async () => {
+      // Check if we have a valid token in the URL
+      const type = searchParams.get('type');
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      
+      // Accept both 'recovery' and 'signup' types, or if we have tokens
+      if (type && !['recovery', 'signup'].includes(type) && !accessToken && !refreshToken) {
+        setError('Lien invalide ou expiré');
+        return;
+      }
+
+      // If we have tokens in the URL, try to set the session
+      if (accessToken && refreshToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error('Session setup error:', error);
+            setError('Impossible de valider le lien. Veuillez réessayer.');
+          }
+        } catch (err) {
+          console.error('Unexpected session error:', err);
+          setError('Erreur lors de la validation du lien.');
+        }
+      }
+    };
+
+    initializeAuth();
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,12 +75,21 @@ const ResetPassword = () => {
     }
 
     try {
+      // First, try to get the current session to ensure we have a valid user
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        setError('Session invalide. Veuillez cliquer à nouveau sur le lien de confirmation.');
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: password
       });
 
       if (error) {
-        setError('Impossible de définir le mot de passe');
+        console.error('Password update error:', error);
+        setError(`Impossible de définir le mot de passe: ${error.message}`);
         toast({
           variant: "destructive",
           title: "Erreur",
@@ -71,7 +107,8 @@ const ResetPassword = () => {
         }, 2000);
       }
     } catch (err) {
-      setError('Une erreur est survenue');
+      console.error('Unexpected error:', err);
+      setError('Une erreur inattendue est survenue');
     } finally {
       setLoading(false);
     }

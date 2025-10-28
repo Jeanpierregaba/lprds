@@ -270,70 +270,7 @@ const ParentDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Dernières Activités</CardTitle>
-                  <CardDescription>
-                    Les activités récentes de vos enfants
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <Camera className="w-5 h-5 text-blue-500" />
-                      <div>
-                        <p className="text-sm font-medium">Activité peinture</p>
-                        <p className="text-xs text-muted-foreground">Emma - Il y a 2 heures</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Heart className="w-5 h-5 text-red-500" />
-                      <div>
-                        <p className="text-sm font-medium">Temps de repos</p>
-                        <p className="text-xs text-muted-foreground">Lucas - Il y a 3 heures</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Calendar className="w-5 h-5 text-green-500" />
-                      <div>
-                        <p className="text-sm font-medium">Sortie au parc</p>
-                        <p className="text-xs text-muted-foreground">Groupe - Hier</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informations Importantes</CardTitle>
-                  <CardDescription>
-                    Messages et annonces de l'équipe
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                        📅 Sortie pédagogique prévue
-                      </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-300">
-                        Vendredi prochain au musée des enfants
-                      </p>
-                    </div>
-                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                        🎉 Fête de fin d'année
-                      </p>
-                      <p className="text-xs text-green-600 dark:text-green-300">
-                        Le 20 décembre à partir de 16h
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <RecentActivitiesAndAnnouncements />
           </TabsContent>
 
           <TabsContent value="attendance">
@@ -401,5 +338,171 @@ const ParentDashboard = () => {
     </div>
   );
 };
+
+// Component for recent activities and announcements with real data
+function RecentActivitiesAndAnnouncements() {
+  const { profile } = useAuth();
+  const [activities, setActivities] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchActivitiesAndAnnouncements();
+  }, [profile]);
+
+  const fetchActivitiesAndAnnouncements = async () => {
+    try {
+      setLoading(true);
+      
+      // Get parent's children IDs
+      const { data: parentChildren } = await supabase
+        .from('parent_children')
+        .select('child_id')
+        .eq('parent_id', profile?.id);
+      
+      const childrenIds = parentChildren?.map(pc => pc.child_id) || [];
+
+      if (childrenIds.length === 0) {
+        setActivities([]);
+        setAnnouncements([]);
+        return;
+      }
+
+      // Fetch recent activities for children
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      
+      const { data: activitiesData } = await supabase
+        .from('activities')
+        .select(`
+          id,
+          activity_name,
+          activity_date,
+          description,
+          children(first_name, last_name)
+        `)
+        .in('child_id', childrenIds)
+        .gte('activity_date', weekAgo.toISOString().split('T')[0])
+        .order('activity_date', { ascending: false })
+        .limit(5);
+
+      // Fetch announcements/messages from staff
+      const { data: announcementsData } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          subject,
+          content,
+          created_at,
+          sender:profiles!messages_sender_id_fkey(first_name, last_name, role)
+        `)
+        .eq('recipient_id', profile?.id)
+        .in('sender_role', ['admin', 'educator', 'secretary'])
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      setActivities(activitiesData || []);
+      setAnnouncements(announcementsData || []);
+
+    } catch (error) {
+      console.error('Error fetching activities and announcements:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Dernières Activités</CardTitle>
+            <CardDescription>Chargement...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Informations Importantes</CardTitle>
+            <CardDescription>Chargement...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Dernières Activités</CardTitle>
+          <CardDescription>
+            Les activités récentes de vos enfants
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {activities.length > 0 ? (
+              activities.map((activity) => (
+                <div key={activity.id} className="flex items-center space-x-3">
+                  <Camera className="w-5 h-5 text-blue-500" />
+                  <div>
+                    <p className="text-sm font-medium">{activity.activity_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {activity.children?.first_name} {activity.children?.last_name} - 
+                      {new Date(activity.activity_date).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune activité récente</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations Importantes</CardTitle>
+          <CardDescription>
+            Messages et annonces de l'équipe
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {announcements.length > 0 ? (
+              announcements.map((announcement) => (
+                <div key={announcement.id} className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    {announcement.subject}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300">
+                    {announcement.sender?.first_name} {announcement.sender?.last_name} - 
+                    {new Date(announcement.created_at).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucun message récent</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default ParentDashboard;

@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Eye, Users, FileText, UserCircle, AlertTriangle, Trash } from 'lucide-react';
+import { Plus, Edit, Eye, Users, FileText, UserCircle, AlertTriangle, Trash, UserPlus, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import ChildDetailView from './children/ChildDetailView';
 import CreateChildForm from '@/components/admin/children/CreateChildForm';
 import EditChildForm from '@/components/admin/children/EditChildForm';
@@ -24,6 +25,7 @@ interface Child {
   code_qr_id: string;
   first_name: string;
   last_name: string;
+  usual_name?: string;
   birth_date: string;
   admission_date: string;
   status: string;
@@ -398,7 +400,7 @@ export default function ChildrenManagement() {
                           <Edit className="w-4 h-4 mr-1" />
                           Modifier
                         </Button>
-                        <QRCodeGeneratorTrigger child={child} />
+                        <QRCodeGeneratorTrigger child={child as any} />
                         <Button
                           size="sm"
                           variant="destructive"
@@ -534,7 +536,7 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
     });
 
     // Also count children directly assigned to this section (not just through groups)
-    const directSectionChildren = children.filter(child => child.section === config.name);
+    const directSectionChildren = children.filter(child => child.section === config.id);
     const totalChildren = directSectionChildren.length;
     const totalCapacity = sectionGroups.reduce((sum, group) => sum + group.capacity, 0);
 
@@ -643,48 +645,13 @@ function GroupsManagement({ groups, educators, children, onRefresh }: {
               {section.groups.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {section.groups.map((group) => (
-                    <Card key={group.id} className="border-2">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center justify-between">
-                          {group.name}
-                          <Badge 
-                            variant={group.children_count >= group.capacity ? "destructive" : "default"}
-                          >
-                            {group.children_count}/{group.capacity}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {group.assigned_educator ? (
-                          <p className="text-sm">
-                            <strong>Éducateur:</strong> {group.assigned_educator.first_name} {group.assigned_educator.last_name}
-                          </p>
-                        ) : (
-                          <p className="text-sm text-destructive">
-                            <AlertTriangle className="w-4 h-4 inline mr-1" />
-                            Aucun éducateur assigné
-                          </p>
-                        )}
-                        
-                        {group.children.length > 0 ? (
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground">Enfants:</p>
-                            {group.children.slice(0, 3).map((child) => (
-                              <p key={child.id} className="text-xs">
-                                {child.first_name} {child.last_name}
-                              </p>
-                            ))}
-                            {group.children.length > 3 && (
-                              <p className="text-xs text-muted-foreground">
-                                +{group.children.length - 3} autres...
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Aucun enfant assigné</p>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <GroupCard 
+                      key={group.id} 
+                      group={group} 
+                      sectionChildren={section.allSectionChildren}
+                      educators={educators}
+                      onRefresh={onRefresh}
+                    />
                   ))}
                 </div>
               ) : (
@@ -888,6 +855,407 @@ function CreateGroupForm({ educators, onSuccess }: {
       <Button type="submit" className="w-full hover:bg-accent">
         Créer le groupe
       </Button>
+    </form>
+  );
+}
+
+// Composant pour les cartes de groupes améliorées
+function GroupCard({ group, sectionChildren, educators, onRefresh }: {
+  group: any;
+  sectionChildren: any[];
+  educators: any[];
+  onRefresh: () => void;
+}) {
+  const { toast } = useToast();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+
+  // Initialiser avec les enfants déjà assignés
+  useEffect(() => {
+    if (isAssignOpen) {
+      setSelectedChildren(group.children.map((child: any) => child.id));
+      console.log('Section children for assignment:', sectionChildren);
+      console.log('Group children already assigned:', group.children);
+    }
+  }, [isAssignOpen, group.children, sectionChildren]);
+
+  const handleAssignChildren = async () => {
+    try {
+      console.log('Assigning children to group:', group.id);
+      console.log('Selected children:', selectedChildren);
+      
+      // Supprimer toutes les assignations existantes
+      const { error: removeError } = await supabase
+        .from('children')
+        .update({ group_id: null })
+        .eq('group_id', group.id);
+
+      if (removeError) {
+        console.error('Error removing existing assignments:', removeError);
+        throw removeError;
+      }
+
+      console.log('Removed existing assignments successfully');
+
+      // Assigner les nouveaux enfants
+      if (selectedChildren.length > 0) {
+        const { error: assignError } = await supabase
+          .from('children')
+          .update({ group_id: group.id })
+          .in('id', selectedChildren);
+
+        if (assignError) {
+          console.error('Error assigning children:', assignError);
+          throw assignError;
+        }
+
+        console.log('Assigned children successfully');
+        
+        // Debug: Vérifier que les enfants ont bien été assignés
+        const { data: verifyChildren, error: verifyError } = await supabase
+          .from('children')
+          .select('id, first_name, last_name, group_id')
+          .in('id', selectedChildren);
+        
+        console.log('Verification - Children after assignment:', verifyChildren);
+        console.log('Verification - Error:', verifyError);
+        
+        // Debug: Vérifier directement avec le group_id
+        const { data: directCheck, error: directError } = await supabase
+          .from('children')
+          .select('id, first_name, last_name, group_id')
+          .eq('group_id', group.id);
+        
+        console.log('Direct check - Children with group_id:', directCheck);
+        console.log('Direct check - Error:', directError);
+      }
+
+      toast({
+        title: "Assignation mise à jour",
+        description: `${selectedChildren.length} enfant(s) assigné(s) au groupe ${group.name}`,
+      });
+
+      setIsAssignOpen(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Error assigning children:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour les assignations",
+      });
+    }
+  };
+
+  const handleChildToggle = (childId: string) => {
+    setSelectedChildren(prev => 
+      prev.includes(childId) 
+        ? prev.filter(id => id !== childId)
+        : [...prev, childId]
+    );
+  };
+
+  return (
+    <>
+      <Card className="border-2 hover:shadow-md transition-shadow">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center justify-between">
+            {group.name}
+            <Badge 
+              variant={group.children_count >= group.capacity ? "destructive" : "default"}
+            >
+              {group.children_count}/{group.capacity}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {group.assigned_educator ? (
+            <p className="text-sm">
+              <strong>Éducateur:</strong> {group.assigned_educator.first_name} {group.assigned_educator.last_name}
+            </p>
+          ) : (
+            <p className="text-sm text-destructive">
+              <AlertTriangle className="w-4 h-4 inline mr-1" />
+              Aucun éducateur assigné
+            </p>
+          )}
+          
+          {group.children.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Enfants:</p>
+              {group.children.slice(0, 3).map((child: any) => (
+                <p key={child.id} className="text-xs">
+                  {child.first_name} {child.last_name}
+                </p>
+              ))}
+              {group.children.length > 3 && (
+                <p className="text-xs text-muted-foreground">
+                  +{group.children.length - 3} autres...
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucun enfant assigné</p>
+          )}
+
+          {/* Boutons d'action */}
+          <div className="flex gap-2 pt-2">
+            <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1">
+                  <Eye className="w-4 h-4 mr-1" />
+                  Voir
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Détails du groupe {group.name}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Nom du groupe</Label>
+                      <p className="text-sm font-medium">{group.name}</p>
+                    </div>
+                    <div>
+                      <Label>Capacité</Label>
+                      <p className="text-sm font-medium">{group.capacity}</p>
+                    </div>
+                    <div>
+                      <Label>Éducateur assigné</Label>
+                      <p className="text-sm font-medium">
+                        {group.assigned_educator 
+                          ? `${group.assigned_educator.first_name} ${group.assigned_educator.last_name}`
+                          : 'Aucun'
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <Label>Enfants assignés</Label>
+                      <p className="text-sm font-medium">{group.children_count}</p>
+                    </div>
+                  </div>
+                  
+                  {group.description && (
+                    <div>
+                      <Label>Description</Label>
+                      <p className="text-sm">{group.description}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label>Liste des enfants</Label>
+                    {group.children.length > 0 ? (
+                      <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
+                        {group.children.map((child: any) => (
+                          <div key={child.id} className="flex items-center justify-between p-2 border rounded">
+                            <div>
+                              <p className="font-medium">{child.first_name} {child.last_name}</p>
+                              <p className="text-xs text-muted-foreground">Code: {child.code_qr_id}</p>
+                            </div>
+                            <QRCodeGeneratorTrigger child={child as any} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2">Aucun enfant assigné</p>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1">
+                  <UserPlus className="w-4 h-4 mr-1" />
+                  Assigner
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Assigner des enfants au groupe {group.name}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Capacité: {group.children_count}/{group.capacity} enfants
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    Enfants disponibles dans cette section: {sectionChildren.length}
+                  </div>
+                  
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {sectionChildren.map((child) => (
+                      <div key={child.id} className="flex items-center space-x-2 p-2 border rounded">
+                        <Checkbox
+                          id={child.id}
+                          checked={selectedChildren.includes(child.id)}
+                          onCheckedChange={() => handleChildToggle(child.id)}
+                          disabled={!selectedChildren.includes(child.id) && selectedChildren.length >= group.capacity}
+                        />
+                        <Label htmlFor={child.id} className="flex-1 cursor-pointer">
+                          <div>
+                            <p className="font-medium">{child.first_name} {child.last_name}</p>
+                            <p className="text-xs text-muted-foreground">Code: {child.code_qr_id}</p>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsAssignOpen(false)}>
+                      Annuler
+                    </Button>
+                    <Button onClick={handleAssignChildren}>
+                      Assigner ({selectedChildren.length})
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1">
+                  <Settings className="w-4 h-4 mr-1" />
+                  Modifier
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Modifier le groupe {group.name}</DialogTitle>
+                </DialogHeader>
+                <EditGroupForm 
+                  group={group}
+                  educators={educators}
+                  onSuccess={() => {
+                    setIsEditOpen(false);
+                    onRefresh();
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+// Composant pour modifier un groupe
+function EditGroupForm({ group, educators, onSuccess }: {
+  group: any;
+  educators: any[];
+  onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    name: group.name || '',
+    description: group.description || '',
+    capacity: group.capacity || 15,
+    assigned_educator_id: group.assigned_educator_id || '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({
+          name: formData.name,
+          description: formData.description,
+          capacity: formData.capacity,
+          assigned_educator_id: formData.assigned_educator_id || null,
+        })
+        .eq('id', group.id);
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de modifier le groupe",
+        });
+        return;
+      }
+
+      toast({
+        title: "Groupe modifié",
+        description: "Le groupe a été modifié avec succès",
+      });
+
+      onSuccess();
+    } catch (error) {
+      console.error('Error updating group:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue",
+      });
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Nom du groupe</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="capacity">Capacité</Label>
+        <Input
+          id="capacity"
+          type="number"
+          min="1"
+          max="30"
+          value={formData.capacity}
+          onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="educator">Éducateur assigné</Label>
+        <Select
+          value={formData.assigned_educator_id}
+          onValueChange={(value) => setFormData({ ...formData, assigned_educator_id: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un éducateur" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Aucun éducateur</SelectItem>
+            {educators.map((educator) => (
+              <SelectItem key={educator.id} value={educator.id}>
+                {educator.first_name} {educator.last_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="submit">Modifier le groupe</Button>
+      </div>
     </form>
   );
 }

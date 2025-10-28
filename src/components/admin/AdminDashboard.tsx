@@ -190,59 +190,7 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Actions Rapides</CardTitle>
-                  <CardDescription>
-                    Accès rapide aux fonctionnalités principales
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button className="w-full justify-start" variant="outline">
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Inscrire un nouvel enfant
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Users className="w-4 h-4 mr-2" />
-                    Ajouter un membre du personnel
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Gérer le planning
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Consulter les rapports
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Activités Récentes</CardTitle>
-                  <CardDescription>
-                    Dernières actions sur la plateforme
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <p className="text-sm">Nouveau message de Marie Dupont</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <p className="text-sm">Présence enregistrée pour Lucas Martin</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <p className="text-sm">Activité ajoutée par Sophie Bernard</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <RecentActivities />
           </TabsContent>
 
           <TabsContent value="children">
@@ -317,5 +265,182 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
+// Component for recent activities with real data
+function RecentActivities() {
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRecentActivities();
+  }, []);
+
+  const fetchRecentActivities = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch recent children registrations
+      const { data: recentChildren } = await supabase
+        .from('children')
+        .select('first_name, last_name, admission_date')
+        .order('admission_date', { ascending: false })
+        .limit(3);
+
+      // Fetch recent messages
+      const { data: recentMessages } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          subject,
+          created_at,
+          sender:profiles!messages_sender_id_fkey(first_name, last_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      // Fetch recent attendance
+      const today = new Date().toISOString().split('T')[0];
+      const { data: recentAttendance } = await supabase
+        .from('attendance')
+        .select(`
+          id,
+          arrival_time,
+          children(first_name, last_name)
+        `)
+        .eq('date', today)
+        .order('arrival_time', { ascending: false })
+        .limit(3);
+
+      const activitiesList = [];
+
+      // Add recent children
+      if (recentChildren) {
+        recentChildren.forEach(child => {
+          activitiesList.push({
+            id: `child-${child.admission_date}`,
+            type: 'child',
+            message: `Nouvel enfant inscrit: ${child.first_name} ${child.last_name}`,
+            time: new Date(child.admission_date).toLocaleDateString('fr-FR'),
+            color: 'green'
+          });
+        });
+      }
+
+      // Add recent messages
+      if (recentMessages) {
+        recentMessages.forEach(msg => {
+          activitiesList.push({
+            id: `msg-${msg.id}`,
+            type: 'message',
+            message: `Nouveau message: ${msg.subject}`,
+            time: new Date(msg.created_at).toLocaleDateString('fr-FR'),
+            color: 'blue'
+          });
+        });
+      }
+
+      // Add recent attendance
+      if (recentAttendance) {
+        recentAttendance.forEach(att => {
+          if (att.children) {
+            activitiesList.push({
+              id: `att-${att.id}`,
+              type: 'attendance',
+              message: `Présence enregistrée pour ${att.children.first_name} ${att.children.last_name}`,
+              time: att.arrival_time,
+              color: 'orange'
+            });
+          }
+        });
+      }
+
+      // Sort by time and limit to 6 items
+      activitiesList.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+      setActivities(activitiesList.slice(0, 6));
+
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Activités Récentes</CardTitle>
+          <CardDescription>Chargement des dernières actions...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Actions Rapides</CardTitle>
+          <CardDescription>
+            Accès rapide aux fonctionnalités principales
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button className="w-full justify-start" variant="outline">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Inscrire un nouvel enfant
+          </Button>
+          <Button className="w-full justify-start" variant="outline">
+            <Users className="w-4 h-4 mr-2" />
+            Ajouter un membre du personnel
+          </Button>
+          <Button className="w-full justify-start" variant="outline">
+            <Calendar className="w-4 h-4 mr-2" />
+            Gérer le planning
+          </Button>
+          <Button className="w-full justify-start" variant="outline">
+            <BookOpen className="w-4 h-4 mr-2" />
+            Consulter les rapports
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Activités Récentes</CardTitle>
+          <CardDescription>
+            Dernières actions sur la plateforme
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {activities.length > 0 ? (
+              activities.map((activity) => (
+                <div key={activity.id} className="flex items-center space-x-3">
+                  <div className={`w-2 h-2 bg-${activity.color}-500 rounded-full`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm">{activity.message}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune activité récente</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default AdminDashboard;

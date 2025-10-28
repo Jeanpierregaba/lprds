@@ -179,63 +179,7 @@ const EducatorDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Actions du Jour</CardTitle>
-                  <CardDescription>
-                    Tâches importantes à effectuer aujourd'hui
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button className="w-full justify-start" variant="outline">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Marquer les présences
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Activity className="w-4 h-4 mr-2" />
-                    Ajouter une activité
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Contacter les parents
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Voir le planning
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informations Importantes</CardTitle>
-                  <CardDescription>
-                    Alertes et informations médicales
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                        ⚠️ Allergie alimentaire - Emma Durand
-                      </p>
-                      <p className="text-xs text-yellow-600 dark:text-yellow-300">
-                        Allergique aux arachides
-                      </p>
-                    </div>
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                        📋 Traitement médical - Tom Bernard
-                      </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-300">
-                        Médicament à 14h00
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <EducatorOverview />
           </TabsContent>
 
           <TabsContent value="children">
@@ -306,5 +250,196 @@ const EducatorDashboard = () => {
     </div>
   );
 };
+
+// Component for educator overview with real data
+function EducatorOverview() {
+  const { profile } = useAuth();
+  const [assignedChildren, setAssignedChildren] = useState<any[]>([]);
+  const [medicalAlerts, setMedicalAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (profile) {
+      fetchEducatorOverview();
+    }
+  }, [profile]);
+
+  const fetchEducatorOverview = async () => {
+    try {
+      setLoading(true);
+      
+      // Get educator's assigned children with medical info
+      const { data: children } = await supabase
+        .from('children')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          allergies,
+          medical_info,
+          special_needs,
+          status
+        `)
+        .eq('assigned_educator_id', profile?.id)
+        .eq('status', 'active');
+
+      setAssignedChildren(children || []);
+
+      // Filter children with medical alerts
+      const alerts = [];
+      children?.forEach(child => {
+        if (child.allergies) {
+          alerts.push({
+            id: `allergy-${child.id}`,
+            type: 'allergy',
+            childName: `${child.first_name} ${child.last_name}`,
+            message: `Allergique à: ${child.allergies}`,
+            severity: 'warning'
+          });
+        }
+        if (child.medical_info) {
+          alerts.push({
+            id: `medical-${child.id}`,
+            type: 'medical',
+            childName: `${child.first_name} ${child.last_name}`,
+            message: child.medical_info,
+            severity: 'info'
+          });
+        }
+        if (child.special_needs) {
+          alerts.push({
+            id: `special-${child.id}`,
+            type: 'special',
+            childName: `${child.first_name} ${child.last_name}`,
+            message: child.special_needs,
+            severity: 'info'
+          });
+        }
+      });
+
+      setMedicalAlerts(alerts);
+
+    } catch (error) {
+      console.error('Error fetching educator overview:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions du Jour</CardTitle>
+            <CardDescription>Chargement...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="animate-pulse space-y-3">
+              <div className="h-10 bg-gray-200 rounded"></div>
+              <div className="h-10 bg-gray-200 rounded"></div>
+              <div className="h-10 bg-gray-200 rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Informations Importantes</CardTitle>
+            <CardDescription>Chargement...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="animate-pulse space-y-3">
+              <div className="h-16 bg-gray-200 rounded"></div>
+              <div className="h-16 bg-gray-200 rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Actions du Jour</CardTitle>
+          <CardDescription>
+            Tâches importantes à effectuer aujourd'hui
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button className="w-full justify-start" variant="outline">
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Marquer les présences ({assignedChildren.length} enfants)
+          </Button>
+          <Button className="w-full justify-start" variant="outline">
+            <Activity className="w-4 h-4 mr-2" />
+            Ajouter une activité
+          </Button>
+          <Button className="w-full justify-start" variant="outline">
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Contacter les parents
+          </Button>
+          <Button className="w-full justify-start" variant="outline">
+            <Calendar className="w-4 h-4 mr-2" />
+            Voir le planning
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations Importantes</CardTitle>
+          <CardDescription>
+            Alertes et informations médicales ({medicalAlerts.length} alertes)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {medicalAlerts.length > 0 ? (
+              medicalAlerts.map((alert) => (
+                <div 
+                  key={alert.id} 
+                  className={`p-3 rounded-lg border ${
+                    alert.severity === 'warning' 
+                      ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' 
+                      : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                  }`}
+                >
+                  <p className={`text-sm font-medium ${
+                    alert.severity === 'warning' 
+                      ? 'text-yellow-800 dark:text-yellow-200' 
+                      : 'text-blue-800 dark:text-blue-200'
+                  }`}>
+                    {alert.type === 'allergy' && '⚠️ Allergie alimentaire'} 
+                    {alert.type === 'medical' && '📋 Information médicale'} 
+                    {alert.type === 'special' && '🔍 Besoins spéciaux'} 
+                    - {alert.childName}
+                  </p>
+                  <p className={`text-xs ${
+                    alert.severity === 'warning' 
+                      ? 'text-yellow-600 dark:text-yellow-300' 
+                      : 'text-blue-600 dark:text-blue-300'
+                  }`}>
+                    {alert.message}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                  ✅ Aucune alerte médicale
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-300">
+                  Tous vos enfants assignés n'ont pas d'alertes particulières
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default EducatorDashboard;

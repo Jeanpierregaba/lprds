@@ -58,7 +58,7 @@ interface Child {
   code_qr_id: string;
   first_name: string;
   last_name: string;
-  usual_name: string;
+  usual_name?: string;
   birth_date: string;
   section?: string;
 }
@@ -211,7 +211,7 @@ export default function QRCodeGenerator({ child, isOpen, onOpenChange }: QRCodeG
       // Nom de l'enfant avec gestion du retour à la ligne
       ctx.font = 'bold 50px Fredoka One, Poppins, Arial';
       ctx.fillStyle = '#f4a92b';
-      const fullName = `${child.usual_name} ${child.last_name}`;
+        const fullName = `${child.usual_name || child.first_name} ${child.last_name}`;
       const maxWidth = canvas.width - 100; // Marge de 50px de chaque côté
       const nameLines = wrapText(ctx, fullName, maxWidth);
       
