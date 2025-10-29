@@ -51,13 +51,6 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
     ];
 
     // Gestion financière uniquement pour directrice générale
-    if (canManageFinances()) {
-      adminNav.push({
-        title: "Gestion Financière",
-        url: "/admin/dashboard/finances",
-        icon: DollarSign
-      });
-    }
 
     // Fonctionnalités communes admin
     adminNav.push(
@@ -91,16 +84,6 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         url: "/admin/dashboard/messages", 
         icon: MessageSquare 
       },
-      { 
-        title: "Planning", 
-        url: "/admin/dashboard/planning", 
-        icon: Calendar 
-      },
-      { 
-        title: "Paramètres", 
-        url: "/admin/dashboard/settings", 
-        icon: Settings 
-      }
     );
 
     return adminNav;
@@ -129,26 +112,6 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Scanner QR", 
         url: "/admin/dashboard/qr-scanner", 
         icon: QrCode 
-      },
-      { 
-        title: "Suivi Quotidien", 
-        url: "/admin/dashboard/daily-reports", 
-        icon: FileText 
-      },
-      { 
-        title: "Messages", 
-        url: "/admin/dashboard/messages", 
-        icon: MessageSquare 
-      },
-      { 
-        title: "Planning", 
-        url: "/admin/dashboard/planning", 
-        icon: Calendar 
-      },
-      { 
-        title: "Profil", 
-        url: "/admin/dashboard/profile", 
-        icon: User 
       }
     ];
   }

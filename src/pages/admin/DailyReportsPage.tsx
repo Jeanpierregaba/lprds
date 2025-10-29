@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AdminOrSecretary, EducatorOnly } from '@/components/PermissionGuard'
 import DailyReportForm from '@/components/admin/reports/DailyReportForm'
 import ReportValidation from '@/components/admin/reports/ReportValidation'
+import ReportsHistory from '@/components/admin/reports/ReportsHistory'
 
 const DailyReportsPage = () => {
   return (
@@ -13,6 +14,9 @@ const DailyReportsPage = () => {
           <AdminOrSecretary>
             <TabsTrigger value="validate">Validation</TabsTrigger>
           </AdminOrSecretary>
+          <AdminOrSecretary>
+            <TabsTrigger value="history">Historique</TabsTrigger>
+          </AdminOrSecretary>
         </TabsList>
 
         <TabsContent value="create">
@@ -22,6 +26,12 @@ const DailyReportsPage = () => {
         <AdminOrSecretary>
           <TabsContent value="validate">
             <ReportValidation />
+          </TabsContent>
+        </AdminOrSecretary>
+
+        <AdminOrSecretary>
+          <TabsContent value="history">
+            <ReportsHistory />
           </TabsContent>
         </AdminOrSecretary>
       </Tabs>
