@@ -24,7 +24,8 @@ import {
   Smile,
   Meh,
   Frown,
-  Baby
+  Baby,
+  Search
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,6 +89,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 }) => {
   const [availableChildren, setAvailableChildren] = useState<Child[]>([]);
   const [child, setChild] = useState<Child | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [formData, setFormData] = useState<DailyReportData>({
     child_id: childId || '',
     report_date: reportDate,
@@ -139,26 +141,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         .select('id, first_name, last_name, photo_url, section')
         .eq('status', 'active');
 
-      // Les éducateurs ne voient que leurs enfants assignés via le groupe
-      // Les admins et secrétaires voient tous les enfants
-      if (profile!.role === 'educator') {
-        // D'abord récupérer le groupe de l'éducateur
-        const { data: educatorGroup, error: groupError } = await supabase
-          .from('groups')
-          .select('id')
-          .eq('assigned_educator_id', profile!.id)
-          .single();
-
-        if (groupError || !educatorGroup) {
-          console.log('No group found for educator:', profile!.id);
-          setAvailableChildren([]);
-          return;
-        }
-
-        // Puis filtrer les enfants par group_id
-        query = query.eq('group_id', educatorGroup.id);
-        console.log('DailyReportForm - Educator group ID:', educatorGroup.id);
-      }
+      // Tous les rôles (y compris éducateurs) voient tous les enfants actifs
 
       const { data, error } = await query.order('first_name');
 
@@ -201,8 +184,18 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     if (selectedChild) {
       setChild(selectedChild);
       setFormData(prev => ({ ...prev, child_id: childId }));
+      setSearchTerm(''); // Réinitialiser la recherche après sélection
     }
   };
+
+  // Filtrer les enfants en fonction du terme de recherche
+  const filteredChildren = availableChildren.filter((child) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    const fullName = `${child.first_name} ${child.last_name}`.toLowerCase();
+    const section = child.section?.toLowerCase() || '';
+    return fullName.includes(searchLower) || section.includes(searchLower);
+  });
 
   const handleActivityToggle = (activity: string) => {
     setSelectedActivities(prev => {
@@ -360,13 +353,13 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
           {availableChildren.length === 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle>Aucun enfant assigné</CardTitle>
+                <CardTitle>Aucun enfant disponible</CardTitle>
               </CardHeader>
               <CardContent>
                 <Alert>
                   <AlertDescription>
-                    Vous n'avez pas encore d'enfants assignés à votre groupe. 
-                    Contactez l'administration pour l'assignation des enfants.
+                    Aucun enfant actif n'est disponible pour le moment. 
+                    Contactez l'administration pour plus d'informations.
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -375,16 +368,38 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl">
-                  Étape 1: Sélectionnez un enfant de votre groupe
+                  Étape 1: Sélectionnez un enfant
                 </CardTitle>
                 <CardDescription>
                   Choisissez l'enfant pour lequel vous souhaitez créer un rapport quotidien. 
-                  Vous avez {availableChildren.length} enfant(s) dans votre groupe.
+                  {availableChildren.length} enfant(s) disponible(s).
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {availableChildren.map((availChild) => (
+              <CardContent className="space-y-4">
+                {/* Barre de recherche */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Rechercher un enfant par nom, prénom ou section..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                {/* Liste des enfants filtrés */}
+                {filteredChildren.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {searchTerm ? (
+                      <>Aucun enfant trouvé pour "{searchTerm}"</>
+                    ) : (
+                      <>Aucun enfant disponible</>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredChildren.map((availChild) => (
                     <div
                       key={availChild.id}
                       className="flex items-center gap-4 p-5 border-2 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all hover:shadow-md"
@@ -407,8 +422,15 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
+                
+                {searchTerm && filteredChildren.length > 0 && (
+                  <div className="text-sm text-muted-foreground text-center">
+                    {filteredChildren.length} enfant(s) trouvé(s) sur {availableChildren.length}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
