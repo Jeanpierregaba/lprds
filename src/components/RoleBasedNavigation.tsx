@@ -171,26 +171,6 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Suivi Quotidien", 
         url: "/educator/dashboard/daily-reports", 
         icon: FileText 
-      },
-      { 
-        title: "Activités", 
-        url: "/educator/dashboard/activities", 
-        icon: Heart 
-      },
-      { 
-        title: "Messages", 
-        url: "/educator/dashboard/messages", 
-        icon: MessageSquare 
-      },
-      { 
-        title: "Planning", 
-        url: "/educator/dashboard/planning", 
-        icon: Calendar 
-      },
-      { 
-        title: "Mon Profil", 
-        url: "/educator/dashboard/profile", 
-        icon: User 
       }
     ];
   }

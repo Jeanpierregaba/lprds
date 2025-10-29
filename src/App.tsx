@@ -27,6 +27,7 @@ import ParentDashboard from "./pages/parent/Dashboard";
 import EducatorDashboardLayout from "./pages/educator/EducatorDashboardLayout";
 import EducatorGroupPage from "./pages/educator/EducatorGroupPage";
 import EducatorDailyReportsPage from "./pages/educator/EducatorDailyReportsPage";
+import EducatorAttendancePage from "./pages/educator/EducatorAttendancePage";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
             </Route>
             <Route path="/educator/dashboard" element={<EducatorDashboardLayout />}>
               <Route index element={<EducatorGroupPage />} />
+              <Route path="attendance" element={<EducatorAttendancePage />} />
               <Route path="daily-reports" element={<EducatorDailyReportsPage />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

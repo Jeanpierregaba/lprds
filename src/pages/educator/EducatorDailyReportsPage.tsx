@@ -20,7 +20,7 @@ const EducatorDailyReportsPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <DailyReportForm />
+          <DailyReportForm restrictToAssigned />
         </CardContent>
       </Card>
     </div>

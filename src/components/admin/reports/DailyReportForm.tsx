@@ -65,6 +65,7 @@ interface DailyReportFormProps {
   reportDate?: string;
   existingReport?: any;
   onSaved?: () => void;
+  restrictToAssigned?: boolean; // Quand true pour un éducateur, limite aux enfants de son groupe
 }
 
 const ACTIVITY_OPTIONS = [
@@ -85,7 +86,8 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   childId,
   reportDate = new Date().toISOString().split('T')[0],
   existingReport,
-  onSaved
+  onSaved,
+  restrictToAssigned = false
 }) => {
   const [availableChildren, setAvailableChildren] = useState<Child[]>([]);
   const [child, setChild] = useState<Child | null>(null);
@@ -141,7 +143,21 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         .select('id, first_name, last_name, photo_url, section')
         .eq('status', 'active');
 
-      // Tous les rôles (y compris éducateurs) voient tous les enfants actifs
+      // Si éducateur et restriction activée, limiter aux enfants de son groupe
+      if (profile?.role === 'educator' && restrictToAssigned) {
+        const { data: educatorGroup, error: groupError } = await supabase
+          .from('groups')
+          .select('id')
+          .eq('assigned_educator_id', profile.id)
+          .single();
+
+        if (groupError || !educatorGroup) {
+          setAvailableChildren([]);
+          return;
+        }
+
+        query = query.eq('group_id', educatorGroup.id);
+      }
 
       const { data, error } = await query.order('first_name');
 

@@ -90,9 +90,9 @@ export function AdminSidebar() {
           {state === "expanded" && (
             <div className="flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">
-                {profile?.first_name} {profile?.last_name}
+                {profile?.first_name}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-2">
                 <Badge variant="secondary" className="text-xs capitalize">
                   {profile?.role}
                 </Badge>
