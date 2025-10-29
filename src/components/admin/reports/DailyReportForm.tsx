@@ -46,6 +46,8 @@ interface DailyReportData {
   departure_time?: string;
   health_status: 'bien' | 'surveiller' | 'malade';
   health_notes?: string;
+  temperature_arrival?: number;
+  temperature_departure?: number;
   activities: string[];
   nap_taken: boolean;
   nap_duration_minutes?: number;
@@ -108,6 +110,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   });
   
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [otherActivitiesText, setOtherActivitiesText] = useState<string>('');
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(true);
@@ -129,12 +132,42 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     if (existingReport) {
       setFormData({
         ...existingReport,
-        photos: []
+        photos: [] // Les photos existantes sont des URLs, on les met dans formData mais pas dans photos File[]
       });
       setSelectedActivities(existingReport.activities || []);
       setIsDraft(!existingReport.is_validated);
     }
   }, [existingReport]);
+
+  // Charger automatiquement les horaires d'arrivée/départ depuis la présence scannée
+  useEffect(() => {
+    const loadAttendanceTimes = async () => {
+      if (!child || !formData.report_date) return;
+      try {
+        const { data, error } = await supabase
+          .from('daily_attendance')
+          .select('arrival_time, departure_time')
+          .eq('child_id', child.id)
+          .eq('attendance_date', formData.report_date)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          const toTimeInput = (t?: string | null) => (t ? t.slice(0, 5) : '');
+          setFormData(prev => ({
+            ...prev,
+            arrival_time: data.arrival_time ? toTimeInput(data.arrival_time) : prev.arrival_time,
+            departure_time: data.departure_time ? toTimeInput(data.departure_time) : prev.departure_time,
+          }));
+        }
+      } catch (err) {
+        console.error('Erreur chargement horaires de présence:', err);
+      }
+    };
+
+    loadAttendanceTimes();
+  }, [child, formData.report_date]);
 
   const loadAvailableChildren = async () => {
     try {
@@ -226,8 +259,36 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    setPhotoFiles(prev => [...prev, ...files]);
-    setFormData(prev => ({ ...prev, photos: [...prev.photos, ...files] }));
+    
+    // Validation des fichiers (images uniquement)
+    const imageFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Format non supporté",
+          description: `Le fichier ${file.name} n'est pas une image`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      // Limiter la taille à 10MB par fichier
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: `Le fichier ${file.name} dépasse 10MB`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (imageFiles.length > 0) {
+      setPhotoFiles(prev => [...prev, ...imageFiles]);
+      setFormData(prev => ({ ...prev, photos: [...prev.photos, ...imageFiles] }));
+    }
+
+    // Réinitialiser l'input pour permettre de sélectionner le même fichier à nouveau
+    event.target.value = '';
   };
 
   const removePhoto = (index: number) => {
@@ -277,6 +338,16 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     
     try {
       // Préparer les données du rapport
+      const extraActivities = otherActivitiesText
+        .split(',')
+        .map(a => a.trim())
+        .filter(a => a.length > 0);
+
+      const activitiesCombined = Array.from(new Set([...
+        selectedActivities,
+        ...extraActivities
+      ]));
+
       const reportData = {
         child_id: child.id,
         educator_id: profile.id,
@@ -285,7 +356,9 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         departure_time: formData.departure_time,
         health_status: formData.health_status,
         health_notes: formData.health_notes,
-        activities: selectedActivities,
+        temperature_arrival: formData.temperature_arrival,
+        temperature_departure: formData.temperature_departure,
+        activities: activitiesCombined,
         nap_taken: formData.nap_taken,
         nap_duration_minutes: formData.nap_duration_minutes,
         breakfast_eaten: formData.breakfast_eaten,
@@ -327,9 +400,26 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         const photoUrls = await uploadPhotos(reportId);
         
         if (photoUrls.length > 0) {
+          // Récupérer les photos existantes pour les fusionner avec les nouvelles
+          let existingPhotos: string[] = [];
+          if (existingReport?.id) {
+            const { data: existingReportData } = await supabase
+              .from('daily_reports')
+              .select('photos')
+              .eq('id', reportId)
+              .single();
+            
+            if (existingReportData?.photos && Array.isArray(existingReportData.photos)) {
+              existingPhotos = existingReportData.photos as string[];
+            }
+          }
+
+          // Fusionner les photos existantes avec les nouvelles (éviter les doublons)
+          const allPhotos = Array.from(new Set([...existingPhotos, ...photoUrls]));
+          
           const { error: updateError } = await supabase
             .from('daily_reports')
-            .update({ photos: photoUrls })
+            .update({ photos: allPhotos })
             .eq('id', reportId);
 
           if (updateError) throw updateError;
@@ -342,6 +432,15 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
           ? "Le rapport a été envoyé pour validation"
           : "Le rapport a été sauvegardé en brouillon"
       });
+
+      // Réinitialiser le formulaire après sauvegarde réussie
+      if (!existingReport) {
+        setPhotoFiles([]);
+        setFormData(prev => ({ ...prev, photos: [] }));
+        setOtherActivitiesText('');
+        setChild(null);
+        setSearchTerm('');
+      }
 
       if (onSaved) onSaved();
       
@@ -569,6 +668,42 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               </SelectContent>
             </Select>
             
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="temperature_arrival">Température à l'arrivée (°C)</Label>
+                <Input
+                  id="temperature_arrival"
+                  type="number"
+                  step="0.1"
+                  min="30"
+                  max="45"
+                  placeholder="37.0"
+                  value={formData.temperature_arrival || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    temperature_arrival: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="temperature_departure">Température au départ (°C)</Label>
+                <Input
+                  id="temperature_departure"
+                  type="number"
+                  step="0.1"
+                  min="30"
+                  max="45"
+                  placeholder="37.0"
+                  value={formData.temperature_departure || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    temperature_departure: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                />
+              </div>
+            </div>
+            
             <div>
               <Label htmlFor="health_notes">Notes de santé (optionnel)</Label>
               <Textarea
@@ -778,6 +913,16 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                 </Label>
               </div>
             ))}
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="other_activities">Autre(s) activité(s)</Label>
+            <Input
+              id="other_activities"
+              placeholder="Ex: Peinture aux doigts, Parc, Atelier sensoriel (séparez par des virgules)"
+              value={otherActivitiesText}
+              onChange={(e) => setOtherActivitiesText(e.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
