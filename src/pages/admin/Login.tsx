@@ -82,7 +82,7 @@ const Login = () => {
             <img src={logo} alt="Logo" className="h-16 w-auto" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Espace Administration</CardTitle>
+            <CardTitle className="text-primary text-2xl font-bold">Espace Parent</CardTitle>
             <CardDescription>
               Connectez-vous à votre compte pour accéder à la plateforme
             </CardDescription>

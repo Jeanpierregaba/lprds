@@ -4,8 +4,11 @@ import { useAuth } from '@/hooks/useAuth';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import EducatorDashboard from '@/components/admin/EducatorDashboard';
 import ParentDashboard from '@/components/admin/ParentDashboard';
+import ParentsPage from './ParentsPage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { Routes, Route } from 'react-router-dom';
+import StaffPage from './StaffPage';
 
 const Dashboard = () => {
   const { user, profile, loading } = useAuth();
@@ -67,7 +70,15 @@ const Dashboard = () => {
   switch (profile.role) {
     case 'admin':
     case 'secretary':
-      return <AdminDashboard />;
+      // Remplace le retour par une nouvelle structure avec router enfant :
+      return (
+        <Routes>
+          <Route path="" element={<AdminDashboard />} />
+          <Route path="staff" element={<StaffPage />} />
+          <Route path="parents" element={<ParentsPage />} />
+          {/* autres sous-pages éventuelles */}
+        </Routes>
+      );
     case 'educator':
       return <EducatorDashboard />;
     case 'parent':

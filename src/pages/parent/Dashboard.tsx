@@ -1,4 +1,4 @@
-import ParentDashboard from '@/components/admin/ParentDashboard';
+import ParentDashboard  from '@/components/admin/ParentDashboard';
 
 const Dashboard = () => {
   return <ParentDashboard />;

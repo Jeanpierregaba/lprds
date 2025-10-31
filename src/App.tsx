@@ -16,18 +16,19 @@ import DashboardLayout from "./pages/admin/DashboardLayout";
 import DashboardOverview from "./pages/admin/DashboardOverview";
 import ChildrenPage from "./pages/admin/ChildrenPage";
 import StaffPage from "./pages/admin/StaffPage";
+import ParentsPage from "./pages/admin/ParentsPage";
 import AttendancePage from "./pages/admin/AttendancePage";
 import DailyReportsPage from "./pages/admin/DailyReportsPage";
 import MessagesPage from "./pages/admin/MessagesPage";
 import SettingsPage from "./pages/admin/SettingsPage";
-import ForgotPassword from "./pages/admin/ForgotPassword";
-import ResetPassword from "./pages/admin/ResetPassword";
 import QRScanPage from "./pages/admin/QRScanPage";
 import ParentDashboard from "./pages/parent/Dashboard";
 import EducatorDashboardLayout from "./pages/educator/EducatorDashboardLayout";
 import EducatorGroupPage from "./pages/educator/EducatorGroupPage";
 import EducatorDailyReportsPage from "./pages/educator/EducatorDailyReportsPage";
 import EducatorAttendancePage from "./pages/educator/EducatorAttendancePage";
+import ForgotPassword from "./pages/admin/ForgotPassword";
+import ResetPassword from "./pages/admin/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
               <Route index element={<DashboardOverview />} />
               <Route path="children" element={<ChildrenPage />} />
               <Route path="staff" element={<StaffPage />} />
+              <Route path="parents" element={<ParentsPage />} />
               <Route path="attendance" element={<AttendancePage />} />
               <Route path="qr-scanner" element={<QRScanPage />} />
               <Route path="daily-reports" element={<DailyReportsPage />} />

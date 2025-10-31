@@ -4,11 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Baby, Calendar, MessageSquare, LogOut, Camera, Heart, Clock, User, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DailyReportsViewer from '@/components/parent/DailyReportsViewer';
 import { ParentMessaging } from '@/components/parent/ParentMessaging';
+import ParentSidebar from './ParentSidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import dashboardBg from '@/assets/dashboard-bg.png';
 
 interface ParentStats {
   myChildren: number;
@@ -36,6 +38,8 @@ const ParentDashboard = () => {
   });
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState<string>('overview');
+  // SUPPRESSION DE activeView ET SIDEBAR
 
   useEffect(() => {
     fetchParentData();
@@ -66,12 +70,15 @@ const ParentDashboard = () => {
       // Get today's attendance for children
       const today = new Date().toISOString().split('T')[0];
       const childrenIds = childrenData.map(c => c.id);
-      
-      const { data: attendance } = await supabase
-        .from('attendance')
-        .select('id')
-        .eq('date', today)
-        .in('child_id', childrenIds);
+      let attendance = [];
+      if (childrenIds.length > 0) {
+        const { data } = await supabase
+          .from('attendance')
+          .select('id')
+          .eq('date', today)
+          .in('child_id', childrenIds);
+        attendance = data || [];
+      }
       
       // Get unread messages for this parent
       const { data: messages } = await supabase
@@ -83,12 +90,15 @@ const ParentDashboard = () => {
       // Get recent activities for children
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      
-      const { data: activities } = await supabase
-        .from('activities')
-        .select('id')
-        .in('child_id', childrenIds)
-        .gte('activity_date', weekAgo.toISOString().split('T')[0]);
+      let activities = [];
+      if (childrenIds.length > 0) {
+        const { data } = await supabase
+          .from('activities')
+          .select('id')
+          .in('child_id', childrenIds)
+          .gte('activity_date', weekAgo.toISOString().split('T')[0]);
+        activities = data || [];
+      }
 
       const myChildren = childrenData.filter(c => c.status === 'active').length;
       const todayPresent = attendance?.length || 0;
@@ -127,215 +137,187 @@ const ParentDashboard = () => {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Déconnexion",
-      description: "Vous avez été déconnecté avec succès."
-    });
+    try {
+      await signOut();
+    } finally {
+      toast({
+        title: "Déconnexion",
+        description: "Vous avez été déconnecté avec succès."
+      });
+      // Force la navigation après déconnexion pour rafraîchir le contexte
+      window.location.href = '/';
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
-      {/* Header */}
-      <header className="bg-background border-b border-border/5 shadow-sm">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Espace Parent
-            </h1>
-            <p className="text-muted-foreground">
-              Bonjour {profile?.first_name} {profile?.last_name}
-            </p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Badge variant="secondary" className="capitalize">
-              Parent
-            </Badge>
-            <Button variant="outline" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Déconnexion
-            </Button>
-          </div>
-        </div>
-      </header>
+    <SidebarProvider>
+      <div
+        className="min-h-screen w-full relative"
+        style={{
+          backgroundImage: `url(${dashboardBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed', // <-- background immobile fixe
 
-      <div className="p-6 space-y-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mes Enfants</CardTitle>
-              <Baby className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.myChildren}</div>
-              <p className="text-xs text-muted-foreground">
-                Inscrits à la crèche
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Présents Aujourd'hui</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.todayPresent}</div>
-              <p className="text-xs text-muted-foreground">
-                Sur {stats.myChildren} enfants
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nouvelles Activités</CardTitle>
-              <Camera className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.newActivities}</div>
-              <p className="text-xs text-muted-foreground">
-                Cette semaine
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Messages</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.unreadMessages}</div>
-              <p className="text-xs text-muted-foreground">
-                Non lus
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Children Cards */}
-        {children.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Mes Enfants</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {children.map((child) => (
-                <Card key={child.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Baby className="w-6 h-6 text-primary" />
+        }}
+      >
+        {/* Plus de header ici */}
+        <div className="flex w-full min-h-screen h-full p-0">
+          <ParentSidebar activeView={activeView} setActiveView={setActiveView} />
+          <main className="flex-1 px-6 py-8 space-y-6 overflow-y-auto max-h-screen">
+            {/* Vue d'ensemble : KPI Cards + Activities/Announcements */}
+            {activeView === 'overview' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Mes Enfants</CardTitle>
+                      <Baby className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.myChildren}</div>
+                      <p className="text-xs text-muted-foreground">Inscrits à la crèche</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Présents Aujourd'hui</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.todayPresent}</div>
+                      <p className="text-xs text-muted-foreground">
+                        Sur {stats.myChildren} enfants
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Nouvelles Activités</CardTitle>
+                      <Camera className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.newActivities}</div>
+                      <p className="text-xs text-muted-foreground">Cette semaine</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Messages</CardTitle>
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{stats.unreadMessages}</div>
+                      <p className="text-xs text-muted-foreground">Non lus</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                <RecentActivitiesAndAnnouncements />
+              </>
+            )}
+            {/* Les autres vues n'affichent plus les KPI */}
+            {activeView === 'children' && (
+              children.length > 0 ? (
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold">Mes Enfants</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {children.map((child) => (
+                        <Card key={child.id} className="hover:shadow-md transition-shadow">
+                          <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                                <Baby className="w-6 h-6 text-primary" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg">
+                                  {child.first_name} {child.last_name}
+                                </CardTitle>
+                                <CardDescription>
+                                  {calculateAge(child.birth_date)} ans
+                                </CardDescription>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center justify-between">
+                              <Badge variant={child.status === 'active' ? 'default' : 'secondary'}>
+                                {child.status === 'active' ? 'Actif' : 'Inactif'}
+                              </Badge>
+                              <Button variant="outline" size="sm">
+                                Voir détails
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Aucun enfant trouvé</p>
+              )
+            )}
+            {activeView === 'attendance' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historique des Présences</CardTitle>
+                  <CardDescription>
+                    Suivi des arrivées et départs de vos enfants
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Interface de suivi des présences en développement...
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+            {activeView === 'reports' && (
+              <DailyReportsViewer />
+            )}
+            {activeView === 'messages' && (
+              <ParentMessaging />
+            )}
+            {activeView === 'profile' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mon Profil</CardTitle>
+                  <CardDescription>
+                    Informations personnelles et contacts d'urgence
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium">Prénom</p>
+                        <p className="text-sm text-muted-foreground">{profile?.first_name}</p>
                       </div>
                       <div>
-                        <CardTitle className="text-lg">
-                          {child.first_name} {child.last_name}
-                        </CardTitle>
-                        <CardDescription>
-                          {calculateAge(child.birth_date)} ans
-                        </CardDescription>
+                        <p className="text-sm font-medium">Nom</p>
+                        <p className="text-sm text-muted-foreground">{profile?.last_name}</p>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <Badge variant={child.status === 'active' ? 'default' : 'secondary'}>
-                        {child.status === 'active' ? 'Actif' : 'Inactif'}
-                      </Badge>
-                      <Button variant="outline" size="sm">
-                        Voir détails
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-            <TabsTrigger value="attendance">Présences</TabsTrigger>
-            <TabsTrigger value="reports">
-              <FileText className="w-4 h-4 mr-2" />
-              Rapports
-            </TabsTrigger>
-            <TabsTrigger value="messages">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Messages
-            </TabsTrigger>
-            <TabsTrigger value="profile">Mon Profil</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <RecentActivitiesAndAnnouncements />
-          </TabsContent>
-
-          <TabsContent value="attendance">
-            <Card>
-              <CardHeader>
-                <CardTitle>Historique des Présences</CardTitle>
-                <CardDescription>
-                  Suivi des arrivées et départs de vos enfants
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Interface de suivi des présences en développement...
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="reports">
-            <DailyReportsViewer />
-          </TabsContent>
-
-          <TabsContent value="messages">
-            <ParentMessaging />
-          </TabsContent>
-
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Mon Profil</CardTitle>
-                <CardDescription>
-                  Informations personnelles et contacts d'urgence
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm font-medium">Prénom</p>
-                      <p className="text-sm text-muted-foreground">{profile?.first_name}</p>
+                      <p className="text-sm font-medium">Téléphone</p>
+                      <p className="text-sm text-muted-foreground">{profile?.phone || 'Non renseigné'}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Nom</p>
-                      <p className="text-sm text-muted-foreground">{profile?.last_name}</p>
+                      <p className="text-sm font-medium">Adresse</p>
+                      <p className="text-sm text-muted-foreground">{profile?.address || 'Non renseignée'}</p>
                     </div>
+                    <Button variant="outline">
+                      <User className="w-4 h-4 mr-2" />
+                      Modifier mes informations
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Téléphone</p>
-                    <p className="text-sm text-muted-foreground">{profile?.phone || 'Non renseigné'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Adresse</p>
-                    <p className="text-sm text-muted-foreground">{profile?.address || 'Non renseignée'}</p>
-                  </div>
-                  <Button variant="outline">
-                    <User className="w-4 h-4 mr-2" />
-                    Modifier mes informations
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
@@ -372,22 +354,27 @@ function RecentActivitiesAndAnnouncements() {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       
-      const { data: activitiesData } = await supabase
-        .from('activities')
-        .select(`
-          id,
-          activity_name,
-          activity_date,
-          description,
-          children(first_name, last_name)
-        `)
-        .in('child_id', childrenIds)
-        .gte('activity_date', weekAgo.toISOString().split('T')[0])
-        .order('activity_date', { ascending: false })
-        .limit(5);
+      // @ts-ignore – simplification des types pour requêtes composées
+      let activitiesRes: any = { data: [] };
+      if (childrenIds.length > 0) {
+        activitiesRes = await (supabase as any)
+          .from('activities')
+          .select(`
+            id,
+            activity_name,
+            activity_date,
+            description,
+            children(first_name, last_name)
+          `)
+          .in('child_id', childrenIds as any)
+          .gte('activity_date', weekAgo.toISOString().split('T')[0])
+          .order('activity_date', { ascending: false })
+          .limit(5);
+      }
 
       // Fetch announcements/messages from staff
-      const { data: announcementsData } = await supabase
+      // @ts-ignore – simplification des types pour requêtes composées
+      const announcementsRes: any = await (supabase as any)
         .from('messages')
         .select(`
           id,
@@ -396,13 +383,13 @@ function RecentActivitiesAndAnnouncements() {
           created_at,
           sender:profiles!messages_sender_id_fkey(first_name, last_name, role)
         `)
-        .eq('recipient_id', profile?.id)
-        .in('sender_role', ['admin', 'educator', 'secretary'])
+        .eq('recipient_id', profile?.id as any)
+        .in('sender_role', ['admin', 'educator', 'secretary'] as any)
         .order('created_at', { ascending: false })
         .limit(3);
 
-      setActivities(activitiesData || []);
-      setAnnouncements(announcementsData || []);
+      setActivities(activitiesRes?.data || []);
+      setAnnouncements(announcementsRes?.data || []);
 
     } catch (error) {
       console.error('Error fetching activities and announcements:', error);

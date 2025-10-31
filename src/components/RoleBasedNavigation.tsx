@@ -60,6 +60,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: Baby 
       },
       { 
+        title: "Parents", 
+        url: "/admin/dashboard/parents", 
+        icon: Users 
+      },
+      { 
         title: "Personnel", 
         url: "/admin/dashboard/staff", 
         icon: Users 
@@ -69,6 +74,7 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         url: "/admin/dashboard/attendance", 
         icon: Clock 
       },
+      
       { 
         title: "Scanner QR", 
         url: "/admin/dashboard/qr-scanner", 
