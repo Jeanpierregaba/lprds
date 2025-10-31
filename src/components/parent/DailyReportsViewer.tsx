@@ -255,8 +255,8 @@ const DailyReportsViewer: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Rapports Journaliers</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-white text-3xl font-bold">Rapports Journaliers</h1>
+          <p className="text-white">
             Consultez les rapports quotidiens de vos enfants
           </p>
         </div>

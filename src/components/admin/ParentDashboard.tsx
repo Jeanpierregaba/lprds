@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import DailyReportsViewer from '@/components/parent/DailyReportsViewer';
 import { ParentMessaging } from '@/components/parent/ParentMessaging';
 import ParentSidebar from './ParentSidebar';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'; // <-- ajouté SidebarTrigger
 import dashboardBg from '@/assets/dashboard-bg.png';
 
 interface ParentStats {
@@ -165,156 +165,174 @@ const ParentDashboard = () => {
         {/* Plus de header ici */}
         <div className="flex w-full min-h-screen h-full p-0">
           <ParentSidebar activeView={activeView} setActiveView={setActiveView} />
-          <main className="flex-1 px-6 py-8 space-y-6 overflow-y-auto max-h-screen">
-            {/* Vue d'ensemble : KPI Cards + Activities/Announcements */}
-            {activeView === 'overview' && (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Mes Enfants</CardTitle>
-                      <Baby className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{stats.myChildren}</div>
-                      <p className="text-xs text-muted-foreground">Inscrits à la crèche</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Présents Aujourd'hui</CardTitle>
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{stats.todayPresent}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Sur {stats.myChildren} enfants
-                      </p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Nouvelles Activités</CardTitle>
-                      <Camera className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{stats.newActivities}</div>
-                      <p className="text-xs text-muted-foreground">Cette semaine</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Messages</CardTitle>
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{stats.unreadMessages}</div>
-                      <p className="text-xs text-muted-foreground">Non lus</p>
-                    </CardContent>
-                  </Card>
-                </div>
-                <RecentActivitiesAndAnnouncements />
-              </>
-            )}
-            {/* Les autres vues n'affichent plus les KPI */}
-            {activeView === 'children' && (
-              children.length > 0 ? (
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-semibold">Mes Enfants</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {children.map((child) => (
-                        <Card key={child.id} className="hover:shadow-md transition-shadow">
-                          <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                                <Baby className="w-6 h-6 text-primary" />
-                              </div>
-                              <div>
-                                <CardTitle className="text-lg">
-                                  {child.first_name} {child.last_name}
-                                </CardTitle>
-                                <CardDescription>
-                                  {calculateAge(child.birth_date)} ans
-                                </CardDescription>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center justify-between">
-                              <Badge variant={child.status === 'active' ? 'default' : 'secondary'}>
-                                {child.status === 'active' ? 'Actif' : 'Inactif'}
-                              </Badge>
-                              <Button variant="outline" size="sm">
-                                Voir détails
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+
+          {/* Main content area with header that contains the SidebarTrigger (for mobile) */}
+          <div className="flex-1 flex flex-col">
+            <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+              <SidebarTrigger className="-ml-1" />
+              <div className="flex items-center gap-2 text-sm">
+                <span className="font-semibold">Espace Parent</span>
+                <span className="text-muted-foreground">Parent</span>
+              </div>
+              <div className="ml-auto">
+                <Button variant="ghost" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Déconnexion</span>
+                </Button>
+              </div>
+            </header>
+
+            <main className="flex-1 px-6 py-8 space-y-6 overflow-y-auto max-h-screen">
+              {/* Vue d'ensemble : KPI Cards + Activities/Announcements */}
+              {activeView === 'overview' && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Mes Enfants</CardTitle>
+                        <Baby className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{stats.myChildren}</div>
+                        <p className="text-xs text-muted-foreground">Inscrits à la crèche</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Présents Aujourd'hui</CardTitle>
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{stats.todayPresent}</div>
+                        <p className="text-xs text-muted-foreground">
+                          Sur {stats.myChildren} enfants
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Nouvelles Activités</CardTitle>
+                        <Camera className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{stats.newActivities}</div>
+                        <p className="text-xs text-muted-foreground">Cette semaine</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Messages</CardTitle>
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{stats.unreadMessages}</div>
+                        <p className="text-xs text-muted-foreground">Non lus</p>
+                      </CardContent>
+                    </Card>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground">Aucun enfant trouvé</p>
-              )
-            )}
-            {activeView === 'attendance' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Historique des Présences</CardTitle>
-                  <CardDescription>
-                    Suivi des arrivées et départs de vos enfants
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Interface de suivi des présences en développement...
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-            {activeView === 'reports' && (
-              <DailyReportsViewer />
-            )}
-            {activeView === 'messages' && (
-              <ParentMessaging />
-            )}
-            {activeView === 'profile' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mon Profil</CardTitle>
-                  <CardDescription>
-                    Informations personnelles et contacts d'urgence
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium">Prénom</p>
-                        <p className="text-sm text-muted-foreground">{profile?.first_name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Nom</p>
-                        <p className="text-sm text-muted-foreground">{profile?.last_name}</p>
+                  <RecentActivitiesAndAnnouncements />
+                </>
+              )}
+              {/* Les autres vues n'affichent plus les KPI */}
+              {activeView === 'children' && (
+                children.length > 0 ? (
+                    <div className="space-y-4">
+                      <h2 className="text-xl font-semibold">Mes Enfants</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {children.map((child) => (
+                          <Card key={child.id} className="hover:shadow-md transition-shadow">
+                            <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                                  <Baby className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                  <CardTitle className="text-lg">
+                                    {child.first_name} {child.last_name}
+                                  </CardTitle>
+                                  <CardDescription>
+                                    {calculateAge(child.birth_date)} ans
+                                  </CardDescription>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-center justify-between">
+                                <Badge variant={child.status === 'active' ? 'default' : 'secondary'}>
+                                  {child.status === 'active' ? 'Actif' : 'Inactif'}
+                                </Badge>
+                                <Button variant="outline" size="sm">
+                                  Voir détails
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Téléphone</p>
-                      <p className="text-sm text-muted-foreground">{profile?.phone || 'Non renseigné'}</p>
+                  ) : (
+                    <p className="text-muted-foreground">Aucun enfant trouvé</p>
+                )
+              )}
+              {activeView === 'attendance' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Historique des Présences</CardTitle>
+                    <CardDescription>
+                      Suivi des arrivées et départs de vos enfants
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Interface de suivi des présences en développement...
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+              {activeView === 'reports' && (
+                <DailyReportsViewer />
+              )}
+              {activeView === 'messages' && (
+                <ParentMessaging />
+              )}
+              {activeView === 'profile' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mon Profil</CardTitle>
+                    <CardDescription>
+                      Informations personnelles et contacts d'urgence
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium">Prénom</p>
+                          <p className="text-sm text-muted-foreground">{profile?.first_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Nom</p>
+                          <p className="text-sm text-muted-foreground">{profile?.last_name}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Téléphone</p>
+                        <p className="text-sm text-muted-foreground">{profile?.phone || 'Non renseigné'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Adresse</p>
+                        <p className="text-sm text-muted-foreground">{profile?.address || 'Non renseignée'}</p>
+                      </div>
+                      <Button variant="outline">
+                        <User className="w-4 h-4 mr-2" />
+                        Modifier mes informations
+                      </Button>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Adresse</p>
-                      <p className="text-sm text-muted-foreground">{profile?.address || 'Non renseignée'}</p>
-                    </div>
-                    <Button variant="outline">
-                      <User className="w-4 h-4 mr-2" />
-                      Modifier mes informations
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </main>
+                  </CardContent>
+                </Card>
+              )}
+            </main>
+          </div>
         </div>
       </div>
     </SidebarProvider>
