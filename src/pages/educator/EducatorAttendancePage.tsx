@@ -16,7 +16,7 @@ interface Child {
   first_name: string
   last_name: string
   photo_url?: string
-  section: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil'
+  section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2'
 }
 
 interface AttendanceStats {

@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function autoAssignChildToGroup(
   childId: string,
-  section: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null,
+  section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2' | null,
   birthDate: string
 ): Promise<string | null> {
   if (!section) return null;
@@ -112,7 +112,7 @@ function calculateAgeInMonths(birthDate: string): number {
  */
 export async function reassignChildOnSectionChange(
   childId: string,
-  newSection: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null,
+  newSection: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2' | null,
   birthDate: string
 ): Promise<string | null> {
   // Retirer l'enfant de son groupe actuel

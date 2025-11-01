@@ -21,7 +21,7 @@ interface Child {
   last_name: string
   photo_url?: string
   code_qr_id?: string
-  section: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil'
+  section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2'
   group_id?: string
 }
 
@@ -144,7 +144,7 @@ const DailyReportsManagement = () => {
 
     try {
       // Fetch daily report for crèche/garderie
-      if (selectedChild.section === 'creche' || selectedChild.section === 'garderie') {
+      if (selectedChild.section.startsWith('creche') || selectedChild.section === 'garderie') {
         const { data: reportData, error: reportError } = await supabase
           .from('daily_reports')
           .select('*, children(*)')
@@ -264,7 +264,7 @@ const DailyReportsManagement = () => {
   }
 
   const handleSaveReport = async () => {
-    if (!selectedChild || (selectedChild.section !== 'creche' && selectedChild.section !== 'garderie')) return
+    if (!selectedChild || (!selectedChild.section.startsWith('creche') && selectedChild.section !== 'garderie')) return
 
     try {
       const reportData = {
@@ -461,7 +461,7 @@ const DailyReportsManagement = () => {
                   <Clock className="h-4 w-4" />
                   Enregistrer Départ
                 </Button>
-                {(selectedChild.section === 'maternelle_etoile' || selectedChild.section === 'maternelle_soleil') && (
+                {selectedChild.section.startsWith('maternelle') && (
                   <Button
                     onClick={handleMarkAbsent}
                     variant="outline"
@@ -499,7 +499,7 @@ const DailyReportsManagement = () => {
           </Card>
 
           {/* Daily Report for Crèche/Garderie */}
-          {(selectedChild.section === 'creche' || selectedChild.section === 'garderie') && (
+          {(selectedChild.section.startsWith('creche') || selectedChild.section === 'garderie') && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">

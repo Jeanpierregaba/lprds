@@ -17,7 +17,7 @@ interface Child {
   first_name: string
   last_name: string
   photo_url?: string
-  section: 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil'
+  section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2'
   code_qr_id: string
 }
 
@@ -53,22 +53,12 @@ const AttendancePage = () => {
       // First get all children
       let childrenQuery = supabase.from('children').select('*')
       
-      const mapFilterToDb = (val: string): 'creche' | 'garderie' | 'maternelle_etoile' | 'maternelle_soleil' | null => {
-        switch (val) {
-          case 'creche_etoile':
-          case 'creche_nuage':
-          case 'creche_soleil':
-            return 'creche'
-          case 'garderie':
-            return 'garderie'
-          case 'maternelle_PS1':
-            return 'maternelle_etoile'
-          case 'maternelle_PS2':
-          case 'maternelle_MS':
-            return 'maternelle_soleil'
-          default:
-            return null
+      const mapFilterToDb = (val: string): 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2' | null => {
+        // The filter values are the actual database values, so just return them
+        if (['creche_etoile', 'creche_nuage', 'creche_soleil', 'garderie', 'maternelle_GS', 'maternelle_MS', 'maternelle_PS1', 'maternelle_PS2'].includes(val)) {
+          return val as any
         }
+        return null
       }
       
       if (selectedSection !== 'all') {
