@@ -34,22 +34,13 @@ export const handleQRScan = async (scannedData: string) => {
 };
 
 // Exemple d'utilisation dans un composant React
-export const QRScannerExample = () => {
-  const handleScan = (data: string) => {
-    try {
-      const childId = handleQRScan(data);
-      console.log('Enfant identifié:', childId);
-      // Traiter l'identification de l'enfant...
-    } catch (error) {
-      console.error('Erreur scan:', error);
-      // Afficher une erreur à l'utilisateur
-    }
-  };
-  
-  return (
-    <div>
-      {/* Votre composant de scanner QR ici */}
-      <p>Scanner QR code sécurisé...</p>
-    </div>
-  );
+export const handleQRScanInComponent = (data: string) => {
+  try {
+    const childId = handleQRScan(data);
+    console.log('Enfant identifié:', childId);
+    return childId;
+  } catch (error) {
+    console.error('Erreur scan:', error);
+    throw error;
+  }
 };
