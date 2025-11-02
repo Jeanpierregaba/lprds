@@ -250,15 +250,29 @@ const ReportValidation: React.FC = () => {
 
       if (error) throw error;
 
-      // Si le rapport est approuvé, envoyer un message au parent
+      // Si le rapport est approuvé, envoyer un message au parent et une notification email
       if (isApproved) {
         await sendReportToParent(selectedReport);
+        
+        // Send email notification to parents
+        try {
+          await supabase.functions.invoke('send-daily-report-notification', {
+            body: {
+              child_id: selectedReport.child.id,
+              report_id: reportId,
+              report_date: selectedReport.report_date
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Don't fail the whole operation if email fails
+        }
       }
 
       toast({
         title: isApproved ? "Rapport validé" : "Rapport rejeté",
         description: isApproved 
-          ? "Le rapport a été validé et un message a été envoyé au parent"
+          ? "Le rapport a été validé et les parents ont été notifiés par email et message"
           : "Le rapport a été rejeté et retourné à l'éducatrice"
       });
 

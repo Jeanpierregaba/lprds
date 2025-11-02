@@ -426,10 +426,26 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         }
       }
 
+      // Send email notification to parents if report is sent for validation
+      if (sendForValidation) {
+        try {
+          await supabase.functions.invoke('send-daily-report-notification', {
+            body: {
+              child_id: child.id,
+              report_id: reportId,
+              report_date: formData.report_date
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Don't fail the whole operation if email fails
+        }
+      }
+
       toast({
         title: sendForValidation ? "Rapport envoyé" : "Rapport sauvegardé",
         description: sendForValidation 
-          ? "Le rapport a été envoyé pour validation"
+          ? "Le rapport a été envoyé pour validation et les parents ont été notifiés par email"
           : "Le rapport a été sauvegardé en brouillon"
       });
 
