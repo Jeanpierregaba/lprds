@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Baby, Calendar, MessageSquare, LogOut, Camera, Heart, Clock, User, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DailyReportsViewer from '@/components/parent/DailyReportsViewer';
-import { ParentMessaging } from '@/components/parent/ParentMessaging';
+import ParentMessagesPage from '@/pages/parent/MessagesPage';
 import ParentSidebar from './ParentSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'; // <-- ajouté SidebarTrigger
 import dashboardBg from '@/assets/dashboard-bg.png';
@@ -293,7 +293,7 @@ const ParentDashboard = () => {
                 <DailyReportsViewer />
               )}
               {activeView === 'messages' && (
-                <ParentMessaging />
+                <ParentMessagesPage />
               )}
               {activeView === 'profile' && (
                 <Card>
