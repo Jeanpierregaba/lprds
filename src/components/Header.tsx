@@ -100,7 +100,7 @@ const Header = () => {
             </Button>
 
             <Button className="btn-secondary bg-white sm:hidden"
-              onClick={() => (window.location.href = '/admin/login')}
+              onClick={() => (window.location.href = '/login')}
             >
               <User className="w-4 h-4 text-primary" />
             </Button>
@@ -156,7 +156,7 @@ const Header = () => {
                 <Button
                   variant="outline"
                   className="border-primary text-primary rounded-full py-3"
-                  onClick={() => (window.location.href = '/admin/login')}
+                  onClick={() => (window.location.href = '/login')}
                 >
                   Espace Parent
                 </Button>
