@@ -28,12 +28,8 @@ const AboutSection = () => {
                   <span className="text-lg font-bold text-secondary uppercase tracking-wider">À PROPOS DE NOUS</span>
                 </div>
                 
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-fredoka text-foreground leading-tight">
-                  Engagés pour la 
-                  <br className="hidden sm:block" />
-                  <span className="text-primary">Croissance</span> et le 
-                  <br className="hidden sm:block" />
-                  <span className="text-primary">Bonheur</span> de Votre Enfant
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-fredoka text-primary leading-tight">
+                  Pourquoi Les Petits Rayons de Soleil ?
                 </h2>
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
