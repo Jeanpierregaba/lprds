@@ -28,7 +28,7 @@ import EducatorGroupPage from "./pages/educator/EducatorGroupPage";
 import EducatorDailyReportsPage from "./pages/educator/EducatorDailyReportsPage";
 import EducatorAttendancePage from "./pages/educator/EducatorAttendancePage";
 import ForgotPassword from "./pages/admin/ForgotPassword";
-import ResetPassword from "./pages/admin/ResetPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/admin/login" element={<Login />} />
             <Route path="/admin/forgot-password" element={<ForgotPassword />} />
             <Route path="/admin/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/parent/dashboard" element={<ParentDashboard />} />
             <Route path="/admin/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />

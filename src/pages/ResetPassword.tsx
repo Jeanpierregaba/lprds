@@ -98,13 +98,26 @@ const ResetPassword = () => {
       } else {
         toast({
           title: "Mot de passe défini",
-          description: "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+          description: "Redirection vers votre espace...",
         });
         
-        // Redirect to login after 2 seconds
+        // Get user profile to determine redirect
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        // Redirect based on role after 1 second
         setTimeout(() => {
-          navigate('/admin/login');
-        }, 2000);
+          if (profile?.role === 'parent') {
+            navigate('/parent/dashboard');
+          } else if (profile?.role === 'educator') {
+            navigate('/educator/dashboard');
+          } else {
+            navigate('/admin/dashboard');
+          }
+        }, 1000);
       }
     } catch (err) {
       console.error('Unexpected error:', err);

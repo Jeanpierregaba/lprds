@@ -223,12 +223,17 @@ const StaffPage = () => {
     try {
       setIsCreating(true);
 
+      // Use the deployed URL for production, or current origin for development
+      const siteUrl = window.location.hostname === 'localhost' 
+        ? window.location.origin 
+        : `https://${window.location.hostname}`;
+
       // Create user account with email confirmation
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: Math.random().toString(36).slice(-8) + 'Aa1!', // Temporary password
         options: {
-          emailRedirectTo: `${window.location.origin}/admin/reset-password`,
+          emailRedirectTo: `${siteUrl}/reset-password`,
           data: {
             first_name: values.first_name,
             last_name: values.last_name,

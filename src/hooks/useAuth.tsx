@@ -130,7 +130,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
-    const redirectUrl = `${window.location.origin}/admin/dashboard`;
+    const siteUrl = window.location.hostname === 'localhost' 
+      ? window.location.origin 
+      : `https://${window.location.hostname}`;
+    const redirectUrl = `${siteUrl}/reset-password`;
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -158,7 +161,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/admin/reset-password`;
+    const siteUrl = window.location.hostname === 'localhost' 
+      ? window.location.origin 
+      : `https://${window.location.hostname}`;
+    const redirectUrl = `${siteUrl}/reset-password`;
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl
