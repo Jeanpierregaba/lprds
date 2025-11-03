@@ -51,7 +51,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/parent/dashboard" element={<ParentDashboard />} />
-            <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route path="/admin/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="children" element={<ChildrenPage />} />
               <Route path="staff" element={<StaffPage />} />
