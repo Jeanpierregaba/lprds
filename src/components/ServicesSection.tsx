@@ -37,8 +37,8 @@ const ServicesSection = () => {
           <div className="text-lg font-bold text-secondary tracking-wider uppercase mb-4">
             Nos Services
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-fredoka text-foreground">
-            Des soins <span className='text-primary'>personnalisés</span>, de grands <span className='text-primary'>sourires</span> <br className="hidden sm:block"></br>et des <span className='text-primary'>compétences</span> pour toute la <span className='text-primary'>vie</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-fredoka text-primary">
+          Disposés à servir à chaque étape <br /> de la vie de votre enfant
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Des services complets et adaptés pour accompagner votre enfant dans ses premiers pas vers l'autonomie
