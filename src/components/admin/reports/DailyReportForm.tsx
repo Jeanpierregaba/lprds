@@ -57,7 +57,7 @@ interface DailyReportData {
   hygiene_bath: boolean;
   hygiene_bowel_movement: boolean;
   hygiene_frequency_notes?: string;
-  mood: 'joyeux' | 'calme' | 'agite' | 'triste' | 'fatigue';
+  mood: string[];
   special_observations?: string;
   photos: File[];
 }
@@ -81,7 +81,8 @@ const MOOD_OPTIONS = [
   { value: 'calme', label: 'Calme', icon: '😌', color: 'text-blue-500' },
   { value: 'agite', label: 'Agité', icon: '😤', color: 'text-orange-500' },
   { value: 'triste', label: 'Triste', icon: '😢', color: 'text-red-500' },
-  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' }
+  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' },
+  { value: 'grincheux', label: 'Grincheux', icon: '😠', color: 'text-amber-500' }
 ];
 
 const DailyReportForm: React.FC<DailyReportFormProps> = ({
@@ -105,7 +106,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     snack_eaten: 'bien_mange',
     hygiene_bath: false,
     hygiene_bowel_movement: false,
-    mood: 'calme',
+    mood: [],
     photos: []
   });
   
@@ -132,6 +133,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     if (existingReport) {
       setFormData({
         ...existingReport,
+        mood: Array.isArray(existingReport.mood) ? existingReport.mood : (existingReport.mood ? [existingReport.mood] : []),
         photos: [] // Les photos existantes sont des URLs, on les met dans formData mais pas dans photos File[]
       });
       setSelectedActivities(existingReport.activities || []);
@@ -367,7 +369,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         hygiene_bath: formData.hygiene_bath,
         hygiene_bowel_movement: formData.hygiene_bowel_movement,
         hygiene_frequency_notes: formData.hygiene_frequency_notes,
-        mood: formData.mood,
+        mood: formData.mood as any,
         special_observations: formData.special_observations,
         photos: [] // Will be updated after photo upload
       };
@@ -883,21 +885,31 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               <Smile className="h-5 w-5" />
               Humeur du jour
             </CardTitle>
+            <CardDescription>
+              Sélectionnez une ou plusieurs humeurs observées
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-3">
               {MOOD_OPTIONS.map((mood) => (
                 <div
                   key={mood.value}
-                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    formData.mood === mood.value 
-                      ? 'border-primary bg-primary/10' 
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                  onClick={() => setFormData(prev => ({ ...prev, mood: mood.value as any }))}
+                  className="flex items-center space-x-3 p-3 rounded-lg border hover:border-primary/50 transition-colors"
                 >
+                  <Checkbox
+                    id={`mood-${mood.value}`}
+                    checked={formData.mood.includes(mood.value)}
+                    onCheckedChange={(checked) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        mood: checked
+                          ? [...prev.mood, mood.value]
+                          : prev.mood.filter(m => m !== mood.value)
+                      }));
+                    }}
+                  />
                   <span className="text-2xl">{mood.icon}</span>
-                  <Label className={`cursor-pointer ${mood.color}`}>
+                  <Label htmlFor={`mood-${mood.value}`} className={`cursor-pointer ${mood.color}`}>
                     {mood.label}
                   </Label>
                 </div>
