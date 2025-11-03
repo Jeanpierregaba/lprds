@@ -70,11 +70,6 @@ interface DailyReportFormProps {
   restrictToAssigned?: boolean; // Quand true pour un éducateur, limite aux enfants de son groupe
 }
 
-const ACTIVITY_OPTIONS = [
-  'Peinture', 'Dessin', 'Lecture', 'Jeux d\'extérieur', 'Jeux de construction',
-  'Musique', 'Chant', 'Danse', 'Jardinage', 'Cuisine', 'Motricité',
-  'Jeux d\'eau', 'Puzzle', 'Jeux de société', 'Activité sensorielle'
-];
 
 const MOOD_OPTIONS = [
   { value: 'joyeux', label: 'Joyeux', icon: '😊', color: 'text-green-500' },
@@ -111,7 +106,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   });
   
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  const [otherActivitiesText, setOtherActivitiesText] = useState<string>('');
+  const [newActivity, setNewActivity] = useState<string>('');
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(true);
@@ -248,15 +243,22 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     return fullName.includes(searchLower) || section.includes(searchLower);
   });
 
-  const handleActivityToggle = (activity: string) => {
-    setSelectedActivities(prev => {
-      const newActivities = prev.includes(activity)
-        ? prev.filter(a => a !== activity)
-        : [...prev, activity];
-      
-      setFormData(prevData => ({ ...prevData, activities: newActivities }));
-      return newActivities;
-    });
+  const handleAddActivity = () => {
+    if (newActivity.trim()) {
+      const activity = newActivity.trim();
+      if (!selectedActivities.includes(activity)) {
+        const newActivities = [...selectedActivities, activity];
+        setSelectedActivities(newActivities);
+        setFormData(prevData => ({ ...prevData, activities: newActivities }));
+      }
+      setNewActivity('');
+    }
+  };
+
+  const handleRemoveActivity = (activity: string) => {
+    const newActivities = selectedActivities.filter(a => a !== activity);
+    setSelectedActivities(newActivities);
+    setFormData(prevData => ({ ...prevData, activities: newActivities }));
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,15 +342,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     
     try {
       // Préparer les données du rapport
-      const extraActivities = otherActivitiesText
-        .split(',')
-        .map(a => a.trim())
-        .filter(a => a.length > 0);
-
-      const activitiesCombined = Array.from(new Set([...
-        selectedActivities,
-        ...extraActivities
-      ]));
+      const activitiesCombined = [...selectedActivities];
 
       const reportData = {
         child_id: child.id,
@@ -455,7 +449,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       if (!existingReport) {
         setPhotoFiles([]);
         setFormData(prev => ({ ...prev, photos: [] }));
-        setOtherActivitiesText('');
+        setSelectedActivities([]);
         setChild(null);
         setSearchTerm('');
       }
@@ -923,35 +917,58 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>Activités réalisées</CardTitle>
+          <CardDescription>
+            Ajoutez les activités réalisées par l'enfant durant la journée
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {ACTIVITY_OPTIONS.map((activity) => (
-              <div
-                key={activity}
-                className="flex items-center space-x-2"
-              >
-                <Checkbox
-                  id={activity}
-                  checked={selectedActivities.includes(activity)}
-                  onCheckedChange={() => handleActivityToggle(activity)}
-                />
-                <Label htmlFor={activity} className="text-sm cursor-pointer">
-                  {activity}
-                </Label>
-              </div>
-            ))}
+        <CardContent className="space-y-4">
+          {/* Champ d'ajout d'activité */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Ex: Peinture, Lecture, Jeux d'extérieur..."
+              value={newActivity}
+              onChange={(e) => setNewActivity(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddActivity();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              onClick={handleAddActivity}
+              size="icon"
+              variant="default"
+            >
+              +
+            </Button>
           </div>
 
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="other_activities">Autre(s) activité(s)</Label>
-            <Input
-              id="other_activities"
-              placeholder="Ex: Peinture aux doigts, Parc, Atelier sensoriel (séparez par des virgules)"
-              value={otherActivitiesText}
-              onChange={(e) => setOtherActivitiesText(e.target.value)}
-            />
-          </div>
+          {/* Liste des activités ajoutées */}
+          {selectedActivities.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Activités de la journée :</Label>
+              <div className="flex flex-wrap gap-2">
+                {selectedActivities.map((activity, index) => (
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="text-sm px-3 py-1 flex items-center gap-2"
+                  >
+                    {activity}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveActivity(activity)}
+                      className="hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
