@@ -30,7 +30,7 @@ const Hero = () => {
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 sm:mb-12 max-w-2xl mx-auto leading-relaxed animate-fade-in-up drop-shadow-md px-4" style={{animationDelay: '0.4s'}}>
-            Votre enfant mérite un départ réussi. Une crèche où il grandit,
+            Votre enfant mérite un départ réussi. Une structure où il grandit,
             apprend et s'épanouit en toute sécurité
           </p>
 

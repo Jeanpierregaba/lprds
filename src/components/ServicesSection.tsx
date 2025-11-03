@@ -10,19 +10,19 @@ const ServicesSection = () => {
   const services = [
     {
       title: "Crèche",
-      description: "Soins spécialisés pour les tout-petits (de 3 à 12 mois) dans un environnement sécurisé avec des activités, jouets et des équipements adaptés à leur âge",
+      description: "Accueil des enfants de 3 mois à 3 ans dans un environnement chaleureux et bienveillant, favorisant leur éveil, leur motricité et leurspremières interactions sociales. À travers le jeu, la découverte sensorielle et les activités d’exploration, chaque enfant développe à son rythme sa curiosité, son autonomie et sa confiance en lui.",
       img : crecheIcon,
       color : "ternegreen"
     },
     {
       title: "Garderie",
-      description: "Prise en charge des enfants (généralement âgés de 3 à 8 ans) axée sur l'exploration et les étapes importantes du développement",
+      description: "Prise en charge des enfants de 3 mois à 8 ans pour des gardes occasionnelles ou en accueil après l’école, axée sur l’éveil, le jeu éducatif et le développement harmonieux de l’enfant.",
       img : garderieIcon,
       color : "ternegreen"
     },
     {
       title: "Ecole Maternelle",
-      description: "Programmes d'éducation préscolaire pour les enfants âgés de 1 à 4 ans, les préparant aux classes primaires",
+      description: "Programme éducatif préscolaire conforme au programme français, destiné aux enfants de 3 à 5 ans. Il favorise l’épanouissementglobal de l’enfant à travers le développement du langage, la découverte du monde, l’expression artistique et corporelle, ainsi que l’acquisition des premières bases de la réflexion et de la socialisation.",
       img : materIcon,
       color : "ternegreen"
     }

@@ -1,4 +1,4 @@
-import { Heart, Shield, Users, BookOpen, Send } from 'lucide-react';
+import { Heart, Shield, Users, BookOpen, Send, Brain, Dices } from 'lucide-react';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import whyChooseUsImage from '@/assets/why-choose-us-main.jpg';
 import whyDiff from '@/assets/why-diff.jpg';
@@ -7,6 +7,16 @@ const WhyChooseUsSection = () => {
   const [ref, isVisible] = useScrollAnimation();
   
   const reasons = [
+    {
+      icon: BookOpen,
+      title: "Programme bilingue français / anglais ",
+      description: "Une ouverture au monde dès le plus jeune âge grâce à un apprentissage naturel des deux langues.",
+    },
+    {
+      icon: Brain,
+      title: "Pédagogie Montessori",
+      description: "Une approche favorisant l’autonomie, la curiosité et l’apprentissage par l’expérience.",
+    },
     {
       icon: Heart,
       title: "Soins Personnalisés",
@@ -19,13 +29,23 @@ const WhyChooseUsSection = () => {
     },
     {
       icon: Users,
-      title: "Éducatrices Formée  s",
-      description: "Notre équipe qualifiée et compétente est continuellement engagé dans une formation continue.",
+      title: "Éducatrices Formées",
+      description: "Une équipe qualifiée, passionnée et en formation continue, dédiée au bienêtre et à la progression de chaque enfant.",
     },
     {
       icon: BookOpen,
       title: "Routines Structurées",
-      description: "Nos routines équilibrent apprentissage, jeu et repos pour un développement optimal.",
+      description: "Des journées équilibrées entre apprentissage, jeu et repos, pour un développement harmonieux.",
+    },
+    {
+      icon: Dices,
+      title: "Activités extrascolaires enrichissantes :",
+      description: "Natation, karaté, escrime et danse contemporaine — pour stimuler la motricité, la confiance et la discipline.",
+    },
+    {
+      icon: Dices,
+      title: "Espace de jeux spacieux et équipé",
+      description: "Un lieu sûr et stimulant où l’enfant apprend en explorant et en s’amusant.",
     }
   ];
 
@@ -43,10 +63,9 @@ const WhyChooseUsSection = () => {
             le <span className='text-primary'>Bonheur</span> de Votre <span className='text-primary'>Enfant</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Chez Les Petits Rayons de Soleil, nous croyons fermement que chaque enfant
-            possède un potentiel unique et infini. Notre vision est de permettre à chaque
-            enfant de développer ses compétences à son propre rythme, dans un
-            environnement bienveillant et sécurisé
+          Offrir à votre enfant le meilleur, c’est lui permettre de grandir, découvrir et
+s’épanouir dans un environnement bienveillant, stimulant et entièrement
+pensé pour son éveil et sa sécurité.
           </p>
         </div>
         
@@ -74,6 +93,16 @@ const WhyChooseUsSection = () => {
           <div className={`relative transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
             <div className="relative">
               {/* Image principale */}
+              <div className="relative overflow-hidden rounded-3xl mb-10">
+                <img 
+                  src={whyDiff} 
+                  alt="Éducateur jouant avec un enfant" 
+                  className="w-full h-auto object-cover"
+                />
+                {/* Overlay gradient pour améliorer la lisibilité */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-3xl"></div>
+              </div>
+
               <div className="relative overflow-hidden rounded-3xl">
                 <img 
                   src={whyDiff} 

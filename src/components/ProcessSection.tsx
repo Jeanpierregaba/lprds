@@ -1,4 +1,4 @@
-import { Calendar, FileText, Users } from 'lucide-react';
+import { Calendar, FileText, Users, BadgeCheck, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 
@@ -8,25 +8,25 @@ const ProcessSection = () => {
   const steps = [
     {
       step: "1",
-      title: "Planifier une Visite",
-      description: "Visitez nous pour explorer nos installations, rencontrer notre équipe et en apprendre davantage sur nos programmes.",
-      icon: Calendar,
+      title: "Une visite (30 min) :",
+      description: "Explorez les locaux. Posez vos questions. Rassurez-vous.",
+      icon: Eye,
       bgColor: "bg-green-100",
       iconColor: "text-green-600"
     },
     {
       step: "2", 
-      title: "Compléter la Candidature",
-      description: "Remplissez notre formulaire d'inscription avec les détails importants sur les besoins de votre enfant et planifiez.",
+      title: "Fiche d'inscription :",
+      description: "Infos essentielles + besoins de votre enfant.",
       icon: FileText,
       bgColor: "bg-green-100",
       iconColor: "text-green-600"
     },
     {
       step: "3",
-      title: "Finaliser l'Inscription",
-      description: "Rencontrez notre équipe pour finaliser les détails et fixer la date de début du parcours de votre enfant.",
-      icon: Users,
+      title: " Démarrage confirmé :",
+      description: "Bienvenue chez Les Petits Rayons de Soleil !",
+      icon: BadgeCheck,
       bgColor: "bg-green-100", 
       iconColor: "text-green-600"
     }
@@ -44,8 +44,7 @@ const ProcessSection = () => {
             ÉTAPES
           </div>
           <h2 className="text-4xl lg:text-5xl font-fredoka text-foreground leading-tight">
-            Un <span className='text-primary'>Processus Simple</span> pour Rejoindre<br />
-            Notre Famille
+            <span className='text-primary'>Rejoignez-nous </span>en 3 étapes simples :
           </h2>
         </div>
         

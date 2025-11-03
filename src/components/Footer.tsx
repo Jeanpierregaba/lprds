@@ -12,10 +12,13 @@ const Footer = () => {
             {/* Logo & Description */}
             <div className="lg:col-span-2">
               <div className="flex items-center space-x-3 mb-6">
+                <a href="/">
                 <div>
                   <img src={logo} alt="Logo" className="w-[200px] inline" />
                   
                 </div>
+                </a>
+
               </div>
               <p className="text-primary-foreground/80 leading-relaxed mb-6 max-w-md">
                 Depuis 2022, nous accompagnons les enfants de 3 mois à 8 ans dans leur épanouissement quotidien. 
@@ -43,7 +46,7 @@ const Footer = () => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 text-secondary flex-shrink-0" />
-                  <a href="tel:0478123456" className="text-primary-foreground/80 hover:text-secondary transition-colors">
+                  <a href="tel:+22898602920" className="text-primary-foreground/80 hover:text-secondary transition-colors">
                     +228 98 60 29 20
                   </a>
                 </div>
@@ -64,12 +67,12 @@ const Footer = () => {
                 <div className="flex items-center space-x-3">
                   <Clock className="w-5 h-5 text-secondary flex-shrink-0" />
                   <div className="text-primary-foreground/80">
-                    <div className="font-medium">Lun - Ven</div>
-                    <div className="text-sm">7h30 - 18h30</div>
+                    <div className="font-medium">Lundi - Vendredi</div>
+                    <div className="text-sm">7h - 19h</div>
+                    <div className="font-medium">Espace de jeux :</div>
+                    <div className="text-sm">Samedi : 11h - 19h</div>
+                    <div className="text-sm">Dimanche : 14h - 19h</div>
                   </div>
-                </div>
-                <div className="text-primary-foreground/60 text-sm">
-                  Fermé les week-ends et jours fériés
                 </div>
                 <div className="mt-4 p-3 bg-secondary/20 rounded-lg">
                   <div className="text-sm font-medium text-secondary mb-1">Urgence</div>
@@ -92,14 +95,11 @@ const Footer = () => {
               © 2025 Les Petits Rayons de Soleil. Tous droits réservés.
             </div>
             <div className="flex items-center space-x-6 text-sm">
-              <a href="#" className="text-primary-foreground/60 hover:text-secondary transition-colors">
+              <a href="/mentions-legales.pdf" target="_blank" rel="noopener noreferrer" className="text-primary-foreground/60 hover:text-secondary transition-colors">
                 Mentions légales
               </a>
-              <a href="#" className="text-primary-foreground/60 hover:text-secondary transition-colors">
+              <a href="/politique-de-confidentialite.pdf" target="_blank" rel="noopener noreferrer" className="text-primary-foreground/60 hover:text-secondary transition-colors">
                 Politique de confidentialité
-              </a>
-              <a href="#" className="text-primary-foreground/60 hover:text-secondary transition-colors">
-                CGV
               </a>
             </div>
           </div>

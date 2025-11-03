@@ -50,26 +50,34 @@ const About = () => {
           <div className="container-custom">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
-                <h2 className="text-3xl font-fredoka text-foreground mb-6">
+                <h2 className="text-3xl sm:text-3xl lg:text-4xl font-fredoka text-primary mb-6">
                   Notre histoire
                 </h2>
                 <div className="space-y-4 text-muted-foreground">
                   <p>
-                  Chez Les Petits Rayons de Soleil, nous croyons fermement que chaque enfant
-possède un potentiel unique et infini. Notre vision est de permettre à chaque
-enfant de développer ses compétences à son propre rythme, dans un
-environnement bienveillant et sécurisé.
+                  Les Petits Rayons de Soleil est née d’une passion pour la petite enfance et
+d’un rêve simple : offrir aux enfants un lieu où ils puissent grandir dans la
+joie, la sécurité et la confiance.
                   </p>
+
                   <p>
-                  Nous nous inspirons des méthodes Montessori et proposons un
-programme bilingue (anglais et français) tout en intégrant l'apprentissage de la
-langue des signes (le bébé signe), afin de favoriser une communication efficace et
-un développement linguistique enrichi dès le plus jeune âge.
+                  Notre établissement grandit jour après jour, tout comme les sourires des
+enfants qui y ont fait leurs premiers pas. Aujourd’hui, Les Petits Rayons de
+Soleil est devenue une référence d’accueil de qualité, alliant pédagogie
+moderne, bienveillance et engagement éducatif, tout en restant fidèle à son
+esprit familial.
                   </p>
+
                   <p>
-                    Aujourd'hui, notre crèche accueille plus de 80 enfants et emploie une équipe 
-                    d'une dizaine de professionnels qualifiés, tous unis par la même passion : accompagner 
-                    les enfants dans leur développement avec bienveillance et professionnalisme.
+                  Notre évolution s’est naturellement poursuivie avec l’ouverture de l’école
+maternelle, afin d’accompagner les enfants dans la continuité de leur
+développement jusqu’à l’entrée à l’école primaire.
+                  </p>
+
+                  <p>
+                  Chaque jour, notre équipe met tout son cœur à créer un environnement où
+les enfants apprennent, explorent et s’épanouissent, car ici, grandir est une
+aventure lumineuse !
                   </p>
                 </div>
               </div>
@@ -92,7 +100,7 @@ un développement linguistique enrichi dès le plus jeune âge.
         <section className="section-padding bg-muted/30">
           <div className="container-custom">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-fredoka text-foreground mb-4">
+              <h2 className="text-3xl sm:text-3xl lg:text-4xl font-fredoka text-primary mb-4">
                 Notre mission et notre vision
               </h2>
             </div>
@@ -101,18 +109,22 @@ un développement linguistique enrichi dès le plus jeune âge.
                 <Award className="w-12 h-12 text-primary mb-6" />
                 <h3 className="text-xl font-fredoka text-foreground mb-4">Notre Mission</h3>
                 <p className="text-muted-foreground">
-                  Accompagner chaque enfant dans son développement global - moteur, cognitif, 
-                  social et émotionnel - en respectant son rythme et ses besoins individuels. 
-                  Créer un pont solide entre la famille et l'école.
+                      Offrir aux enfants un environnement qui nourrit leur curiosité et leur
+      créativité, tout en développant leur capacité à interagir avec les autres et à
+      explorer le monde. Nous nous engageons à accompagner chaque enfant
+      dans son parcours unique, en valorisant la confiance, la responsabilisation et
+      la découverte personnelle.
                 </p>
               </div>
               <div className="card-soft">
                 <Heart className="w-12 h-12 text-secondary mb-6" />
                 <h3 className="text-xl font-fredoka text-foreground mb-4">Notre Vision</h3>
                 <p className="text-muted-foreground">
-                  Être reconnue comme la référence en matière d'accueil de qualité pour les 
-                  jeunes enfants, où l'épanouissement personnel, la bienveillance et 
-                  l'excellence éducative se conjuguent harmonieusement.
+                Être un établissement où l’éducation va au-delà de l’apprentissage
+académique, en préparant les enfants à devenir des individus épanouis,
+autonomes et ouverts sur le monde. Nous aspirons à créer une communauté
+éducative inspirante, où parents et éducateurs travaillent ensemble pour
+bâtir un futur enrichissant pour chaque enfant.
                 </p>
               </div>
             </div>
@@ -123,31 +135,37 @@ un développement linguistique enrichi dès le plus jeune âge.
         <section className="section-padding">
           <div className="container-custom">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-fredoka text-foreground mb-4">
-                Notre équipe pédagogique
+              <h2 className="text-3xl sm:text-3xl lg:text-4xl font-fredoka text-primary mb-4">
+              Nos partenaires
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Des professionnels qualifiés et passionnés, formés en continu pour offrir 
-                le meilleur accompagnement à vos enfants.
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Pour offrir aux enfants un <strong>accompagnement complet et de qualité</strong>, <em>Les Petits
+              Rayons de Soleil</em> s’entoure de <strong>professionnels spécialisés</strong> qui interviennent
+  régulièrement au sein de l’établissement, participant à <strong>l’épanouissement global des enfants </strong>
+  grâce à leur <strong>savoir-faire</strong> et à des <strong>activités enrichissantes</strong> qui
+complètent notre approche pédagogique.
               </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Team members placeholder - will be populated with real data */}
               {[
-                { name: 'Victoire ATAKPLA', role: 'Directrice', qualification: '' },
-                { name: 'Sophie Martin', role: 'Éducatrice référente', qualification: 'CAP Petite Enfance, 8 ans' },
-                { name: 'Julie Moreau', role: 'Auxiliaire puéricultrice', qualification: 'Diplôme d\'État, 6 ans' },
-                { name: 'Claire Dubois', role: 'Psychomotricienne', qualification: 'DE Psychomotricité, 4 ans' },
-                { name: 'Emma Bernard', role: 'Éducatrice spécialisée', qualification: 'DEES, 10 ans d\'expérience' },
-                { name: 'Lucas Petit', role: 'Agent technique', qualification: 'BTS Hygiène Sécurité, 3 ans' }
+                { name: 'Pédiatre', qualification: ' Intervient en cas de besoin pour assurer la santé et le bien-être général des enfants.' },
+                { name: 'Psychologue d’éducation', qualification: ' Accompagne le développement émotionnel social.' },
+                { name: 'Psychomotricienne', qualification: ' Observe et soutient le développement de la motricité et de la coordination corporelle.' },
+                { name: 'Orthophoniste', qualification: ' Veille au développement du langage et de la communication.' },
+                { name: 'Maître-nageur', qualification: ' Initie les enfants à la natation en toute sécurité.' },
+                { name: 'Professeur de musique', qualification: ' Développe la sensibilité musicale et la créativité.' },
+                { name: 'Professeure de karaté', qualification: ' Enseigne discipline, confiance et coordination.' },
+                { name: 'Professeure de danse', qualification: ' Favorise l’expression corporelle et le rythme.' },
+                { name: 'Maître d’armes d’escrime', qualification: ' Stimule la concentration, les réflexes et l’esprit sportif.' }
+
               ].map((member, index) => (
                 <div key={member.name} className="card-soft text-center">
                   <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">
                     👨‍🏫
                   </div>
-                  <h3 className="font-fredoka text-lg text-foreground mb-2">{member.name}</h3>
-                  <p className="text-primary font-medium mb-1">{member.role}</p>
+                  <h3 className="font-fredoka text-lg text-secondary mb-2">{member.name}</h3>
                   <p className="text-sm text-muted-foreground">{member.qualification}</p>
                 </div>
               ))}
@@ -163,12 +181,7 @@ un développement linguistique enrichi dès le plus jeune âge.
                 Nos chiffres en quelques mots
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              <div>
-                <Clock className="w-8 h-8 mx-auto mb-4 text-secondary" />
-                <div className="text-3xl font-fredoka mb-2">3</div>
-                <div className="text-sm opacity-80">Années d'expérience</div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-center">
               <div>
                 <Users className="w-8 h-8 mx-auto mb-4 text-secondary" />
                 <div className="text-3xl font-fredoka mb-2">80+</div>
