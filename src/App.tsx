@@ -46,12 +46,12 @@ const App = () => (
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/news" element={<News />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/admin/login" element={<Login />} />
-            <Route path="/admin/forgot-password" element={<ForgotPassword />} />
-            <Route path="/admin/reset-password" element={<ResetPassword />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/parent/dashboard" element={<ParentDashboard />} />
-            <Route path="/admin/dashboard" element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="children" element={<ChildrenPage />} />
               <Route path="staff" element={<StaffPage />} />
