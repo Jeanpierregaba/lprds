@@ -81,7 +81,7 @@ const Header = () => {
               <Button
                 variant="outline"
                 className="border-primary text-primary px-8 py-4 rounded-full"
-                onClick={() => (window.location.href = '/admin/login')}
+                onClick={() => (window.location.href = '/login')}
               >
                 <span>Espace Parent</span>
               </Button>
