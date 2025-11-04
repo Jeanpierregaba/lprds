@@ -377,9 +377,9 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         hygiene_bath: formData.hygiene_bath,
         hygiene_bowel_movement: formData.hygiene_bowel_movement,
         hygiene_frequency_notes: formData.hygiene_frequency_notes || null,
-        mood: formData.mood as any,
+        mood: formData.mood.length > 0 ? formData.mood.join(', ') : null,
         special_observations: formData.special_observations || null,
-        photos: [] as any, // Will be updated after photo upload
+        photos: [],
         is_draft: !sendForValidation,
         is_validated: false
       };
