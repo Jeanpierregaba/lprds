@@ -153,11 +153,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: Baby,
         exact: true
       },
-      { 
-        title: "Présences", 
-        url: "/parent/dashboard/attendance", 
-        icon: Clock 
-      },
+      //{ 
+       // title: "Présences", 
+       // url: "/parent/dashboard/attendance", 
+       // icon: Clock 
+      //},
       { 
         title: "Suivi Quotidien", 
         url: "/parent/dashboard/daily-reports", 
