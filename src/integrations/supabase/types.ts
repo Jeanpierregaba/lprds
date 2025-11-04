@@ -199,6 +199,7 @@ export type Database = {
           special_needs: string | null
           status: Database["public"]["Enums"]["child_status"]
           updated_at: string
+          usual_name: string | null
         }
         Insert: {
           address?: string | null
@@ -226,6 +227,7 @@ export type Database = {
           special_needs?: string | null
           status?: Database["public"]["Enums"]["child_status"]
           updated_at?: string
+          usual_name?: string | null
         }
         Update: {
           address?: string | null
@@ -253,6 +255,7 @@ export type Database = {
           special_needs?: string | null
           status?: Database["public"]["Enums"]["child_status"]
           updated_at?: string
+          usual_name?: string | null
         }
         Relationships: [
           {
@@ -337,6 +340,7 @@ export type Database = {
           hygiene_bowel_movement: boolean | null
           hygiene_frequency_notes: string | null
           id: string
+          is_draft: boolean
           is_validated: boolean | null
           lunch_eaten: string | null
           mood: string | null
@@ -346,6 +350,8 @@ export type Database = {
           report_date: string
           snack_eaten: string | null
           special_observations: string | null
+          temperature_arrival: number | null
+          temperature_departure: number | null
           updated_at: string
           validated_at: string | null
           validated_by: string | null
@@ -365,6 +371,7 @@ export type Database = {
           hygiene_bowel_movement?: boolean | null
           hygiene_frequency_notes?: string | null
           id?: string
+          is_draft?: boolean
           is_validated?: boolean | null
           lunch_eaten?: string | null
           mood?: string | null
@@ -374,6 +381,8 @@ export type Database = {
           report_date?: string
           snack_eaten?: string | null
           special_observations?: string | null
+          temperature_arrival?: number | null
+          temperature_departure?: number | null
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
@@ -393,6 +402,7 @@ export type Database = {
           hygiene_bowel_movement?: boolean | null
           hygiene_frequency_notes?: string | null
           id?: string
+          is_draft?: boolean
           is_validated?: boolean | null
           lunch_eaten?: string | null
           mood?: string | null
@@ -402,6 +412,8 @@ export type Database = {
           report_date?: string
           snack_eaten?: string | null
           special_observations?: string | null
+          temperature_arrival?: number | null
+          temperature_departure?: number | null
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
@@ -441,7 +453,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          section: Database["public"]["Enums"]["child_section_new"]
+          section: Database["public"]["Enums"]["child_section_new"] | null
           type: Database["public"]["Enums"]["group_type"]
           updated_at: string
         }
@@ -454,7 +466,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          section: Database["public"]["Enums"]["child_section_new"]
+          section?: Database["public"]["Enums"]["child_section_new"] | null
           type?: Database["public"]["Enums"]["group_type"]
           updated_at?: string
         }
@@ -467,7 +479,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          section?: Database["public"]["Enums"]["child_section_new"]
+          section?: Database["public"]["Enums"]["child_section_new"] | null
           type?: Database["public"]["Enums"]["group_type"]
           updated_at?: string
         }
@@ -484,21 +496,21 @@ export type Database = {
       login_history: {
         Row: {
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           login_at: string
           user_agent: string | null
           user_id: string
         }
         Insert: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           login_at?: string
           user_agent?: string | null
           user_id: string
         }
         Update: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           login_at?: string
           user_agent?: string | null
           user_id?: string
@@ -739,28 +751,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_educator_children: {
-        Args: { user_uuid: string }
-        Returns: string[]
-      }
-      get_parent_children: {
-        Args: { user_uuid: string }
-        Returns: string[]
-      }
+      get_educator_children: { Args: { user_uuid: string }; Returns: string[] }
+      get_parent_children: { Args: { user_uuid: string }; Returns: string[] }
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      is_admin_or_secretary: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
-      is_educator: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      is_admin_or_secretary: { Args: { user_uuid: string }; Returns: boolean }
+      is_educator: { Args: { user_uuid: string }; Returns: boolean }
     }
     Enums: {
+      child_section:
+        | "creche"
+        | "garderie"
+        | "maternelle_etoile"
+        | "maternelle_soleil"
       child_section_new:
         | "creche_etoile"
         | "creche_nuage"
@@ -900,6 +905,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      child_section: [
+        "creche",
+        "garderie",
+        "maternelle_etoile",
+        "maternelle_soleil",
+      ],
       child_section_new: [
         "creche_etoile",
         "creche_nuage",

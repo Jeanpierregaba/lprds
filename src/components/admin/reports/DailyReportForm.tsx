@@ -57,7 +57,7 @@ interface DailyReportData {
   hygiene_bath: boolean;
   hygiene_bowel_movement: boolean;
   hygiene_frequency_notes?: string;
-  mood: string[];
+  mood: string;
   special_observations?: string;
   photos: File[];
 }
@@ -76,8 +76,7 @@ const MOOD_OPTIONS = [
   { value: 'calme', label: 'Calme', icon: '😌', color: 'text-blue-500' },
   { value: 'agite', label: 'Agité', icon: '😤', color: 'text-orange-500' },
   { value: 'triste', label: 'Triste', icon: '😢', color: 'text-red-500' },
-  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' },
-  { value: 'grincheux', label: 'Grincheux', icon: '😠', color: 'text-amber-500' }
+  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' }
 ];
 
 const DailyReportForm: React.FC<DailyReportFormProps> = ({
@@ -101,7 +100,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     snack_eaten: 'bien_mange',
     hygiene_bath: false,
     hygiene_bowel_movement: false,
-    mood: [],
+    mood: '',
     photos: []
   });
   
@@ -126,26 +125,33 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   // Charger un rapport existant
   useEffect(() => {
     if (existingReport) {
+      // Si le rapport a un enfant associé, charger cet enfant
+      if (existingReport.child) {
+        setChild(existingReport.child);
+      } else if (existingReport.child_id && !child) {
+        loadChild(existingReport.child_id);
+      }
+      
       setFormData({
         ...existingReport,
-        mood: Array.isArray(existingReport.mood) ? existingReport.mood : (existingReport.mood ? [existingReport.mood] : []),
+        mood: existingReport.mood || '',
         photos: [] // Les photos existantes sont des URLs, on les met dans formData mais pas dans photos File[]
       });
       setSelectedActivities(existingReport.activities || []);
-      setIsDraft(!existingReport.is_validated);
+      setIsDraft(existingReport.is_draft !== false);
     }
   }, [existingReport]);
 
   // Charger automatiquement les horaires d'arrivée/départ depuis la présence scannée
   useEffect(() => {
     const loadAttendanceTimes = async () => {
-      if (!child || !formData.report_date) return;
+      if (!child || !reportDate) return;
       try {
         const { data, error } = await supabase
           .from('daily_attendance')
           .select('arrival_time, departure_time')
           .eq('child_id', child.id)
-          .eq('attendance_date', formData.report_date)
+          .eq('attendance_date', reportDate)
           .maybeSingle();
 
         if (error) throw error;
@@ -164,7 +170,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     };
 
     loadAttendanceTimes();
-  }, [child, formData.report_date]);
+  }, [child?.id, reportDate]);
 
   const loadAvailableChildren = async () => {
     try {
@@ -336,7 +342,14 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   };
 
   const saveReport = async (sendForValidation = false) => {
-    if (!profile || !child) return;
+    if (!profile || !child) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un enfant",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     
@@ -348,24 +361,26 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         child_id: child.id,
         educator_id: profile.id,
         report_date: formData.report_date,
-        arrival_time: formData.arrival_time,
-        departure_time: formData.departure_time,
+        arrival_time: formData.arrival_time || null,
+        departure_time: formData.departure_time || null,
         health_status: formData.health_status,
-        health_notes: formData.health_notes,
-        temperature_arrival: formData.temperature_arrival,
-        temperature_departure: formData.temperature_departure,
+        health_notes: formData.health_notes || null,
+        temperature_arrival: formData.temperature_arrival || null,
+        temperature_departure: formData.temperature_departure || null,
         activities: activitiesCombined,
         nap_taken: formData.nap_taken,
-        nap_duration_minutes: formData.nap_duration_minutes,
+        nap_duration_minutes: formData.nap_duration_minutes || null,
         breakfast_eaten: formData.breakfast_eaten,
         lunch_eaten: formData.lunch_eaten,
         snack_eaten: formData.snack_eaten,
         hygiene_bath: formData.hygiene_bath,
         hygiene_bowel_movement: formData.hygiene_bowel_movement,
-        hygiene_frequency_notes: formData.hygiene_frequency_notes,
-        mood: formData.mood as any,
-        special_observations: formData.special_observations,
-        photos: [] // Will be updated after photo upload
+        hygiene_frequency_notes: formData.hygiene_frequency_notes || null,
+        mood: formData.mood || null,
+        special_observations: formData.special_observations || null,
+        photos: [],
+        is_draft: !sendForValidation,
+        is_validated: false
       };
 
       let reportId: string;
@@ -880,7 +895,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               Humeur du jour
             </CardTitle>
             <CardDescription>
-              Sélectionnez une ou plusieurs humeurs observées
+              Sélectionnez l'humeur observée
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -888,22 +903,22 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               {MOOD_OPTIONS.map((mood) => (
                 <div
                   key={mood.value}
-                  className="flex items-center space-x-3 p-3 rounded-lg border hover:border-primary/50 transition-colors"
+                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    formData.mood === mood.value 
+                      ? 'border-primary bg-primary/5' 
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setFormData(prev => ({ ...prev, mood: mood.value }))}
                 >
-                  <Checkbox
-                    id={`mood-${mood.value}`}
-                    checked={formData.mood.includes(mood.value)}
-                    onCheckedChange={(checked) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        mood: checked
-                          ? [...prev.mood, mood.value]
-                          : prev.mood.filter(m => m !== mood.value)
-                      }));
-                    }}
-                  />
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    formData.mood === mood.value ? 'border-primary' : 'border-gray-300'
+                  }`}>
+                    {formData.mood === mood.value && (
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                    )}
+                  </div>
                   <span className="text-2xl">{mood.icon}</span>
-                  <Label htmlFor={`mood-${mood.value}`} className={`cursor-pointer ${mood.color}`}>
+                  <Label className={`cursor-pointer ${mood.color}`}>
                     {mood.label}
                   </Label>
                 </div>
