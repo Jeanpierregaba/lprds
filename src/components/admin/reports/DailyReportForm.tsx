@@ -57,7 +57,7 @@ interface DailyReportData {
   hygiene_bath: boolean;
   hygiene_bowel_movement: boolean;
   hygiene_frequency_notes?: string;
-  mood: string[];
+  mood: string;
   special_observations?: string;
   photos: File[];
 }
@@ -76,8 +76,7 @@ const MOOD_OPTIONS = [
   { value: 'calme', label: 'Calme', icon: '😌', color: 'text-blue-500' },
   { value: 'agite', label: 'Agité', icon: '😤', color: 'text-orange-500' },
   { value: 'triste', label: 'Triste', icon: '😢', color: 'text-red-500' },
-  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' },
-  { value: 'grincheux', label: 'Grincheux', icon: '😠', color: 'text-amber-500' }
+  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' }
 ];
 
 const DailyReportForm: React.FC<DailyReportFormProps> = ({
@@ -101,7 +100,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     snack_eaten: 'bien_mange',
     hygiene_bath: false,
     hygiene_bowel_movement: false,
-    mood: [],
+    mood: '',
     photos: []
   });
   
@@ -135,7 +134,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       
       setFormData({
         ...existingReport,
-        mood: Array.isArray(existingReport.mood) ? existingReport.mood : (existingReport.mood ? [existingReport.mood] : []),
+        mood: existingReport.mood || '',
         photos: [] // Les photos existantes sont des URLs, on les met dans formData mais pas dans photos File[]
       });
       setSelectedActivities(existingReport.activities || []);
@@ -377,7 +376,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         hygiene_bath: formData.hygiene_bath,
         hygiene_bowel_movement: formData.hygiene_bowel_movement,
         hygiene_frequency_notes: formData.hygiene_frequency_notes || null,
-        mood: formData.mood.length > 0 ? formData.mood.join(', ') : null,
+        mood: formData.mood || null,
         special_observations: formData.special_observations || null,
         photos: [],
         is_draft: !sendForValidation,
@@ -896,7 +895,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               Humeur du jour
             </CardTitle>
             <CardDescription>
-              Sélectionnez une ou plusieurs humeurs observées
+              Sélectionnez l'humeur observée
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -904,22 +903,22 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               {MOOD_OPTIONS.map((mood) => (
                 <div
                   key={mood.value}
-                  className="flex items-center space-x-3 p-3 rounded-lg border hover:border-primary/50 transition-colors"
+                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    formData.mood === mood.value 
+                      ? 'border-primary bg-primary/5' 
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => setFormData(prev => ({ ...prev, mood: mood.value }))}
                 >
-                  <Checkbox
-                    id={`mood-${mood.value}`}
-                    checked={formData.mood.includes(mood.value)}
-                    onCheckedChange={(checked) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        mood: checked
-                          ? [...prev.mood, mood.value]
-                          : prev.mood.filter(m => m !== mood.value)
-                      }));
-                    }}
-                  />
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    formData.mood === mood.value ? 'border-primary' : 'border-gray-300'
+                  }`}>
+                    {formData.mood === mood.value && (
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                    )}
+                  </div>
                   <span className="text-2xl">{mood.icon}</span>
-                  <Label htmlFor={`mood-${mood.value}`} className={`cursor-pointer ${mood.color}`}>
+                  <Label className={`cursor-pointer ${mood.color}`}>
                     {mood.label}
                   </Label>
                 </div>
