@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Camera, 
   CameraOff, 
@@ -50,6 +52,8 @@ const QRScanner: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [cameraErrorNotified, setCameraErrorNotified] = useState(false);
+  const [personName, setPersonName] = useState('');
+  const [temperature, setTemperature] = useState('');
   const { toast } = useToast();
   const { profile } = useAuth();
   const { isStaff } = usePermissions();
@@ -257,6 +261,16 @@ const QRScanner: React.FC = () => {
   const recordAttendance = async (childId: string, scanType: 'arrival' | 'departure') => {
     if (!profile) return;
 
+    // Validation
+    if (!personName.trim()) {
+      toast({
+        title: "Champ requis",
+        description: "Veuillez renseigner la personne qui " + (scanType === 'arrival' ? 'amène' : 'récupère') + " l'enfant",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
@@ -282,17 +296,23 @@ const QRScanner: React.FC = () => {
         .eq('attendance_date', today)
         .maybeSingle();
 
+      const tempValue = temperature ? parseFloat(temperature) : null;
+
       if (existingAttendance) {
         // Mettre à jour l'enregistrement existant
         const updateData = scanType === 'arrival' 
           ? { 
               arrival_time: new Date().toTimeString().split(' ')[0],
               arrival_scanned_by: profile.id,
-              is_present: true
+              is_present: true,
+              brought_by: personName,
+              arrival_temperature: tempValue
             }
           : { 
               departure_time: new Date().toTimeString().split(' ')[0],
-              departure_scanned_by: profile.id
+              departure_scanned_by: profile.id,
+              picked_up_by: personName,
+              departure_temperature: tempValue
             };
 
         const { error: updateError } = await supabase
@@ -311,7 +331,9 @@ const QRScanner: React.FC = () => {
             attendance_date: today,
             arrival_time: new Date().toTimeString().split(' ')[0],
             arrival_scanned_by: profile.id,
-            is_present: true
+            is_present: true,
+            brought_by: personName,
+            arrival_temperature: tempValue
           });
 
         if (insertError) throw insertError;
@@ -325,6 +347,8 @@ const QRScanner: React.FC = () => {
       // Reset après succès
       setScannedChild(null);
       setScanResult(null);
+      setPersonName('');
+      setTemperature('');
       
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement:', error);
@@ -391,6 +415,8 @@ const QRScanner: React.FC = () => {
     setScannedChild(null);
     setScanResult(null);
     setIsScanning(false);
+    setPersonName('');
+    setTemperature('');
   };
 
   return (
@@ -554,28 +580,50 @@ const QRScanner: React.FC = () => {
                   </Alert>
                 )}
 
-                {/* Boutons d'action */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => recordAttendance(scannedChild.id, 'arrival')}
-                    disabled={isProcessing}
-                    variant={scanResult?.suggested_action === 'arrival' ? 'default' : 'outline'}
-                    className="h-12"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Arrivée
-                  </Button>
-                  
-                  <Button
-                    onClick={() => recordAttendance(scannedChild.id, 'departure')}
-                    disabled={isProcessing}
-                    variant={scanResult?.suggested_action === 'departure' ? 'default' : 'outline'}
-                    className="h-12"
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Départ
-                  </Button>
+                {/* Formulaire de pointage */}
+                <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="space-y-2">
+                    <Label htmlFor="personName">
+                      Personne qui {scanResult?.suggested_action === 'arrival' ? 'amène' : 'récupère'} l'enfant *
+                    </Label>
+                    <Input
+                      id="personName"
+                      placeholder="Nom et prénom"
+                      value={personName}
+                      onChange={(e) => setPersonName(e.target.value)}
+                      disabled={isProcessing}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="temperature">
+                      Température (°C)
+                    </Label>
+                    <Input
+                      id="temperature"
+                      type="number"
+                      step="0.1"
+                      min="34"
+                      max="42"
+                      placeholder="37.5"
+                      value={temperature}
+                      onChange={(e) => setTemperature(e.target.value)}
+                      disabled={isProcessing}
+                    />
+                  </div>
                 </div>
+
+                {/* Bouton d'action unique selon le contexte */}
+                <Button
+                  onClick={() => recordAttendance(scannedChild.id, scanResult?.suggested_action || 'arrival')}
+                  disabled={isProcessing}
+                  variant="default"
+                  className="h-12 w-full"
+                  size="lg"
+                >
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Enregistrer {scanResult?.suggested_action === 'arrival' ? "l'arrivée" : 'le départ'}
+                </Button>
                 
               </CardContent>
             </Card>

@@ -279,48 +279,60 @@ export type Database = {
           absence_notified: boolean | null
           absence_reason: string | null
           arrival_scanned_by: string | null
+          arrival_temperature: number | null
           arrival_time: string | null
           attendance_date: string
+          brought_by: string | null
           child_id: string
           created_at: string
           departure_scanned_by: string | null
+          departure_temperature: number | null
           departure_time: string | null
           educator_id: string
           id: string
           is_present: boolean | null
           notes: string | null
+          picked_up_by: string | null
           updated_at: string
         }
         Insert: {
           absence_notified?: boolean | null
           absence_reason?: string | null
           arrival_scanned_by?: string | null
+          arrival_temperature?: number | null
           arrival_time?: string | null
           attendance_date?: string
+          brought_by?: string | null
           child_id: string
           created_at?: string
           departure_scanned_by?: string | null
+          departure_temperature?: number | null
           departure_time?: string | null
           educator_id: string
           id?: string
           is_present?: boolean | null
           notes?: string | null
+          picked_up_by?: string | null
           updated_at?: string
         }
         Update: {
           absence_notified?: boolean | null
           absence_reason?: string | null
           arrival_scanned_by?: string | null
+          arrival_temperature?: number | null
           arrival_time?: string | null
           attendance_date?: string
+          brought_by?: string | null
           child_id?: string
           created_at?: string
           departure_scanned_by?: string | null
+          departure_temperature?: number | null
           departure_time?: string | null
           educator_id?: string
           id?: string
           is_present?: boolean | null
           notes?: string | null
+          picked_up_by?: string | null
           updated_at?: string
         }
         Relationships: []
