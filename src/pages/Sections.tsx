@@ -8,23 +8,23 @@ const Sections = () => {
   const sections = [
     {
       id: 'creche_etoile',
-      title: 'Section Crèche Etoile',
+      title: 'Crèche SectionEtoile',
       ageRange: '3 - 18 mois',
-      capacity: '20 enfants',
+      capacity: '15 enfants',
       ratio: '1 adulte pour 5 bébés',
       color: 'primary',
       icon: Baby,
       description: 'Un cocon douillet pour les premiers mois de découverte',
       activities: [
-        'Éveil sensoriel et moteur',
-        'Découverte des textures',
-        'Musique douce et berceuses',
-        'Jeux d\'eau et barbotage'
+        'Éveil sensoriel et motricité douce',
+        'Exploration des textures et des sons',
+        'Initiation musicale et moments de détente',
+        'Jeux de manipulation et d’exploration libre'
       ],
       schedule: {
-        morning: 'Accueil personnalisé, biberon, jeux sensoriels',
-        midday: 'Repas, sieste longue',
-        afternoon: 'Éveil, promenade, goûter'
+        morning: 'accueil personnalisé, temps de soin, biberon et activités sensorielles',
+        midday: 'repas adapté, moments calmes et sieste longue',
+        afternoon: 'éveil en douceur, moment de découverte en plein air et goûter'
       }
     },
     {
