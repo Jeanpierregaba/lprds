@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -121,7 +121,16 @@ const ParentsPage = () => {
           },
         },
       });
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        // Gestion spécifique de l'erreur de limite d'emails
+        if (signUpError.message?.includes('rate limit') || signUpError.message?.includes('429')) {
+          throw new Error('Trop d\'emails envoyés récemment. Veuillez attendre quelques minutes avant de réessayer.');
+        }
+        if (signUpError.message?.includes('User already registered')) {
+          throw new Error('Un compte avec cet email existe déjà.');
+        }
+        throw signUpError;
+      }
 
       let parentProfileId: string | undefined;
       
@@ -249,7 +258,7 @@ const ParentsPage = () => {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Ajouter un nouveau parent</DialogTitle>
-              <CardDescription>Créez un compte parent et assignez-lui un enfant</CardDescription>
+              <DialogDescription>Créez un compte parent et assignez-lui un enfant. Un email d'invitation sera envoyé.</DialogDescription>
             </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmitParent)} className="space-y-4">
             <div className="flex gap-2">
