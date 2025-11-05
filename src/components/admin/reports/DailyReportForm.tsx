@@ -25,7 +25,8 @@ import {
   Meh,
   Frown,
   Baby,
-  Search
+  Search,
+  CheckCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -142,14 +143,14 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     }
   }, [existingReport]);
 
-  // Charger automatiquement les horaires d'arrivée/départ depuis la présence scannée
+  // Charger automatiquement les horaires et températures d'arrivée/départ depuis la présence scannée
   useEffect(() => {
-    const loadAttendanceTimes = async () => {
+    const loadAttendanceData = async () => {
       if (!child || !reportDate) return;
       try {
         const { data, error } = await supabase
           .from('daily_attendance')
-          .select('arrival_time, departure_time')
+          .select('arrival_time, departure_time, arrival_temperature, departure_temperature')
           .eq('child_id', child.id)
           .eq('attendance_date', reportDate)
           .maybeSingle();
@@ -162,14 +163,16 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
             ...prev,
             arrival_time: data.arrival_time ? toTimeInput(data.arrival_time) : prev.arrival_time,
             departure_time: data.departure_time ? toTimeInput(data.departure_time) : prev.departure_time,
+            temperature_arrival: data.arrival_temperature ?? prev.temperature_arrival,
+            temperature_departure: data.departure_temperature ?? prev.temperature_departure,
           }));
         }
       } catch (err) {
-        console.error('Erreur chargement horaires de présence:', err);
+        console.error('Erreur chargement données de présence:', err);
       }
     };
 
-    loadAttendanceTimes();
+    loadAttendanceData();
   }, [child?.id, reportDate]);
 
   const loadAvailableChildren = async () => {
@@ -315,24 +318,35 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     for (const file of photoFiles) {
       try {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${reportId}/${Date.now()}.${fileExt}`;
+        const fileName = `${reportId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
+        console.log('Tentative d\'upload:', fileName, 'Taille:', file.size, 'Type:', file.type);
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('daily-reports')
-          .upload(fileName, file);
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Erreur détaillée upload:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('Upload réussi:', uploadData);
 
         const { data: { publicUrl } } = supabase.storage
           .from('daily-reports')
           .getPublicUrl(fileName);
 
         uploadedUrls.push(publicUrl);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erreur upload photo:', error);
+        const errorMessage = error?.message || error?.error || 'Erreur inconnue';
         toast({
           title: "Erreur upload",
-          description: `Impossible d'uploader ${file.name}`,
+          description: `Impossible d'uploader ${file.name}: ${errorMessage}`,
           variant: "destructive"
         });
       }
@@ -395,15 +409,34 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         if (error) throw error;
         reportId = existingReport.id;
       } else {
-        // Créer un nouveau rapport
-        const { data, error } = await supabase
+        // Vérifier si un rapport existe déjà pour cet enfant à cette date
+        const { data: existingReportCheck } = await supabase
           .from('daily_reports')
-          .insert(reportData)
           .select('id')
-          .single();
+          .eq('child_id', child.id)
+          .eq('report_date', formData.report_date)
+          .maybeSingle();
 
-        if (error) throw error;
-        reportId = data.id;
+        if (existingReportCheck) {
+          // Un rapport existe déjà, le mettre à jour au lieu de créer un nouveau
+          const { error } = await supabase
+            .from('daily_reports')
+            .update(reportData)
+            .eq('id', existingReportCheck.id);
+
+          if (error) throw error;
+          reportId = existingReportCheck.id;
+        } else {
+          // Créer un nouveau rapport
+          const { data, error } = await supabase
+            .from('daily_reports')
+            .insert(reportData)
+            .select('id')
+            .single();
+
+          if (error) throw error;
+          reportId = data.id;
+        }
       }
 
       // Upload des photos si nécessaire
@@ -632,6 +665,17 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               Une fois complété, envoyez-le à l'administration qui le transmettra aux parents.
             </AlertDescription>
           </Alert>
+
+          {(formData.arrival_time || formData.departure_time || formData.temperature_arrival || formData.temperature_departure) && (
+            <Alert className="bg-green-50 border-green-200">
+              <AlertDescription className="text-green-900 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                <span>
+                  Les horaires et températures ont été chargés automatiquement depuis le pointage QR de l'enfant.
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
         </>
       )}
 
@@ -697,7 +741,12 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="temperature_arrival">Température à l'arrivée (°C)</Label>
+                <Label htmlFor="temperature_arrival" className="flex items-center gap-2">
+                  Température à l'arrivée (°C)
+                  {formData.temperature_arrival && (
+                    <Badge variant="secondary" className="text-xs">Auto</Badge>
+                  )}
+                </Label>
                 <Input
                   id="temperature_arrival"
                   type="number"
@@ -710,11 +759,17 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                     ...prev, 
                     temperature_arrival: e.target.value ? parseFloat(e.target.value) : undefined 
                   }))}
+                  className={formData.temperature_arrival ? "border-green-300 bg-green-50/50" : ""}
                 />
               </div>
               
               <div>
-                <Label htmlFor="temperature_departure">Température au départ (°C)</Label>
+                <Label htmlFor="temperature_departure" className="flex items-center gap-2">
+                  Température au départ (°C)
+                  {formData.temperature_departure && (
+                    <Badge variant="secondary" className="text-xs">Auto</Badge>
+                  )}
+                </Label>
                 <Input
                   id="temperature_departure"
                   type="number"
@@ -727,6 +782,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                     ...prev, 
                     temperature_departure: e.target.value ? parseFloat(e.target.value) : undefined 
                   }))}
+                  className={formData.temperature_departure ? "border-green-300 bg-green-50/50" : ""}
                 />
               </div>
             </div>
@@ -872,7 +928,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                 checked={formData.hygiene_bowel_movement}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hygiene_bowel_movement: checked }))}
               />
-              <Label htmlFor="hygiene_bowel">Selles</Label>
+              <Label htmlFor="hygiene_bowel">Popo</Label>
             </div>
             
             <div>
