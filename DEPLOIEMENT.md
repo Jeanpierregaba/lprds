@@ -110,16 +110,18 @@ Votre hébergeur doit autoriser les directives `.htaccess`. Si ce n'est pas le c
 **Solution** : Vérifiez que :
 1. Les dossiers `assets/` et `fonts/` sont bien uploadés
 2. Les permissions sont correctes (755 pour les dossiers, 644 pour les fichiers)
-3. Le chemin dans `vite.config.ts` utilise bien `base: './'` (relatif)
+3. Le chemin dans `vite.config.ts` utilise `base: '/'` pour un hébergement à la racine
 
 ## 📝 Configuration Vite
 
 La configuration actuelle dans `vite.config.ts` :
 ```typescript
-base: './'  // ✅ Chemins relatifs pour hébergement mutualisé
+base: '/'  // ✅ Chemins absolus depuis la racine du domaine
 ```
 
-**Important** : Ne changez pas cette valeur ! Les chemins relatifs sont essentiels pour un hébergement mutualisé.
+**Important** : Cette configuration utilise des chemins absolus (`/assets/...`) car votre site est hébergé à la racine du domaine (`lespetitsrayonsdesoleil.fr`).
+
+**Si vous hébergez dans un sous-dossier** (ex: `monsite.com/app/`), utilisez `base: '/app/'`.
 
 ## 🔄 Mises à Jour Futures
 
