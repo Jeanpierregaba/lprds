@@ -29,23 +29,24 @@ const Sections = () => {
     },
     {
       id: 'creche_nuage',
-      title: 'Section Crèche Nuage',
+      title: 'Crèche Section Nuage',
       ageRange: '18 - 24 mois',
-      capacity: '20 enfants',
+      capacity: '16 enfants',
       ratio: '1 adulte pour 8 enfants',
       color: 'secondary',
       icon: Heart,
       description: 'L\'âge des premières explorations et de l\'autonomie naissante',
       activities: [
-        'Motricité libre et parcours',
-        'Peinture et arts plastiques',
-        'Chansons et comptines',
-        'Jeux de construction',
+        'Motricité libre et parcours de découverte',
+        'Premiers gestes artistiques : peinture, collage et modelage',
+        'Chansons, comptines et manipulation',
+        'Jeux de construction et d’imitation',
+        'Moments d’observation et d’exploration en extérieur'
       ],
       schedule: {
-        morning: 'Activités d\'éveil, collation',
-        midday: 'Repas en groupe, sieste',
-        afternoon: 'Jeux libres, goûter, histoire'
+        morning: 'accueil chaleureux, activités sportif, cercle matinal, collation conviviale, activités d’éveil, de motricité fine ou global',
+        midday: 'repas en groupe, rituel de sieste',
+        afternoon: 'bricolage, temps d’activités en extérieur, jeux libres, histoire, comptine'
       }
     },
     {
