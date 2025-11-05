@@ -1,5 +1,5 @@
 import { LogOut, User } from "lucide-react"
-import { NavLink, useLocation } from "react-router-dom"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { useRoleBasedNavigation } from "@/components/RoleBasedNavigation"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,7 @@ export function AdminSidebar() {
   const { state } = useSidebar()
   const { profile, signOut } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const location = useLocation()
   const currentPath = location.pathname
   const menuItems = useRoleBasedNavigation()
@@ -40,6 +41,7 @@ export function AdminSidebar() {
       title: "Déconnexion",
       description: "Vous avez été déconnecté avec succès."
     })
+    navigate('/')
   }
 
   return (
