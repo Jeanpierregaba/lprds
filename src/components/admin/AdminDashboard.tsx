@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Baby, Calendar, MessageSquare, Settings, LogOut, UserPlus, BookOpen, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ChildrenManagement from './ChildrenManagement';
+import dashboardBg from '@/assets/dashboard-bg.png';
 
 interface DashboardStats {
   totalChildren: number;
@@ -98,7 +99,14 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
+    <div className="min-h-screen relative">
+      {/* Background image layer */}
+      <div 
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${dashboardBg})`,
+        }}
+      />
       {/* Header */}
       <header className="bg-background border-b border-border/5 shadow-sm">
         <div className="px-6 py-4 flex items-center justify-between">

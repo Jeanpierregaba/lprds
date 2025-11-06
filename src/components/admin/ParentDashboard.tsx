@@ -198,16 +198,14 @@ const ParentDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div
-        className="min-h-screen w-full relative"
-        style={{
-          backgroundImage: `url(${dashboardBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
-        }}
-      >
+      <div className="min-h-screen w-full relative">
+        {/* Background image layer */}
+        <div 
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${dashboardBg})`,
+          }}
+        />
         <div className="flex w-full min-h-screen h-full p-0">
           <ParentSidebar activeView={activeView} setActiveView={setActiveView} />
 
