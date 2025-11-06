@@ -1,25 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { 
   Baby, 
   Search,
-  User,
-  Phone,
-  MapPin,
-  Calendar,
+  Users,
   AlertCircle,
-  Heart,
-  Info,
-  Users
+  Info
 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
+import { GroupChildCard } from '@/components/educator/GroupChildCard'
 
 interface Child {
   id: string
@@ -30,6 +24,7 @@ interface Child {
   section?: string
   allergies?: string
   medical_info?: string
+  special_needs?: string
   address?: string
   code_qr_id?: string
 }
@@ -50,239 +45,253 @@ const EducatorGroupPage = () => {
   const { profile } = useAuth()
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadGroupAndChildren()
-  }, [profile])
-
-  const loadGroupAndChildren = async () => {
+  // Optimisation du chargement avec Promise.all
+  const loadGroupAndChildren = useCallback(async () => {
     if (!profile) return
 
     try {
       setLoading(true)
 
-      // Charger les informations du groupe de l'éducateur
-      const { data: groupData, error: groupError } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('assigned_educator_id', profile.id)
-        .single()
+      // Fetch group and children in parallel
+      const [groupRes, childrenRes] = await Promise.all([
+        supabase
+          .from('groups')
+          .select('*')
+          .eq('assigned_educator_id', profile.id)
+          .single(),
+        supabase
+          .from('children')
+          .select('*')
+          .eq('status', 'active')
+          .order('first_name')
+      ])
 
-      if (groupError && groupError.code !== 'PGRST116') {
-        console.error('Erreur chargement groupe:', groupError)
+      if (groupRes.error) {
+        if (groupRes.error.code === 'PGRST116') {
+          toast({
+            variant: 'default',
+            title: 'Information',
+            description: 'Aucun groupe ne vous est assigné pour le moment.'
+          })
+        } else {
+          throw groupRes.error
+        }
         setGroup(null)
         setChildren([])
         return
       }
 
-      if (groupData) {
-        setGroup(groupData)
-        
-        // Charger les enfants assignés au groupe de l'éducateur
-        const { data: childrenData, error: childrenError } = await supabase
-          .from('children')
-          .select('id, first_name, last_name, birth_date, photo_url, section, allergies, medical_info, address, code_qr_id')
-          .eq('group_id', groupData.id)
-          .order('first_name')
+      setGroup(groupRes.data)
 
-        if (childrenError) throw childrenError
-
-        setChildren(childrenData || [])
-      } else {
-        // Aucun groupe assigné
-        setGroup(null)
-        setChildren([])
-      }
+      // Filter children by group
+      const groupChildren = (childrenRes.data || []).filter(
+        child => child.group_id === groupRes.data.id
+      )
+      
+      setChildren(groupChildren)
     } catch (error) {
-      console.error('Erreur:', error)
+      console.error('Error loading group and children:', error)
       toast({
-        title: "Erreur",
-        description: "Impossible de charger les données du groupe",
-        variant: "destructive"
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de charger les informations du groupe.'
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [profile, toast])
 
-  const calculateAge = (birthDate: string) => {
-    const today = new Date()
-    const birth = new Date(birthDate)
-    let months = (today.getFullYear() - birth.getFullYear()) * 12
-    months += today.getMonth() - birth.getMonth()
-    
-    if (months < 12) {
-      return `${months} mois`
-    } else {
-      const years = Math.floor(months / 12)
-      const remainingMonths = months % 12
-      return remainingMonths > 0 ? `${years} ans ${remainingMonths} mois` : `${years} ans`
+  useEffect(() => {
+    loadGroupAndChildren()
+  }, [loadGroupAndChildren])
+
+  // Filtrage mémorisé
+  const filteredChildren = useMemo(() => {
+    if (!searchTerm) return children
+
+    const searchLower = searchTerm.toLowerCase()
+    return children.filter(child =>
+      `${child.first_name} ${child.last_name}`.toLowerCase().includes(searchLower)
+    )
+  }, [children, searchTerm])
+
+  // Statistiques mémorisées
+  const stats = useMemo(() => {
+    const totalChildren = children.length
+    const withAllergies = children.filter(c => c.allergies).length
+    const withMedicalInfo = children.filter(c => c.medical_info).length
+    const withSpecialNeeds = children.filter(c => c.special_needs).length
+
+    return {
+      totalChildren,
+      withAllergies,
+      withMedicalInfo,
+      withSpecialNeeds,
+      occupancyRate: group ? Math.round((totalChildren / group.capacity) * 100) : 0
     }
-  }
+  }, [children, group])
 
   const getSectionLabel = (section: string) => {
-    const labels = {
+    const labels: Record<string, string> = {
       'creche_etoile': 'Crèche Étoile',
       'creche_nuage': 'Crèche Nuage',
       'creche_soleil': 'Crèche Soleil TPS',
       'garderie': 'Garderie',
-      'maternelle_PS1': 'Maternelle Petite Section 1',
-      'maternelle_PS2': 'Maternelle Petite Section 2',
-      'maternelle_MS': 'Maternelle Moyenne Section',
-      'maternelle_GS': 'Maternelle Grande Section'
+      'maternelle_PS1': 'Maternelle PS1',
+      'maternelle_PS2': 'Maternelle PS2',
+      'maternelle_MS': 'Maternelle MS',
+      'maternelle_GS': 'Maternelle GS',
     }
-    return labels[section as keyof typeof labels] || section
+    return labels[section] || section
   }
-
-  const filteredChildren = children.filter(child =>
-    `${child.first_name} ${child.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
-  )
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Chargement de votre groupe...</p>
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded" />
+            ))}
           </div>
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="p-6 space-y-6">
-      {/* En-tête */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Mon Groupe</h1>
-        <p className="text-muted-foreground">
-          Vue d'ensemble des enfants dont vous avez la charge
-        </p>
-      </div>
-
-      {/* Informations du groupe */}
-      {group ? (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              {group.name}
-            </CardTitle>
-            <CardDescription>
-              Section: {getSectionLabel(group.section)} • Capacité: {children.length}/{group.capacity} enfants
-            </CardDescription>
-          </CardHeader>
-          {group.description && (
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{group.description}</p>
-            </CardContent>
-          )}
-        </Card>
-      ) : (
+  if (!group) {
+    return (
+      <div className="p-4 sm:p-6">
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Vous n'êtes pas encore assigné à un groupe. Contactez l'administration.
+            Aucun groupe ne vous est assigné pour le moment. Contactez l'administration pour plus d'informations.
           </AlertDescription>
         </Alert>
-      )}
+      </div>
+    )
+  }
 
-      {/* Barre de recherche et statistiques */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un enfant..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+  return (
+    <div className="p-4 sm:p-6 space-y-6">
+      {/* En-tête */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">{group.name}</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="text-sm">
+            {getSectionLabel(group.section)}
+          </Badge>
+          <span className="text-sm text-muted-foreground">
+            {stats.totalChildren} / {group.capacity} enfants
+          </span>
         </div>
-        <Badge variant="secondary" className="text-sm py-2 px-4">
-          {filteredChildren.length} enfant{filteredChildren.length > 1 ? 's' : ''}
-        </Badge>
+        {group.description && (
+          <p className="text-muted-foreground mt-2">{group.description}</p>
+        )}
+      </div>
+
+      {/* Statistiques */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Enfants</CardTitle>
+            <Users className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalChildren}</div>
+            <p className="text-xs text-muted-foreground">
+              Taux d'occupation: {stats.occupancyRate}%
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-orange-600">Allergies</CardTitle>
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.withAllergies}</div>
+            <p className="text-xs text-muted-foreground">
+              Enfants avec allergies
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-blue-600">Info Médicale</CardTitle>
+            <Baby className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.withMedicalInfo}</div>
+            <p className="text-xs text-muted-foreground">
+              Avec informations médicales
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-purple-600">Besoins Spéciaux</CardTitle>
+            <AlertCircle className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.withSpecialNeeds}</div>
+            <p className="text-xs text-muted-foreground">
+              Avec besoins spéciaux
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Liste des enfants */}
-      {filteredChildren.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <Baby className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Aucun enfant trouvé</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? "Aucun résultat pour cette recherche" : "Aucun enfant n'est assigné à votre groupe"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredChildren.map((child) => (
-            <Card key={child.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-16 w-16 border-2 border-primary/20">
-                    <AvatarImage src={child.photo_url} />
-                    <AvatarFallback className="bg-primary/10 text-lg">
-                      {child.first_name.charAt(0)}{child.last_name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">
-                      {child.first_name} {child.last_name}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        {calculateAge(child.birth_date)}
-                      </span>
-                    </div>
-                    {child.section && (
-                      <Badge variant="outline" className="mt-2">
-                        {getSectionLabel(child.section)}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {child.address && (
-                  <div className="flex items-start gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <span className="text-muted-foreground line-clamp-2">{child.address}</span>
-                  </div>
-                )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Enfants du Groupe</CardTitle>
+          <CardDescription>
+            Liste complète des enfants assignés à votre groupe
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Recherche */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un enfant..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-                {child.allergies && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      <strong>Allergies:</strong> {child.allergies}
-                    </AlertDescription>
-                  </Alert>
-                )}
+          {/* Alertes médicales importantes */}
+          {stats.withAllergies > 0 && (
+            <Alert className="bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800 dark:text-orange-200">
+                <strong>{stats.withAllergies}</strong> enfant(s) avec des allergies dans ce groupe.
+                Vérifiez les informations individuelles ci-dessous.
+              </AlertDescription>
+            </Alert>
+          )}
 
-                {child.medical_info && (
-                  <Alert className="py-2 bg-blue-50 border-blue-200">
-                    <Heart className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-xs text-blue-900">
-                      <strong>Info médicale:</strong> {child.medical_info}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="pt-2 border-t">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <User className="h-4 w-4 mr-2" />
-                    Voir le détail
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+          {/* Liste des enfants */}
+          <div className="space-y-4">
+            {filteredChildren.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? 'Aucun enfant ne correspond à votre recherche' : 'Aucun enfant dans ce groupe'}
+              </div>
+            ) : (
+              filteredChildren.map((child) => (
+                <GroupChildCard key={child.id} child={child} />
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

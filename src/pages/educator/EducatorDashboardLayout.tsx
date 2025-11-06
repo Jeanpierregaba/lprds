@@ -6,6 +6,7 @@ import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import dashboardBg from '@/assets/dashboard-bg.png'
 
 const EducatorDashboardLayout = () => {
   const { user, profile, loading } = useAuth()
@@ -20,7 +21,13 @@ const EducatorDashboardLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
+      <div className="min-h-screen relative flex items-center justify-center">
+        <div 
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${dashboardBg})`,
+          }}
+        />
         <Card>
           <CardContent className="flex items-center space-x-4 p-6">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -36,7 +43,13 @@ const EducatorDashboardLayout = () => {
 
   if (!user || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
+      <div className="min-h-screen relative flex items-center justify-center">
+        <div 
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${dashboardBg})`,
+          }}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Accès non autorisé</CardTitle>
@@ -51,7 +64,13 @@ const EducatorDashboardLayout = () => {
 
   if (!profile.is_active) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
+      <div className="min-h-screen relative flex items-center justify-center">
+        <div 
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${dashboardBg})`,
+          }}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Compte désactivé</CardTitle>
@@ -67,7 +86,13 @@ const EducatorDashboardLayout = () => {
   // Check if user is an educator
   if (!isEducator()) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
+      <div className="min-h-screen relative flex items-center justify-center">
+        <div 
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${dashboardBg})`,
+          }}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Accès non autorisé</CardTitle>
@@ -83,7 +108,13 @@ const EducatorDashboardLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full relative">
+        <div 
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url(${dashboardBg})`,
+          }}
+        />
         <AdminSidebar />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
@@ -95,7 +126,7 @@ const EducatorDashboardLayout = () => {
               </span>
             </div>
           </header>
-          <main className="flex-1 bg-gradient-to-br from-primary/5 to-secondary/5">
+          <main className="flex-1">
             <Outlet />
           </main>
         </SidebarInset>

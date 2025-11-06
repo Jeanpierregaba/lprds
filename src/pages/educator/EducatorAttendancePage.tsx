@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, Clock, Search, QrCode, UserCheck, UserX } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Calendar, Search, Download, Filter } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useAuth } from '@/hooks/useAuth'
+import { AttendanceStatsCards } from '@/components/educator/AttendanceStatsCards'
+import { AttendanceChildCard } from '@/components/educator/AttendanceChildCard'
 
 interface Child {
   id: string
@@ -36,91 +38,14 @@ const EducatorAttendancePage = () => {
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([])
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [searchQuery, setSearchQuery] = useState('')
+  const [sectionFilter, setSectionFilter] = useState<string>('all')
   const [stats, setStats] = useState<AttendanceStats>({ total: 0, present: 0, absent: 0, late: 0 })
   const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    if (profile) {
-      fetchAttendanceData()
-    }
-  }, [profile, selectedDate])
-
-  const fetchAttendanceData = async () => {
-    try {
-      setLoading(true)
-
-      // Identify educator's group
-      let groupId: string | null = null
-      if (profile?.role === 'educator') {
-        const { data: group, error: groupError } = await supabase
-          .from('groups')
-          .select('id')
-          .eq('assigned_educator_id', profile.id)
-          .single()
-
-        if (groupError || !group) {
-          setAttendanceData([])
-          setStats({ total: 0, present: 0, absent: 0, late: 0 })
-          return
-        }
-        groupId = group.id
-      }
-
-      // Fetch only children in educator's group (and active)
-      let childrenQuery = supabase
-        .from('children')
-        .select('*')
-        .eq('status', 'active')
-
-      if (groupId) {
-        childrenQuery = childrenQuery.eq('group_id', groupId)
-      }
-
-      const { data: children, error: childrenError } = await childrenQuery
-      if (childrenError) throw childrenError
-
-      // Attendance for selected date
-      const { data: attendanceRecords, error: attendanceError } = await supabase
-        .from('daily_attendance')
-        .select('*')
-        .eq('attendance_date', selectedDate)
-
-      if (attendanceError) throw attendanceError
-
-      const combinedData: AttendanceData[] = children?.map(child => {
-        const attendance = attendanceRecords?.find(record => record.child_id === child.id)
-        return {
-          child,
-          attendance: attendance || {
-            id: '',
-            child_id: child.id,
-            attendance_date: selectedDate,
-            is_present: false,
-            arrival_time: null,
-            departure_time: null,
-            absence_notified: false,
-            absence_reason: null,
-            notes: null
-          }
-        }
-      }) || []
-
-      setAttendanceData(combinedData)
-      calculateStats(combinedData)
-    } catch (error) {
-      console.error('Error fetching attendance:', error)
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les données de présence",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const calculateStats = (data: AttendanceData[]) => {
+  // Mémorisation de la fonction de calcul des stats
+  const calculateStats = useCallback((data: AttendanceData[]) => {
     const total = data.length
     const present = data.filter(d => d.attendance?.is_present && d.attendance?.arrival_time).length
     const absent = data.filter(d => !d.attendance?.is_present).length
@@ -145,248 +70,353 @@ const EducatorAttendancePage = () => {
     }).length
 
     setStats({ total, present, absent, late })
-  }
+  }, [])
 
-  const markManualAttendance = async (childId: string, type: 'arrival' | 'departure') => {
+  // Optimisation du chargement des données avec Promise.all
+  const fetchAttendanceData = useCallback(async () => {
+    if (!profile) return
+
     try {
-      const currentTime = format(new Date(), 'HH:mm:ss')
+      setLoading(true)
 
-      // Check if record exists for today
-      const { data: existing } = await supabase
-        .from('daily_attendance')
-        .select('*')
-        .eq('child_id', childId)
-        .eq('attendance_date', selectedDate)
-        .maybeSingle()
+      // Identify educator's group
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('assigned_educator_id', profile.id)
+        .single()
 
-      if (existing) {
-        // Update existing record
-        const updateData = type === 'arrival' 
-          ? { arrival_time: currentTime, is_present: true }
-          : { departure_time: currentTime }
-
-        const { error } = await supabase
-          .from('daily_attendance')
-          .update(updateData)
-          .eq('id', existing.id)
-
-        if (error) throw error
-      } else {
-        // Create new record with educator_id
-        const { error } = await supabase
-          .from('daily_attendance')
-          .insert([{
-            child_id: childId,
-            educator_id: profile?.id || null,
-            attendance_date: selectedDate,
-            arrival_time: type === 'arrival' ? currentTime : null,
-            departure_time: type === 'departure' ? currentTime : null,
-            is_present: type === 'arrival'
-          }])
-
-        if (error) throw error
+      if (groupError || !group) {
+        setAttendanceData([])
+        setStats({ total: 0, present: 0, absent: 0, late: 0 })
+        return
       }
 
-      toast({
-        title: "Succès",
-        description: `${type === 'arrival' ? 'Arrivée' : 'Départ'} enregistré(e)`,
-      })
+      // Fetch children and attendance in parallel
+      const [childrenRes, attendanceRes] = await Promise.all([
+        supabase
+          .from('children')
+          .select('*')
+          .eq('status', 'active')
+          .eq('group_id', group.id)
+          .order('first_name'),
+        supabase
+          .from('daily_attendance')
+          .select('*')
+          .eq('attendance_date', selectedDate)
+      ])
 
-      fetchAttendanceData()
+      if (childrenRes.error) throw childrenRes.error
+
+      const children = childrenRes.data || []
+      const attendanceMap = new Map(
+        (attendanceRes.data || []).map(a => [a.child_id, a])
+      )
+
+      const combinedData = children.map(child => ({
+        child,
+        attendance: attendanceMap.get(child.id) || null
+      }))
+
+      setAttendanceData(combinedData)
+      calculateStats(combinedData)
     } catch (error) {
-      console.error('Error updating attendance:', error)
+      console.error('Error fetching attendance data:', error)
       toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer la présence",
-        variant: "destructive"
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de charger les données de présence.'
       })
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [profile, selectedDate, calculateStats, toast])
 
-  const filteredData = attendanceData.filter(data => {
-    const searchLower = searchQuery.toLowerCase()
-    const childName = `${data.child.first_name} ${data.child.last_name}`.toLowerCase()
-    return childName.includes(searchLower)
-  })
+  useEffect(() => {
+    fetchAttendanceData()
+  }, [fetchAttendanceData])
 
-  const getStatusBadge = (attendance: any) => {
-    if (!attendance?.is_present) {
-      return <Badge variant="destructive">Absent</Badge>
+  // Filtrage mémorisé des données
+  const filteredData = useMemo(() => {
+    return attendanceData.filter(item => {
+      const matchesSearch = searchQuery === '' || 
+        `${item.child.first_name} ${item.child.last_name}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      
+      const matchesSection = sectionFilter === 'all' || item.child.section === sectionFilter
+      
+      return matchesSearch && matchesSection
+    })
+  }, [attendanceData, searchQuery, sectionFilter])
+
+  // Groupement par statut
+  const groupedData = useMemo(() => {
+    return {
+      present: filteredData.filter(d => d.attendance?.is_present),
+      absent: filteredData.filter(d => d.attendance?.is_present === false),
+      unmarked: filteredData.filter(d => d.attendance?.is_present === undefined)
     }
-    if (attendance?.arrival_time && !attendance?.departure_time) {
-      return <Badge variant="default">Présent</Badge>
+  }, [filteredData])
+
+  // Actions optimisées
+  const markPresent = useCallback(async (childId: string) => {
+    setActionLoading(true)
+    try {
+      const { error } = await supabase
+        .from('daily_attendance')
+        .upsert({
+          child_id: childId,
+          attendance_date: selectedDate,
+          is_present: true
+        })
+
+      if (error) throw error
+
+      await fetchAttendanceData()
+      toast({
+        title: 'Succès',
+        description: 'Présence enregistrée'
+      })
+    } catch (error) {
+      console.error('Error marking present:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible d\'enregistrer la présence'
+      })
+    } finally {
+      setActionLoading(false)
     }
-    if (attendance?.arrival_time && attendance?.departure_time) {
-      return <Badge variant="secondary">Parti</Badge>
+  }, [selectedDate, fetchAttendanceData, toast])
+
+  const markAbsent = useCallback(async (childId: string) => {
+    setActionLoading(true)
+    try {
+      const { error } = await supabase
+        .from('daily_attendance')
+        .upsert({
+          child_id: childId,
+          attendance_date: selectedDate,
+          is_present: false
+        })
+
+      if (error) throw error
+
+      await fetchAttendanceData()
+      toast({
+        title: 'Succès',
+        description: 'Absence enregistrée'
+      })
+    } catch (error) {
+      console.error('Error marking absent:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible d\'enregistrer l\'absence'
+      })
+    } finally {
+      setActionLoading(false)
     }
-    return <Badge variant="outline">Non pointé</Badge>
-  }
+  }, [selectedDate, fetchAttendanceData, toast])
+
+  const recordArrival = useCallback(async (childId: string) => {
+    setActionLoading(true)
+    try {
+      const currentTime = format(new Date(), 'HH:mm:ss')
+      
+      const { error } = await supabase
+        .from('daily_attendance')
+        .update({ arrival_time: currentTime })
+        .eq('child_id', childId)
+        .eq('attendance_date', selectedDate)
+
+      if (error) throw error
+
+      await fetchAttendanceData()
+      toast({
+        title: 'Succès',
+        description: `Arrivée enregistrée à ${currentTime}`
+      })
+    } catch (error) {
+      console.error('Error recording arrival:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible d\'enregistrer l\'arrivée'
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }, [selectedDate, fetchAttendanceData, toast])
+
+  const recordDeparture = useCallback(async (childId: string) => {
+    setActionLoading(true)
+    try {
+      const currentTime = format(new Date(), 'HH:mm:ss')
+      
+      const { error } = await supabase
+        .from('daily_attendance')
+        .update({ departure_time: currentTime })
+        .eq('child_id', childId)
+        .eq('attendance_date', selectedDate)
+
+      if (error) throw error
+
+      await fetchAttendanceData()
+      toast({
+        title: 'Succès',
+        description: `Départ enregistré à ${currentTime}`
+      })
+    } catch (error) {
+      console.error('Error recording departure:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible d\'enregistrer le départ'
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }, [selectedDate, fetchAttendanceData, toast])
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Présences - Éducateur</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Gestion des Présences</h1>
           <p className="text-muted-foreground">
-            Suivi et gestion des présences quotidiennes de vos enfants assignés
+            Suivi quotidien des arrivées et départs
           </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full sm:w-auto"
+          />
+          <Button variant="outline" size="icon" className="w-full sm:w-auto">
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Présents</p>
-                <p className="text-2xl font-bold text-green-600">{stats.present}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Absents</p>
-                <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
-              </div>
-              <UserX className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Retards</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.late}</p>
-              </div>
-              <Clock className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <AttendanceStatsCards stats={stats} loading={loading} />
 
-      {/* Filters */}
       <Card>
-        <CardContent className="p-4">
+        <CardHeader>
+          <CardTitle>Liste des Enfants</CardTitle>
+          <CardDescription>
+            Marquez les présences et enregistrez les horaires
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Filtres */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4" />
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-auto"
-              />
-            </div>
-
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher un enfant..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-10"
               />
             </div>
+            <Select value={sectionFilter} onValueChange={setSectionFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filtrer par section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les sections</SelectItem>
+                <SelectItem value="creche_etoile">Crèche Étoile</SelectItem>
+                <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
+                <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
+                <SelectItem value="maternelle_PS1">Maternelle PS1</SelectItem>
+                <SelectItem value="maternelle_PS2">Maternelle PS2</SelectItem>
+                <SelectItem value="maternelle_MS">Maternelle MS</SelectItem>
+                <SelectItem value="maternelle_GS">Maternelle GS</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Attendance List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des Présences - {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: fr })}</CardTitle>
-          <CardDescription>
-            {filteredData.length} enfant{filteredData.length > 1 ? 's' : ''}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {loading ? (
-              <p className="text-center text-muted-foreground">Chargement...</p>
-            ) : filteredData.length === 0 ? (
-              <p className="text-center text-muted-foreground">Aucun enfant trouvé</p>
-            ) : (
-              filteredData.map((data, index) => (
-                <div key={data.child.id || index} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarImage src={data.child.photo_url} />
-                      <AvatarFallback>
-                        {data.child.first_name[0]}{data.child.last_name[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div>
-                      <h3 className="font-medium">
-                        {data.child.first_name} {data.child.last_name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {data.child.section}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Arrivée</p>
-                      <p className="font-medium">
-                        {data.attendance?.arrival_time || '-'}
-                      </p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Départ</p>
-                      <p className="font-medium">
-                        {data.attendance?.departure_time || '-'}
-                      </p>
-                    </div>
-                    
-                    {getStatusBadge(data.attendance)}
-                    
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => markManualAttendance(data.child.id, 'arrival')}
-                        disabled={!!data.attendance?.arrival_time}
-                      >
-                        Arrivée
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => markManualAttendance(data.child.id, 'departure')}
-                        disabled={!data.attendance?.arrival_time || !!data.attendance?.departure_time}
-                      >
-                        Départ
-                      </Button>
-                    </div>
-                  </div>
+          {/* Tabs par statut */}
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all">Tous ({filteredData.length})</TabsTrigger>
+              <TabsTrigger value="present">Présents ({groupedData.present.length})</TabsTrigger>
+              <TabsTrigger value="absent">Absents ({groupedData.absent.length})</TabsTrigger>
+              <TabsTrigger value="unmarked">Non marqués ({groupedData.unmarked.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="space-y-4 mt-4">
+              {loading ? (
+                <div className="text-center py-8">Chargement...</div>
+              ) : filteredData.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Aucun enfant trouvé
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                filteredData.map((item) => (
+                  <AttendanceChildCard
+                    key={item.child.id}
+                    child={item.child}
+                    attendance={item.attendance}
+                    onMarkPresent={markPresent}
+                    onMarkAbsent={markAbsent}
+                    onRecordArrival={recordArrival}
+                    onRecordDeparture={recordDeparture}
+                    loading={actionLoading}
+                  />
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="present" className="space-y-4 mt-4">
+              {groupedData.present.map((item) => (
+                <AttendanceChildCard
+                  key={item.child.id}
+                  child={item.child}
+                  attendance={item.attendance}
+                  onMarkPresent={markPresent}
+                  onMarkAbsent={markAbsent}
+                  onRecordArrival={recordArrival}
+                  onRecordDeparture={recordDeparture}
+                  loading={actionLoading}
+                />
+              ))}
+            </TabsContent>
+
+            <TabsContent value="absent" className="space-y-4 mt-4">
+              {groupedData.absent.map((item) => (
+                <AttendanceChildCard
+                  key={item.child.id}
+                  child={item.child}
+                  attendance={item.attendance}
+                  onMarkPresent={markPresent}
+                  onMarkAbsent={markAbsent}
+                  onRecordArrival={recordArrival}
+                  onRecordDeparture={recordDeparture}
+                  loading={actionLoading}
+                />
+              ))}
+            </TabsContent>
+
+            <TabsContent value="unmarked" className="space-y-4 mt-4">
+              {groupedData.unmarked.map((item) => (
+                <AttendanceChildCard
+                  key={item.child.id}
+                  child={item.child}
+                  attendance={item.attendance}
+                  onMarkPresent={markPresent}
+                  onMarkAbsent={markAbsent}
+                  onRecordArrival={recordArrival}
+                  onRecordDeparture={recordDeparture}
+                  loading={actionLoading}
+                />
+              ))}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
@@ -394,6 +424,3 @@ const EducatorAttendancePage = () => {
 }
 
 export default EducatorAttendancePage
-
-
-
