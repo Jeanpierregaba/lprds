@@ -23,21 +23,42 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // Log all URL parameters for debugging
+      const allParams: Record<string, string> = {};
+      searchParams.forEach((value, key) => {
+        allParams[key] = value;
+      });
+      console.log('Reset password URL parameters:', allParams);
+
       // Check if we have a valid token in the URL
       const type = searchParams.get('type');
       const accessToken = searchParams.get('access_token');
       const refreshToken = searchParams.get('refresh_token');
+      const error_code = searchParams.get('error_code');
+      const error_description = searchParams.get('error_description');
       
-      // Accept both 'recovery' and 'signup' types, or if we have tokens
-      if (type && !['recovery', 'signup'].includes(type) && !accessToken && !refreshToken) {
+      // Check for errors in URL
+      if (error_code || error_description) {
+        console.error('Error in URL:', { error_code, error_description });
+        setError(`Erreur: ${error_description || 'Lien invalide ou expiré'}`);
+        return;
+      }
+
+      // Accept 'recovery', 'signup', 'invite', 'magiclink' types, or if we have tokens
+      const validTypes = ['recovery', 'signup', 'invite', 'magiclink'];
+      if (type && !validTypes.includes(type) && !accessToken && !refreshToken) {
+        console.error('Invalid type:', type);
         setError('Lien invalide ou expiré');
         return;
       }
 
+      console.log('Link type:', type);
+
       // If we have tokens in the URL, try to set the session
       if (accessToken && refreshToken) {
         try {
-          const { error } = await supabase.auth.setSession({
+          console.log('Setting session with tokens...');
+          const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
@@ -45,10 +66,21 @@ const ResetPassword = () => {
           if (error) {
             console.error('Session setup error:', error);
             setError('Impossible de valider le lien. Veuillez réessayer.');
+          } else {
+            console.log('Session established successfully:', data.session?.user?.email);
           }
         } catch (err) {
           console.error('Unexpected session error:', err);
           setError('Erreur lors de la validation du lien.');
+        }
+      } else {
+        console.warn('No tokens found in URL. User may need to click the link from their email.');
+        // Check if we already have a session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError('Aucune session active. Veuillez cliquer sur le lien reçu par email.');
+        } else {
+          console.log('Existing session found:', session.user.email);
         }
       }
     };

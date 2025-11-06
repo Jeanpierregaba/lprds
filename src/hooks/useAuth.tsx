@@ -154,7 +154,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Ignore erreurs réseau/403 et continue de nettoyer l'état local
       console.warn('signOut warning:', e);
     } finally {
-      setSession(null);
       setUser(null);
       setProfile(null);
     }
@@ -166,9 +165,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       : `https://${window.location.hostname}`;
     const redirectUrl = `${siteUrl}/reset-password`;
     
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    console.log('Sending password reset email to:', email);
+    console.log('Redirect URL:', redirectUrl);
+    
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl
     });
+    
+    if (error) {
+      console.error('Password reset error:', error);
+    } else {
+      console.log('Password reset email sent successfully:', data);
+    }
+    
     return { error };
   };
 

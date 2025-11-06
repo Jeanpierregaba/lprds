@@ -228,12 +228,16 @@ const StaffPage = () => {
         ? window.location.origin 
         : `https://${window.location.hostname}`;
 
+      const redirectUrl = `${siteUrl}/reset-password`;
+      console.log('Creating staff account with email:', values.email);
+      console.log('Email redirect URL:', redirectUrl);
+
       // Create user account with email confirmation
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: Math.random().toString(36).slice(-8) + 'Aa1!', // Temporary password
         options: {
-          emailRedirectTo: `${siteUrl}/reset-password`,
+          emailRedirectTo: redirectUrl,
           data: {
             first_name: values.first_name,
             last_name: values.last_name,
@@ -242,6 +246,7 @@ const StaffPage = () => {
         }
       });
 
+      console.log('SignUp response:', { user: authData?.user?.email, error: signUpError });
       if (signUpError) throw signUpError;
 
       // Update profile with additional information
