@@ -17,6 +17,7 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSignup, setIsSignup] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -53,6 +54,11 @@ const ResetPassword = () => {
       }
 
       console.log('Link type:', type);
+      
+      // Detect if this is a signup (account activation) or password recovery
+      if (type === 'signup' || type === 'invite') {
+        setIsSignup(true);
+      }
 
       // If we have tokens in the URL, try to set the session
       if (accessToken && refreshToken) {
@@ -128,8 +134,12 @@ const ResetPassword = () => {
           description: error.message,
         });
       } else {
+        const successMessage = isSignup 
+          ? "Compte activé avec succès !" 
+          : "Mot de passe modifié avec succès !";
+        
         toast({
-          title: "Mot de passe défini",
+          title: successMessage,
           description: "Redirection vers votre espace...",
         });
         
@@ -167,9 +177,13 @@ const ResetPassword = () => {
             <img src={logo} alt="Logo" className="h-16 w-auto" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Définir votre mot de passe</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              {isSignup ? 'Activez votre compte' : 'Réinitialiser votre mot de passe'}
+            </CardTitle>
             <CardDescription>
-              Choisissez un mot de passe sécurisé pour votre compte
+              {isSignup 
+                ? 'Bienvenue ! Choisissez un mot de passe pour activer votre compte'
+                : 'Choisissez un nouveau mot de passe sécurisé'}
             </CardDescription>
           </div>
         </CardHeader>

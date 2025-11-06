@@ -4,10 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Baby, Calendar, MessageSquare, LogOut, Camera, Heart, Clock, User, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Baby, Calendar, MessageSquare, LogOut, Camera, Heart, Clock, FileText, User, Phone, AlertCircle, Stethoscope } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DailyReportsViewer from '@/components/parent/DailyReportsViewer';
 import ParentMessagesPage from '@/pages/parent/MessagesPage';
+import ParentAttendancePage from '@/pages/parent/ParentAttendancePage';
 import ParentSidebar from './ParentSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'; // <-- ajouté SidebarTrigger
 import dashboardBg from '@/assets/dashboard-bg.png';
@@ -25,6 +27,12 @@ interface Child {
   last_name: string;
   birth_date: string;
   status: string;
+  admission_date?: string;
+  medical_info?: string;
+  allergies?: string;
+  special_needs?: string;
+  section?: string;
+  photo_url?: string;
 }
 
 const ParentDashboard = () => {
@@ -39,6 +47,8 @@ const ParentDashboard = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<string>('overview');
+  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   // SUPPRESSION DE activeView ET SIDEBAR
 
   useEffect(() => {
@@ -59,7 +69,13 @@ const ParentDashboard = () => {
             first_name,
             last_name,
             birth_date,
-            status
+            status,
+            admission_date,
+            medical_info,
+            allergies,
+            special_needs,
+            section,
+            photo_url
           )
         `)
         .eq('parent_id', profile?.id);
@@ -136,6 +152,26 @@ const ParentDashboard = () => {
     return age;
   };
 
+  const handleViewChildDetails = (child: Child) => {
+    setSelectedChild(child);
+    setIsDialogOpen(true);
+  };
+
+  const getSectionLabel = (section?: string) => {
+    if (!section) return 'Non définie';
+    const labels: Record<string, string> = {
+      'creche_etoile': 'Crèche Étoile',
+      'creche_nuage': 'Crèche Nuage',
+      'creche_soleil': 'Crèche Soleil TPS',
+      'garderie': 'Garderie',
+      'maternelle_PS1': 'Maternelle PS1',
+      'maternelle_PS2': 'Maternelle PS2',
+      'maternelle_MS': 'Maternelle MS',
+      'maternelle_GS': 'Maternelle GS'
+    };
+    return labels[section] || section;
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -174,12 +210,6 @@ const ParentDashboard = () => {
                 <span className="font-semibold">Espace Parent</span>
                 <span className="text-muted-foreground">Parent</span>
               </div>
-              <div className="ml-auto">
-                <Button variant="ghost" onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Déconnexion</span>
-                </Button>
-              </div>
             </header>
 
             <main className="flex-1 px-6 py-8 space-y-6 overflow-y-auto max-h-screen">
@@ -189,7 +219,7 @@ const ParentDashboard = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Mes Enfants</CardTitle>
+                        <CardTitle className="text-secondary text-sm font-medium">Mes Enfants</CardTitle>
                         <Baby className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
@@ -199,7 +229,7 @@ const ParentDashboard = () => {
                     </Card>
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Présents Aujourd'hui</CardTitle>
+                        <CardTitle className="text-green-600 text-sm font-medium">Présents Aujourd'hui</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
@@ -211,7 +241,7 @@ const ParentDashboard = () => {
                     </Card>
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Nouvelles Activités</CardTitle>
+                        <CardTitle className="text-accent text-sm font-medium">Nouvelles Activités</CardTitle>
                         <Camera className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
@@ -221,7 +251,7 @@ const ParentDashboard = () => {
                     </Card>
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Messages</CardTitle>
+                        <CardTitle className="text-red-600 text-sm font-medium">Messages</CardTitle>
                         <MessageSquare className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
@@ -237,7 +267,7 @@ const ParentDashboard = () => {
               {activeView === 'children' && (
                 children.length > 0 ? (
                     <div className="space-y-4">
-                      <h2 className="text-xl font-semibold">Mes Enfants</h2>
+                      <h2 className="text-primary text-3xl font-semibold">Mes Enfants</h2>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {children.map((child) => (
                           <Card key={child.id} className="hover:shadow-md transition-shadow">
@@ -261,7 +291,7 @@ const ParentDashboard = () => {
                                 <Badge variant={child.status === 'active' ? 'default' : 'secondary'}>
                                   {child.status === 'active' ? 'Actif' : 'Inactif'}
                                 </Badge>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={() => handleViewChildDetails(child)}>
                                   Voir détails
                                 </Button>
                               </div>
@@ -275,19 +305,7 @@ const ParentDashboard = () => {
                 )
               )}
               {activeView === 'attendance' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Historique des Présences</CardTitle>
-                    <CardDescription>
-                      Suivi des arrivées et départs de vos enfants
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">
-                      Interface de suivi des présences en développement...
-                    </p>
-                  </CardContent>
-                </Card>
+                <ParentAttendancePage />
               )}
               {activeView === 'reports' && (
                 <DailyReportsViewer />
@@ -295,45 +313,111 @@ const ParentDashboard = () => {
               {activeView === 'messages' && (
                 <ParentMessagesPage />
               )}
-              {activeView === 'profile' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Mon Profil</CardTitle>
-                    <CardDescription>
-                      Informations personnelles et contacts d'urgence
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm font-medium">Prénom</p>
-                          <p className="text-sm text-muted-foreground">{profile?.first_name}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Nom</p>
-                          <p className="text-sm text-muted-foreground">{profile?.last_name}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Téléphone</p>
-                        <p className="text-sm text-muted-foreground">{profile?.phone || 'Non renseigné'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Adresse</p>
-                        <p className="text-sm text-muted-foreground">{profile?.address || 'Non renseignée'}</p>
-                      </div>
-                      <Button variant="outline">
-                        <User className="w-4 h-4 mr-2" />
-                        Modifier mes informations
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </main>
           </div>
         </div>
+
+        {/* Dialog pour afficher les détails de l'enfant */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <Baby className="w-6 h-6 text-primary" />
+                {selectedChild?.first_name} {selectedChild?.last_name}
+              </DialogTitle>
+              <DialogDescription>
+                Informations détaillées sur votre enfant
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              {/* Informations générales */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Informations générales
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Prénom</p>
+                    <p className="text-sm font-semibold">{selectedChild?.first_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Nom</p>
+                    <p className="text-sm font-semibold">{selectedChild?.last_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Date de naissance</p>
+                    <p className="text-sm font-semibold">
+                      {selectedChild?.birth_date && new Date(selectedChild.birth_date).toLocaleDateString('fr-FR')}
+                      {' '}({calculateAge(selectedChild?.birth_date || '')} ans)
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Date d'admission</p>
+                    <p className="text-sm font-semibold">
+                      {selectedChild?.admission_date 
+                        ? new Date(selectedChild.admission_date).toLocaleDateString('fr-FR')
+                        : 'Non renseignée'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Section</p>
+                    <p className="text-sm font-semibold">{getSectionLabel(selectedChild?.section)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Statut</p>
+                    <Badge variant={selectedChild?.status === 'active' ? 'default' : 'secondary'}>
+                      {selectedChild?.status === 'active' ? 'Actif' : 'Inactif'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Informations médicales */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Stethoscope className="w-5 h-5" />
+                  Informations médicales
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Informations médicales</p>
+                    <p className="text-sm bg-muted p-3 rounded-md">
+                      {selectedChild?.medical_info || 'Aucune information médicale renseignée'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Allergies */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-orange-500" />
+                  Allergies
+                </h3>
+                <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-3 rounded-md">
+                  <p className="text-sm">
+                    {selectedChild?.allergies || 'Aucune allergie connue'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Besoins spéciaux */}
+              {selectedChild?.special_needs && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-blue-500" />
+                    Besoins spéciaux
+                  </h3>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-md">
+                    <p className="text-sm">{selectedChild.special_needs}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarProvider>
   );

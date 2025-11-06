@@ -124,9 +124,25 @@ const EducatorAttendancePage = () => {
     const total = data.length
     const present = data.filter(d => d.attendance?.is_present && d.attendance?.arrival_time).length
     const absent = data.filter(d => !d.attendance?.is_present).length
-    const late = data.filter(d => 
-      d.attendance?.arrival_time && new Date(`2000-01-01T${d.attendance.arrival_time}`) > new Date(`2000-01-01T09:00:00`)
-    ).length
+    
+    // Calculate late based on section:
+    // - Maternelle sections: late after 8:00 AM
+    // - Crèche sections: late after 9:00 AM
+    const late = data.filter(d => {
+      if (!d.attendance?.arrival_time) return false
+      
+      const arrivalTime = new Date(`2000-01-01T${d.attendance.arrival_time}`)
+      const maternelleSections = ['maternelle_GS', 'maternelle_MS', 'maternelle_PS1', 'maternelle_PS2']
+      const crecheSections = ['creche_etoile', 'creche_nuage', 'creche_soleil']
+      
+      if (maternelleSections.includes(d.child.section)) {
+        return arrivalTime > new Date(`2000-01-01T08:00:00`)
+      } else if (crecheSections.includes(d.child.section)) {
+        return arrivalTime > new Date(`2000-01-01T09:00:00`)
+      }
+      
+      return false
+    }).length
 
     setStats({ total, present, absent, late })
   }

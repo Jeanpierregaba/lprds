@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Clock, Search, QrCode, UserCheck, UserX, FileText } from 'lucide-react'
+import { Calendar, Clock, Search, UserCheck, UserX } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Child {
   id: string
@@ -18,7 +16,6 @@ interface Child {
   last_name: string
   photo_url?: string
   section: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2'
-  code_qr_id: string
 }
 
 interface AttendanceStats {
@@ -33,57 +30,71 @@ interface AttendanceData {
   child: Child
 }
 
-const AttendancePage = () => {
+const ParentAttendancePage = () => {
+  const { profile } = useAuth()
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([])
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [selectedSection, setSelectedSection] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [stats, setStats] = useState<AttendanceStats>({ total: 0, present: 0, absent: 0, late: 0 })
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchAttendanceData()
-  }, [selectedDate, selectedSection])
+    if (profile) {
+      fetchAttendanceData()
+    }
+  }, [profile, selectedDate])
 
   const fetchAttendanceData = async () => {
     try {
       setLoading(true)
-      
-      // First get all children
-      let childrenQuery = supabase.from('children').select('*')
-      
-      const mapFilterToDb = (val: string): 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2' | null => {
-        // The filter values are the actual database values, so just return them
-        if (['creche_etoile', 'creche_nuage', 'creche_soleil', 'garderie', 'maternelle_GS', 'maternelle_MS', 'maternelle_PS1', 'maternelle_PS2'].includes(val)) {
-          return val as any
-        }
-        return null
-      }
-      
-      if (selectedSection !== 'all') {
-        const dbSection = mapFilterToDb(selectedSection)
-        if (dbSection) {
-          childrenQuery = childrenQuery.eq('section', dbSection)
-        }
-      }
-      
-      const { data: children, error: childrenError } = await childrenQuery
-      if (childrenError) throw childrenError
 
-      // Then get attendance records for the selected date
+      // Get parent's children
+      const { data: parentChildren, error: parentChildrenError } = await supabase
+        .from('parent_children')
+        .select(`
+          child_id,
+          children (
+            id,
+            first_name,
+            last_name,
+            photo_url,
+            section,
+            status
+          )
+        `)
+        .eq('parent_id', profile?.id)
+
+      if (parentChildrenError) throw parentChildrenError
+
+      // Filter only active children
+      const childrenData = parentChildren
+        ?.map(pc => pc.children)
+        .flat()
+        .filter(child => child && child.status === 'active') || []
+
+      if (childrenData.length === 0) {
+        setAttendanceData([])
+        setStats({ total: 0, present: 0, absent: 0, late: 0 })
+        setLoading(false)
+        return
+      }
+
+      const childrenIds = childrenData.map(c => c.id)
+
+      // Fetch attendance for selected date
       const { data: attendanceRecords, error: attendanceError } = await supabase
         .from('daily_attendance')
         .select('*')
         .eq('attendance_date', selectedDate)
+        .in('child_id', childrenIds)
 
       if (attendanceError) throw attendanceError
 
-      // Combine the data
-      const combinedData: AttendanceData[] = children?.map(child => {
+      const combinedData: AttendanceData[] = childrenData.map(child => {
         const attendance = attendanceRecords?.find(record => record.child_id === child.id)
         return {
-          child,
+          child: child as Child,
           attendance: attendance || {
             id: '',
             child_id: child.id,
@@ -96,7 +107,7 @@ const AttendancePage = () => {
             notes: null
           }
         }
-      }) || []
+      })
 
       setAttendanceData(combinedData)
       calculateStats(combinedData)
@@ -139,62 +150,6 @@ const AttendancePage = () => {
     setStats({ total, present, absent, late })
   }
 
-  const markManualAttendance = async (childId: string, type: 'arrival' | 'departure') => {
-    try {
-      const currentTime = format(new Date(), 'HH:mm:ss')
-      
-      // Check if record exists for today
-      const { data: existing } = await supabase
-        .from('daily_attendance')
-        .select('*')
-        .eq('child_id', childId)
-        .eq('attendance_date', selectedDate)
-        .maybeSingle()
-
-      if (existing) {
-        // Update existing record
-        const updateData = type === 'arrival' 
-          ? { arrival_time: currentTime, is_present: true }
-          : { departure_time: currentTime }
-
-        const { error } = await supabase
-          .from('daily_attendance')
-          .update(updateData)
-          .eq('id', existing.id)
-
-        if (error) throw error
-      } else {
-        // Create new record
-        const { error } = await supabase
-          .from('daily_attendance')
-          .insert([{
-            child_id: childId,
-            educator_id: '', // This will need to be populated properly
-            attendance_date: selectedDate,
-            arrival_time: type === 'arrival' ? currentTime : null,
-            departure_time: type === 'departure' ? currentTime : null,
-            is_present: type === 'arrival'
-          }])
-
-        if (error) throw error
-      }
-
-      toast({
-        title: "Succès",
-        description: `${type === 'arrival' ? 'Arrivée' : 'Départ'} enregistré(e)`,
-      })
-
-      fetchAttendanceData()
-    } catch (error) {
-      console.error('Error updating attendance:', error)
-      toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer la présence",
-        variant: "destructive"
-      })
-    }
-  }
-
   const filteredData = attendanceData.filter(data => {
     const searchLower = searchQuery.toLowerCase()
     const childName = `${data.child.first_name} ${data.child.last_name}`.toLowerCase()
@@ -214,20 +169,28 @@ const AttendancePage = () => {
     return <Badge variant="outline">Non pointé</Badge>
   }
 
+  const getSectionLabel = (section: string) => {
+    const labels: Record<string, string> = {
+      'creche_etoile': 'Crèche Étoile',
+      'creche_nuage': 'Crèche Nuage',
+      'creche_soleil': 'Crèche Soleil TPS',
+      'garderie': 'Garderie',
+      'maternelle_PS1': 'Maternelle PS1',
+      'maternelle_PS2': 'Maternelle PS2',
+      'maternelle_MS': 'Maternelle MS',
+      'maternelle_GS': 'Maternelle GS'
+    }
+    return labels[section] || section
+  }
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Gestion des Présences</h1>
-          <p className="text-muted-foreground">
-            Suivi et gestion des présences quotidiennes
-          </p>
-        </div>
-        <Button>
-          <QrCode className="w-4 h-4 mr-2" />
-          Scanner QR
-        </Button>
+      <div>
+        <h1 className="text-primary text-3xl font-bold">Historique des Présences</h1>
+        <p className="text-primary">
+          Suivi des arrivées et départs de vos enfants
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -294,23 +257,7 @@ const AttendancePage = () => {
                 className="w-auto"
               />
             </div>
-            
-            <Select value={selectedSection} onValueChange={setSelectedSection}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Toutes les sections" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les sections</SelectItem>
-                <SelectItem value="creche_etoile">Crèche Étoile</SelectItem>
-                <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
-                <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
-                <SelectItem value="garderie">Garderie</SelectItem>
-                <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
-                <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
-                <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
-              </SelectContent>
-            </Select>
-            
+
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -327,7 +274,7 @@ const AttendancePage = () => {
       {/* Attendance List */}
       <Card>
         <CardHeader>
-          <CardTitle>Liste des Présences - {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: fr })}</CardTitle>
+          <CardTitle>Présences - {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: fr })}</CardTitle>
           <CardDescription>
             {filteredData.length} enfant{filteredData.length > 1 ? 's' : ''}
           </CardDescription>
@@ -340,9 +287,9 @@ const AttendancePage = () => {
               <p className="text-center text-muted-foreground">Aucun enfant trouvé</p>
             ) : (
               filteredData.map((data, index) => (
-                <div key={data.child.id || index} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={data.child.id || index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
                   <div className="flex items-center space-x-4">
-                    <Avatar>
+                    <Avatar className="h-12 w-12">
                       <AvatarImage src={data.child.photo_url} />
                       <AvatarFallback>
                         {data.child.first_name[0]}{data.child.last_name[0]}
@@ -354,46 +301,27 @@ const AttendancePage = () => {
                         {data.child.first_name} {data.child.last_name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {data.child.section}
+                        {getSectionLabel(data.child.section)}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-4">
-                    <div className="text-center">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="text-center min-w-[80px]">
                       <p className="text-sm text-muted-foreground">Arrivée</p>
                       <p className="font-medium">
-                        {data.attendance?.arrival_time || '-'}
+                        {data.attendance?.arrival_time ? format(new Date(`2000-01-01T${data.attendance.arrival_time}`), 'HH:mm') : '-'}
                       </p>
                     </div>
                     
-                    <div className="text-center">
+                    <div className="text-center min-w-[80px]">
                       <p className="text-sm text-muted-foreground">Départ</p>
                       <p className="font-medium">
-                        {data.attendance?.departure_time || '-'}
+                        {data.attendance?.departure_time ? format(new Date(`2000-01-01T${data.attendance.departure_time}`), 'HH:mm') : '-'}
                       </p>
                     </div>
                     
                     {getStatusBadge(data.attendance)}
-                    
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => markManualAttendance(data.child.id, 'arrival')}
-                        disabled={!!data.attendance?.arrival_time}
-                      >
-                        Arrivée
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => markManualAttendance(data.child.id, 'departure')}
-                        disabled={!data.attendance?.arrival_time || !!data.attendance?.departure_time}
-                      >
-                        Départ
-                      </Button>
-                    </div>
                   </div>
                 </div>
               ))
@@ -405,4 +333,4 @@ const AttendancePage = () => {
   )
 }
 
-export default AttendancePage
+export default ParentAttendancePage

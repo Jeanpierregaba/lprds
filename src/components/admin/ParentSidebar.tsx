@@ -1,4 +1,4 @@
-import { Calendar, Baby, MessageSquare, FileText, User, LayoutDashboard, LogOut } from 'lucide-react';
+import { Calendar, Baby, MessageSquare, FileText, LayoutDashboard, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,6 @@ const parentSections = [
   { key: 'attendance', icon: Calendar, label: 'Présences' },
   { key: 'reports', icon: FileText, label: 'Rapports' },
   { key: 'messages', icon: MessageSquare, label: 'Messages' },
-  { key: 'profile', icon: User, label: 'Mon Profil' },
 ];
 
 interface ParentSidebarProps {

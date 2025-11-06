@@ -105,11 +105,11 @@ const ParentMessagesPage = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-primary text-3xl font-bold tracking-tight">Messages</h1>
+          <p className="text-primary">
             Communiquez avec l'administration de la crèche
           </p>
         </div>
