@@ -1,23 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { 
   Users, 
-  Baby, 
-  Clock, 
-  AlertTriangle, 
   TrendingUp, 
   Calendar,
   UserCheck,
-  UserX,
-  Heart,
-  Shield,
-  Cake
+  Shield
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { DashboardStatsCard } from './DashboardStatsCard';
+import { BirthdaySection } from './BirthdaySection';
+import { AlertsSection, type Alert } from './AlertsSection';
 
 interface DashboardStats {
   totalChildren: number;
@@ -35,12 +31,6 @@ interface SectionData {
   capacite: number;
 }
 
-interface Alert {
-  id: string;
-  type: string;
-  message: string;
-  severity: string;
-}
 
 export const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -59,31 +49,30 @@ export const AdminDashboard = () => {
   const [birthdayChildren, setBirthdayChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Fetch children stats
-      const { data: children } = await supabase
-        .from('children')
-        .select('id, status, section, admission_date, first_name, last_name, allergies, birth_date');
-      
-      // Fetch today's attendance
       const today = new Date().toISOString().split('T')[0];
-      const { data: attendance } = await supabase
-        .from('attendance')
-        .select('id, child_id, arrival_time')
-        .eq('date', today);
-      
-      // Fetch staff stats
-      const { data: staff } = await supabase
-        .from('profiles')
-        .select('id, role, is_active')
-        .in('role', ['educator', 'admin', 'secretary']);
+
+      // Fetch all data in parallel for better performance
+      const [childrenRes, attendanceRes, staffRes] = await Promise.all([
+        supabase
+          .from('children')
+          .select('id, status, section, admission_date, first_name, last_name, allergies, birth_date'),
+        supabase
+          .from('attendance')
+          .select('id, child_id, arrival_time')
+          .eq('date', today),
+        supabase
+          .from('profiles')
+          .select('id, role, is_active')
+          .in('role', ['educator', 'admin', 'secretary'])
+      ]);
+
+      const children = childrenRes.data || [];
+      const attendance = attendanceRes.data || [];
+      const staff = staffRes.data || [];
       
       // Calculate stats
       const totalChildren = children?.filter(c => c.status === 'active').length || 0;
@@ -208,159 +197,84 @@ export const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const currentDate = new Date().toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  const getAlertIcon = (type: string) => {
-    switch (type) {
-      case 'medical': return <Heart className="h-4 w-4" />;
-      case 'absence': return <UserX className="h-4 w-4" />;
-      case 'ratio': return <Users className="h-4 w-4" />;
-      default: return <AlertTriangle className="h-4 w-4" />;
-    }
-  };
+  const currentDate = useMemo(() => 
+    new Date().toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }), 
+  []);
 
-  const getAlertVariant = (severity: string) => {
-    switch (severity) {
-      case 'high': return 'destructive';
-      case 'medium': return 'secondary';
-      default: return 'outline';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="h-32 bg-gray-200 rounded"></div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2].map(i => (
-            <div key={i} className="h-80 bg-gray-200 rounded"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Administration</h1>
-          <p className="text-muted-foreground">{currentDate}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard Administration</h1>
+          <p className="text-sm text-muted-foreground">{currentDate}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-sm">
-            Direction Générale
-          </Badge>
-        </div>
+        <Badge variant="secondary" className="text-sm self-start sm:self-center">
+          Direction Générale
+        </Badge>
       </div>
 
       {/* Alertes importantes */}
-      {alerts.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <AlertTriangle className="h-5 w-5" />
-              Alertes Importantes ({alerts.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {alerts.map((alert) => (
-              <div key={alert.id} className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                <div className="flex items-center gap-3">
-                  {getAlertIcon(alert.type)}
-                  <span className="text-sm">{alert.message}</span>
-                </div>
-                <Badge variant={getAlertVariant(alert.severity)}>
-                  {alert.severity === 'high' ? 'Urgent' : 'Attention'}
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      <AlertsSection alerts={alerts} />
 
       {/* Statistiques principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Enfants Présents</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.presentToday}</div>
-            <p className="text-xs text-muted-foreground">sur {stats.totalChildren} inscrits</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taux de Présence</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.attendanceRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.attendanceRate >= 80 ? 'Excellent' : stats.attendanceRate >= 60 ? 'Correct' : 'À surveiller'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Personnel Présent</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.staffPresent}</div>
-            <p className="text-xs text-muted-foreground">sur {stats.totalStaff} prévus</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Incidents du Jour</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.incidentsToday}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.incidentsToday === 0 ? 'Aucun incident' : 'à traiter'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Anniversaires</CardTitle>
-            <Cake className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-pink-600">{stats.birthdaysThisMonth}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.birthdaysThisMonth === 0 ? 'Aucun ce mois' : 'ce mois-ci'}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+        <DashboardStatsCard
+          title="Enfants Présents"
+          value={stats.presentToday}
+          subtitle={`sur ${stats.totalChildren} inscrits`}
+          icon={UserCheck}
+          iconColor="text-green-600"
+          loading={loading}
+        />
+        <DashboardStatsCard
+          title="Taux de Présence"
+          value={`${stats.attendanceRate}%`}
+          subtitle={stats.attendanceRate >= 80 ? 'Excellent' : stats.attendanceRate >= 60 ? 'Correct' : 'À surveiller'}
+          icon={TrendingUp}
+          iconColor="text-blue-600"
+          loading={loading}
+        />
+        <DashboardStatsCard
+          title="Personnel Présent"
+          value={stats.staffPresent}
+          subtitle={`sur ${stats.totalStaff} prévus`}
+          icon={Users}
+          iconColor="text-purple-600"
+          loading={loading}
+        />
+        <DashboardStatsCard
+          title="Incidents du Jour"
+          value={stats.incidentsToday}
+          subtitle={stats.incidentsToday === 0 ? 'Aucun incident' : 'à traiter'}
+          icon={Shield}
+          iconColor="text-red-600"
+          loading={loading}
+        />
+        <DashboardStatsCard
+          title="Anniversaires"
+          value={stats.birthdaysThisMonth}
+          subtitle={stats.birthdaysThisMonth === 0 ? 'Aucun ce mois' : 'ce mois-ci'}
+          icon={Calendar}
+          iconColor="text-pink-600"
+          loading={loading}
+        />
       </div>
 
       {/* Graphiques et données */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Effectifs par section */}
         <Card>
           <CardHeader>
@@ -414,50 +328,7 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Anniversaires du mois */}
-      {birthdayChildren.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Cake className="h-5 w-5" />
-              Anniversaires du Mois - {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-            </CardTitle>
-            <CardDescription>
-              {birthdayChildren.length} enfant{birthdayChildren.length > 1 ? 's' : ''} fêtent leur anniversaire ce mois-ci
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {birthdayChildren.map((child) => {
-                const birthDate = new Date(child.birth_date);
-                const currentYear = new Date().getFullYear();
-                const age = currentYear - birthDate.getFullYear();
-                const dayOfMonth = birthDate.getDate();
-                
-                return (
-                  <div key={child.id} className="p-4 border rounded-lg bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
-                        <Cake className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">
-                          {child.first_name} {child.last_name}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {dayOfMonth} {new Date().toLocaleDateString('fr-FR', { month: 'long' })} - {age} ans
-                        </p>
-                        <Badge variant="outline" className="text-xs mt-1">
-                          {child.section ? child.section.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Non assigné'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <BirthdaySection children={birthdayChildren} />
 
       {/* Planning du personnel */}
       <Card>

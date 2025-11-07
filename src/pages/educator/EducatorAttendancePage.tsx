@@ -167,8 +167,11 @@ const EducatorAttendancePage = () => {
         .from('daily_attendance')
         .upsert({
           child_id: childId,
+          educator_id: profile!.id,
           attendance_date: selectedDate,
           is_present: true
+        }, {
+          onConflict: 'child_id,attendance_date'
         })
 
       if (error) throw error
@@ -197,8 +200,11 @@ const EducatorAttendancePage = () => {
         .from('daily_attendance')
         .upsert({
           child_id: childId,
+          educator_id: profile!.id,
           attendance_date: selectedDate,
           is_present: false
+        }, {
+          onConflict: 'child_id,attendance_date'
         })
 
       if (error) throw error

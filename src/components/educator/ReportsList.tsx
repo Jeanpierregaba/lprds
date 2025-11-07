@@ -21,7 +21,7 @@ interface Report {
   status: 'draft' | 'pending' | 'validated' | 'rejected';
   health_status?: string;
   mood?: string;
-  rejection_reason?: string;
+  validation_notes?: string;
   created_at: string;
   updated_at: string;
   child?: Child;
@@ -58,10 +58,11 @@ export const ReportsList = ({
         .select(`
           id,
           report_date,
-          status,
+          is_validated,
+          is_draft,
           health_status,
           mood,
-          rejection_reason,
+          validation_notes,
           created_at,
           updated_at,
           child:children (
@@ -72,12 +73,27 @@ export const ReportsList = ({
           )
         `)
         .eq('educator_id', profile.id)
-        .eq('status', status)
         .order('report_date', { ascending: false });
 
       if (error) throw error;
 
-      setReports(data || []);
+      // Filter by status based on validation flags
+      const filteredData = (data || []).filter(report => {
+        if (status === 'pending') return !report.is_validated && !report.is_draft;
+        if (status === 'validated') return report.is_validated === true;
+        if (status === 'rejected') return report.validation_notes && !report.is_validated;
+        return true;
+      });
+
+      // Map to expected Report type with status field
+      const mappedReports = filteredData.map(report => ({
+        ...report,
+        status: report.is_validated ? 'validated' as const : 
+                (report.validation_notes && !report.is_validated) ? 'rejected' as const :
+                report.is_draft ? 'draft' as const : 'pending' as const
+      }));
+
+      setReports(mappedReports);
     } catch (error) {
       console.error('Error fetching reports:', error);
       toast({
