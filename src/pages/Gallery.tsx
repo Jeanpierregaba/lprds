@@ -1,8 +1,9 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Camera, Play, Filter, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Camera, Play, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { PageHero } from '@/components/common/PageHero';
 import galleryMain from '@/assets/gallery-main.jpg';
 import gallery1 from '@/assets/gallery-1.jpg';
 import gallery2 from '@/assets/gallery-2.jpg';
@@ -77,47 +78,24 @@ const Gallery = () => {
       <Header />
       <main>
         {/* Hero section */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          {/* Background image with overlay */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url(${lifeGard})`
-            }}
-          >
-            <div className="absolute inset-0 bg-accent/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
-          </div>
-          
-          <div className="container-custom relative z-10">
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center space-x-2 bg-white/20 text-white px-4 py-2 rounded-full mb-6 backdrop-blur-sm">
-                <Camera className="w-4 h-4" />
-                <span className="text-sm font-medium">Galerie</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-fredoka text-white mb-6">
-                La vie à la crèche en images
-              </h1>
-              <p className="text-lg text-white/90">
-                Découvrez le quotidien joyeux de nos petits rayons de soleil à travers nos photos et vidéos.
-              </p>
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0">
-            <svg viewBox="0 0 120" className="w-full h-20 text-background">
-              <path fill="currentColor" d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-            </svg>
-          </div>
-        </section>
+        <PageHero
+          title="La vie à la crèche en images"
+          subtitle="Découvrez le quotidien joyeux de nos petits rayons de soleil à travers nos photos et vidéos."
+          badgeText="Galerie"
+          badgeIcon={Camera}
+          backgroundImage={lifeGard}
+          gradientOverlay="bg-accent/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"
+        />
 
         {/* Filter tabs */}
-        <section className="section-padding py-8 border-b border-border">
-          <div className="container-custom">
+        <section className="py-6 sm:py-8 border-b border-border">
+          <div className="container-custom px-4">
             <div className="flex flex-wrap justify-center gap-2">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setActiveFilter(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
                     activeFilter === category.id
                       ? 'bg-primary text-primary-foreground shadow-lg'
                       : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
@@ -131,9 +109,9 @@ const Gallery = () => {
         </section>
 
         {/* Gallery grid */}
-        <section className="section-padding">
-          <div className="container-custom">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <section className="section-padding py-12 sm:py-16 lg:py-20">
+          <div className="container-custom px-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredItems.map((item, index) => (
                 <div
                   key={item.id}

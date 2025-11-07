@@ -1,10 +1,10 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { MapPin, Phone, Mail, Clock, MessageCircle, Send, Star, Navigation } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
-import daycareHeroBg from '@/assets/daycare-hero-bg.jpg';
 import contact from '@/assets/contactPic.jpg';
 import MapEmbed from '@/components/mapEmbed';
+import { PageHero } from '@/components/common/PageHero';
 
 
 const Contact = () => {
@@ -44,42 +44,19 @@ const Contact = () => {
       <Header />
       <main>
         {/* Hero section */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          {/* Background image with overlay */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url(${contact})`
-            }}
-          >
-            <div className="absolute inset-0 bg-secondary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
-          </div>
-          
-          <div className="container-custom relative z-10">
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center space-x-2 bg-white/20 text-white px-4 py-2 rounded-full mb-6 backdrop-blur-sm">
-                <MessageCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">Contact</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-fredoka text-white mb-6">
-                Contactez-nous
-              </h1>
-              <p className="text-lg text-white/90">
-                Une question ? Un projet d'inscription ? Notre équipe est là pour vous accompagner et vous renseigner.
-              </p>
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0">
-            <svg viewBox="0 0 120" className="w-full h-20 text-background">
-              <path fill="currentColor" d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-            </svg>
-          </div>
-        </section>
+        <PageHero
+          title="Contactez-nous"
+          subtitle="Une question ? Un projet d'inscription ? Notre équipe est là pour vous accompagner et vous renseigner."
+          badgeText="Contact"
+          badgeIcon={MessageCircle}
+          backgroundImage={contact}
+          gradientOverlay="bg-secondary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"
+        />
 
         {/* Contact form and info */}
-        <section className="section-padding">
-          <div className="container-custom">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <section className="section-padding py-12 sm:py-16 lg:py-20">
+          <div className="container-custom px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
               
               {/* Contact form */}
               <div className="card-soft">
@@ -276,19 +253,19 @@ const Contact = () => {
         </section>
 
         {/* Map section */}
-        <section className="section-padding bg-muted/30">
-          <div className="container-custom">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-fredoka text-foreground mb-4">
+        <section className="section-padding py-12 sm:py-16 lg:py-20 bg-muted/30">
+          <div className="container-custom px-4">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-fredoka text-foreground mb-3 sm:mb-4">
                 Nous trouver
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 La crèche est facilement accessible en transports en commun et dispose d'un parking.
               </p>
             </div>
 
             {/* Map placeholder */}
-            <div className="card-soft ">
+            <div className="card-soft overflow-hidden">
               <MapEmbed />
             </div>
 

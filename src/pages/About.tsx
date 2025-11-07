@@ -4,6 +4,7 @@ import { Heart, Users, Award, Clock } from 'lucide-react';
 import aboutImage1 from '@/assets/about-image-1.jpg';
 import aboutSec from '@/assets/about-sec.jpg';
 import heroBg from '@/assets/hero-bg-v.jpg';
+import { PageHero } from '@/components/common/PageHero';
 
 const About = () => {
   return (
@@ -11,39 +12,14 @@ const About = () => {
       <Header />
       <main>
         {/* Hero section */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          {/* Background image with overlay */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url(${aboutSec})`
-            }}
-          >
-            <div className="absolute inset-0 bg-primary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"></div>
-          </div>
-          
-          <div className="container-custom section-padding relative z-10">
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center space-x-2 bg-white/20 text-white px-4 py-2 rounded-full mb-6 backdrop-blur-sm">
-                <Heart className="w-4 h-4" />
-                <span className="text-sm font-medium">À propos</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-fredoka text-white mb-6">
-                Notre histoire et nos valeurs
-              </h1>
-              <p className="text-lg text-white/90">
-                Découvrez l'histoire des Petits Rayons de Soleil et l'équipe passionnée qui accompagne vos enfants chaque jour.
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom wave */}
-          <div className="absolute bottom-0 left-0 right-0">
-            <svg viewBox="0 0 120" className="w-full h-20 text-background">
-              <path fill="currentColor" d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-            </svg>
-          </div>
-        </section>
+        <PageHero
+          title="Notre histoire et nos valeurs"
+          subtitle="Découvrez l'histoire des Petits Rayons de Soleil et l'équipe passionnée qui accompagne vos enfants chaque jour."
+          badgeText="À propos"
+          badgeIcon={Heart}
+          backgroundImage={aboutSec}
+          gradientOverlay="bg-primary/90 bg-gradient-to-b from-black/40 via-black/50 to-black/50"
+        />
 
         {/* Story section */}
         <section className="section-padding">
@@ -174,28 +150,28 @@ complètent notre approche pédagogique.
         </section>
 
         {/* Stats */}
-        <section className="section-padding bg-accent text-primary-foreground">
-          <div className="container-custom">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-fredoka mb-4">
+        <section className="section-padding py-12 sm:py-16 lg:py-20 bg-accent text-primary-foreground">
+          <div className="container-custom px-4">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl font-fredoka mb-3 sm:mb-4">
                 Nos chiffres en quelques mots
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-center">
-              <div>
-                <Users className="w-8 h-8 mx-auto mb-4 text-secondary" />
-                <div className="text-3xl font-fredoka mb-2">80+</div>
-                <div className="text-sm opacity-80">Enfants accueillis</div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 text-center">
+              <div className="p-4 sm:p-6">
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-3 sm:mb-4 text-secondary" />
+                <div className="text-2xl sm:text-3xl font-fredoka mb-1 sm:mb-2">80+</div>
+                <div className="text-xs sm:text-sm opacity-80">Enfants accueillis</div>
               </div>
-              <div>
-                <Award className="w-8 h-8 mx-auto mb-4 text-secondary" />
-                <div className="text-3xl font-fredoka mb-2">15</div>
-                <div className="text-sm opacity-80">Professionnels qualifiés</div>
+              <div className="p-4 sm:p-6">
+                <Award className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-3 sm:mb-4 text-secondary" />
+                <div className="text-2xl sm:text-3xl font-fredoka mb-1 sm:mb-2">15</div>
+                <div className="text-xs sm:text-sm opacity-80">Professionnels qualifiés</div>
               </div>
-              <div>
-                <Heart className="w-8 h-8 mx-auto mb-4 text-secondary" />
-                <div className="text-3xl font-fredoka mb-2">100%</div>
-                <div className="text-sm opacity-80">Parents satisfaits</div>
+              <div className="p-4 sm:p-6 col-span-2 lg:col-span-1">
+                <Heart className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-3 sm:mb-4 text-secondary" />
+                <div className="text-2xl sm:text-3xl font-fredoka mb-1 sm:mb-2">100%</div>
+                <div className="text-xs sm:text-sm opacity-80">Parents satisfaits</div>
               </div>
             </div>
           </div>
