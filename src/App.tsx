@@ -23,10 +23,13 @@ import MessagesPage from "@/pages/admin/MessagesPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import QRScanPage from "@/pages/admin/QRScanPage";
 import ParentDashboard from "@/pages/parent/Dashboard";
+import ParentMenuPage from "@/pages/parent/MenuPage";
 import EducatorDashboardLayout from "@/pages/educator/EducatorDashboardLayout";
 import EducatorGroupPage from "@/pages/educator/EducatorGroupPage";
 import EducatorDailyReportsPage from "@/pages/educator/EducatorDailyReportsPage";
 import EducatorAttendancePage from "@/pages/educator/EducatorAttendancePage";
+import EducatorMenuPage from "@/pages/educator/EducatorMenuPage";
+import MenuPlanningPage from "@/pages/admin/MenuPlanningPage";
 import ForgotPassword from "@/pages/admin/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 
@@ -51,7 +54,6 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/admin/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/parent/dashboard" element={<ParentDashboard />} />
             <Route path="/admin/dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="children" element={<ChildrenPage />} />
@@ -61,12 +63,18 @@ const App = () => (
               <Route path="qr-scanner" element={<QRScanPage />} />
               <Route path="daily-reports" element={<DailyReportsPage />} />
               <Route path="messages" element={<MessagesPage />} />
+              <Route path="menus" element={<MenuPlanningPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="/educator/dashboard" element={<EducatorDashboardLayout />}>
               <Route index element={<EducatorGroupPage />} />
               <Route path="attendance" element={<EducatorAttendancePage />} />
               <Route path="daily-reports" element={<EducatorDailyReportsPage />} />
+              <Route path="menus" element={<EducatorMenuPage />} />
+            </Route>
+            <Route path="/parent/dashboard">
+              <Route index element={<ParentDashboard />} />
+              <Route path="menus" element={<ParentMenuPage />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
