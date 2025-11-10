@@ -668,11 +668,13 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
           {(formData.arrival_time || formData.departure_time || formData.temperature_arrival || formData.temperature_departure) && (
             <Alert className="bg-green-50 border-green-200">
-              <AlertDescription className="text-green-900 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                <span>
-                  Les horaires et températures ont été chargés automatiquement depuis le pointage QR de l'enfant.
-                </span>
+              <AlertDescription className="text-green-900">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm sm:text-base">
+                    Les horaires et températures ont été chargés automatiquement depuis le pointage QR de l'enfant.
+                  </span>
+                </div>
               </AlertDescription>
             </Alert>
           )}
@@ -694,21 +696,33 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="arrival_time">Heure d'arrivée</Label>
+              <Label htmlFor="arrival_time" className="text-sm sm:text-base flex items-center gap-2">
+                <span>Heure d'arrivée</span>
+                {formData.arrival_time && (
+                  <Badge variant="secondary" className="text-xs">Auto</Badge>
+                )}
+              </Label>
               <Input
                 id="arrival_time"
                 type="time"
                 value={formData.arrival_time || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, arrival_time: e.target.value }))}
+                className={formData.arrival_time ? "border-green-300 bg-green-50/50" : ""}
               />
             </div>
             <div>
-              <Label htmlFor="departure_time">Heure de départ</Label>
+              <Label htmlFor="departure_time" className="text-sm sm:text-base flex items-center gap-2">
+                <span>Heure de départ</span>
+                {formData.departure_time && (
+                  <Badge variant="secondary" className="text-xs">Auto</Badge>
+                )}
+              </Label>
               <Input
                 id="departure_time"
                 type="time"
                 value={formData.departure_time || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, departure_time: e.target.value }))}
+                className={formData.departure_time ? "border-green-300 bg-green-50/50" : ""}
               />
             </div>
           </CardContent>
@@ -739,10 +753,10 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               </SelectContent>
             </Select>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="temperature_arrival" className="flex items-center gap-2">
-                  Température à l'arrivée (°C)
+                <Label htmlFor="temperature_arrival" className="flex flex-wrap items-center gap-2 text-sm sm:text-base">
+                  <span>Température à l'arrivée (°C)</span>
                   {formData.temperature_arrival && (
                     <Badge variant="secondary" className="text-xs">Auto</Badge>
                   )}
@@ -764,8 +778,8 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               </div>
               
               <div>
-                <Label htmlFor="temperature_departure" className="flex items-center gap-2">
-                  Température au départ (°C)
+                <Label htmlFor="temperature_departure" className="flex flex-wrap items-center gap-2 text-sm sm:text-base">
+                  <span>Température au départ (°C)</span>
                   {formData.temperature_departure && (
                     <Badge variant="secondary" className="text-xs">Auto</Badge>
                   )}
