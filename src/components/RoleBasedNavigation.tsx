@@ -12,7 +12,8 @@ import {
   Calendar,
   Shield,
   DollarSign,
-  QrCode
+  QrCode,
+  UtensilsCrossed
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -90,6 +91,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         url: "/admin/dashboard/messages", 
         icon: MessageSquare 
       },
+      { 
+        title: "Menus", 
+        url: "/admin/dashboard/menus", 
+        icon: UtensilsCrossed 
+      },
     );
 
     return adminNav;
@@ -140,6 +146,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Suivi Quotidien", 
         url: "/educator/dashboard/daily-reports", 
         icon: FileText 
+      },
+      { 
+        title: "Menus", 
+        url: "/educator/dashboard/menus", 
+        icon: UtensilsCrossed 
       }
     ];
   }
@@ -177,6 +188,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Informations Médicales", 
         url: "/parent/dashboard/medical", 
         icon: Shield 
+      },
+      { 
+        title: "Menus", 
+        url: "/parent/dashboard/menus", 
+        icon: UtensilsCrossed 
       },
       { 
         title: "Mon Profil", 

@@ -359,9 +359,11 @@ export type Database = {
           nap_duration_minutes: number | null
           nap_taken: boolean | null
           photos: Json | null
+          rejection_reason: string | null
           report_date: string
           snack_eaten: string | null
           special_observations: string | null
+          status: string | null
           temperature_arrival: number | null
           temperature_departure: number | null
           updated_at: string
@@ -390,9 +392,11 @@ export type Database = {
           nap_duration_minutes?: number | null
           nap_taken?: boolean | null
           photos?: Json | null
+          rejection_reason?: string | null
           report_date?: string
           snack_eaten?: string | null
           special_observations?: string | null
+          status?: string | null
           temperature_arrival?: number | null
           temperature_departure?: number | null
           updated_at?: string
@@ -421,9 +425,11 @@ export type Database = {
           nap_duration_minutes?: number | null
           nap_taken?: boolean | null
           photos?: Json | null
+          rejection_reason?: string | null
           report_date?: string
           snack_eaten?: string | null
           special_observations?: string | null
+          status?: string | null
           temperature_arrival?: number | null
           temperature_departure?: number | null
           updated_at?: string
@@ -528,6 +534,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      meal_plans: {
+        Row: {
+          created_at: string
+          created_by: string
+          dessert: string | null
+          id: string
+          lunch: string
+          notes: string | null
+          plan_date: string
+          snack_afternoon: string | null
+          snack_morning: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          dessert?: string | null
+          id?: string
+          lunch: string
+          notes?: string | null
+          plan_date: string
+          snack_afternoon?: string | null
+          snack_morning?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          dessert?: string | null
+          id?: string
+          lunch?: string
+          notes?: string | null
+          plan_date?: string
+          snack_afternoon?: string | null
+          snack_morning?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       medical_records: {
         Row: {
