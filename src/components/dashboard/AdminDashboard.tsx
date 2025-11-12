@@ -61,9 +61,10 @@ export const AdminDashboard = () => {
           .from('children')
           .select('id, status, section, admission_date, first_name, last_name, allergies, birth_date'),
         supabase
-          .from('attendance')
+          .from('daily_attendance')
           .select('id, child_id, arrival_time')
-          .eq('date', today),
+          .eq('attendance_date', today)
+          .not('arrival_time', 'is', null), // Uniquement les enfants avec une heure d'arrivée
         supabase
           .from('profiles')
           .select('id, role, is_active')
