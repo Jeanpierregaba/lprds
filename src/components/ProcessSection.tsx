@@ -43,8 +43,8 @@ const ProcessSection = () => {
           <div className="text-lg font-bold text-secondary tracking-wider uppercase">
             ÉTAPES
           </div>
-          <h2 className="text-4xl lg:text-5xl font-fredoka text-foreground leading-tight">
-            <span className='text-primary'>Rejoignez-nous </span>en 3 étapes simples :
+          <h2 className="text-primary text-4xl lg:text-5xl font-fredoka text-foreground leading-tight">
+            Rejoignez-nous en 3 étapes simples :
           </h2>
         </div>
         

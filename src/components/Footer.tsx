@@ -1,5 +1,11 @@
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Heart, Sun, Twitter, Linkedin} from 'lucide-react';
 import logo from '@/assets/logo.png';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTiktok } from '@fortawesome/free-brands-svg-icons'
+import { faFacebook } from '@fortawesome/free-brands-svg-icons'
+import { faInstagram } from '@fortawesome/free-brands-svg-icons'
+import { faLinkedin } from '@fortawesome/free-brands-svg-icons'
+
 
 const Footer = () => {
   return (
@@ -25,12 +31,19 @@ const Footer = () => {
                 Un environnement sécurisé, bienveillant et stimulant pour grandir en toute sérénité.
               </p>
               <div className="flex space-x-4">
-                <a href="#" className="w-10 h-10 bg-primary-foreground/10 hover:bg-secondary rounded-full flex items-center justify-center transition-colors duration-300">
-                  <Facebook className="w-5 h-5" />
+                <a href="https://www.facebook.com/p/Les-Petits-Rayons-de-Soleil-61559745601729/" className="w-10 h-10 bg-primary-foreground/10 hover:bg-secondary rounded-full flex items-center justify-center transition-colors duration-300">
+                  <FontAwesomeIcon icon={faFacebook} />
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/10 hover:bg-secondary rounded-full flex items-center justify-center transition-colors duration-300">
-                  <Instagram className="w-5 h-5" />
+                <a href="https://www.instagram.com/lespetitsrayonsdesoleil_?igsh=Y2Y5NGZlaDVjZjF6" className="w-10 h-10 bg-primary-foreground/10 hover:bg-secondary rounded-full flex items-center justify-center transition-colors duration-300">
+                  <FontAwesomeIcon icon={faInstagram} />
                 </a>
+                <a href="https://www.linkedin.com/company/lespetitsrayonsdesoleil/" className="w-10 h-10 bg-primary-foreground/10 hover:bg-secondary rounded-full flex items-center justify-center transition-colors duration-300">
+                  <FontAwesomeIcon icon={faLinkedin} />
+                </a>
+                <a href="https://www.tiktok.com/@lespetitsrayonsdesoleil?_r=1&_t=ZM-91KJBfZgTVM" className="w-10 h-10 bg-primary-foreground/10 hover:bg-secondary rounded-full flex items-center justify-center transition-colors duration-300">
+                  <FontAwesomeIcon icon={faTiktok} />
+                </a>
+
               </div>
             </div>
 

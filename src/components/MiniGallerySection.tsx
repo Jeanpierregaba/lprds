@@ -16,7 +16,8 @@ const MiniGallerySection = () => {
   const [ref, isVisible] = useScrollAnimation();
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   const galleryItems = [
     {
       id: 1,
@@ -24,7 +25,8 @@ const MiniGallerySection = () => {
       image: galleryMain,
       icon: Heart,
       title: "Créativité",
-      description: "Les enfants découvrent les couleurs et les formes"
+      description: "Les enfants découvrent les couleurs et les formes",
+      isPrimary: true  // Image principale affichée dans la grille
     },
     {
       id: 2,
@@ -32,7 +34,8 @@ const MiniGallerySection = () => {
       image: gallery1,
       icon: Play,
       title: "Motricité",
-      description: "Moment de détente et de jeu dans notre jardin"
+      description: "Moment de détente et de jeu dans notre jardin",
+      isPrimary: true  // Image principale affichée dans la grille
     },
     {
       id: 3,
@@ -40,53 +43,67 @@ const MiniGallerySection = () => {
       image: gallery2,
       icon: Heart,
       title: "Expression",
-      description: "Découverte des sons et de la musique"
+      description: "Découverte des sons et de la musique",
+      isPrimary: true  // Image principale affichée dans la grille
     },
     {
       id: 4,
-      category: "Moments Repas",
-      image: aboutImage1,
+      category: "Éveil Musical",
+      image: gallery2,
       icon: Heart,
-      title: "Convivialité",
-      description: "Apprentissage de l'autonomie lors des repas"
-    },
-    {
-      id: 5,
-      category: "Temps Calme",
-      image: aboutImage2,
-      icon: Heart,
-      title: "Sérénité",
-      description: "Moments de lecture et de détente"
-    },
-    {
-      id: 6,
-      category: "Apprentissages",
-      image: aboutImage3,
-      icon: Play,
-      title: "Découverte",
-      description: "Construction et développement de la créativité"
+      title: "Expression 2",
+      description: "Découverte des sons et de la musique",
+      isPrimary: false  // Image secondaire, visible uniquement dans le modal
     }
   ];
 
-  const openModal = (index: number) => {
-    setSelectedImageIndex(index);
+  // Filtrer pour n'afficher que les images principales dans la grille
+  const primaryGalleryItems = galleryItems.filter(item => item.isPrimary);
+
+  const openModal = (primaryIndex: number) => {
+    // Récupérer l'item depuis la liste des images principales
+    const primaryItem = primaryGalleryItems[primaryIndex];
+    // Trouver l'index global dans galleryItems
+    const globalIndex = galleryItems.findIndex(item => item.id === primaryItem.id);
+    
+    setSelectedCategory(primaryItem.category);
+    setSelectedImageIndex(globalIndex);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedImageIndex(null);
+    setSelectedCategory(null);
   };
 
+  // Filtrer les images par catégorie sélectionnée
+  const filteredGalleryItems = selectedCategory
+    ? galleryItems.filter(item => item.category === selectedCategory)
+    : galleryItems;
+
+  // Trouver l'index dans la liste filtrée
+  const currentFilteredIndex = selectedImageIndex !== null
+    ? filteredGalleryItems.findIndex(item => item.id === galleryItems[selectedImageIndex].id)
+    : -1;
+
   const nextImage = () => {
-    if (selectedImageIndex !== null) {
-      setSelectedImageIndex((selectedImageIndex + 1) % galleryItems.length);
+    if (currentFilteredIndex !== -1) {
+      const nextFilteredIndex = (currentFilteredIndex + 1) % filteredGalleryItems.length;
+      const nextItem = filteredGalleryItems[nextFilteredIndex];
+      const nextGlobalIndex = galleryItems.findIndex(item => item.id === nextItem.id);
+      setSelectedImageIndex(nextGlobalIndex);
     }
   };
 
   const prevImage = () => {
-    if (selectedImageIndex !== null) {
-      setSelectedImageIndex(selectedImageIndex === 0 ? galleryItems.length - 1 : selectedImageIndex - 1);
+    if (currentFilteredIndex !== -1) {
+      const prevFilteredIndex = currentFilteredIndex === 0
+        ? filteredGalleryItems.length - 1
+        : currentFilteredIndex - 1;
+      const prevItem = filteredGalleryItems[prevFilteredIndex];
+      const prevGlobalIndex = galleryItems.findIndex(item => item.id === prevItem.id);
+      setSelectedImageIndex(prevGlobalIndex);
     }
   };
 
@@ -106,7 +123,7 @@ const MiniGallerySection = () => {
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {galleryItems.map((item, index) => (
+          {primaryGalleryItems.map((item, index) => (
             <div 
               key={item.id} 
               className={`group relative aspect-square rounded-2xl overflow-hidden cursor-pointer transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
@@ -132,7 +149,7 @@ const MiniGallerySection = () => {
                 <div className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <div className="text-center text-white">
                     <Eye className="w-12 h-12 mx-auto mb-2" />
-                    <p className="text-sm font-medium">Voir l'image</p>
+                    <p className="text-white text-sm font-medium">Voir l'image</p>
                   </div>
                 </div>
               </div>
@@ -195,7 +212,7 @@ const MiniGallerySection = () => {
                         {galleryItems[selectedImageIndex].category}
                       </span>
                       <span className="text-xs text-white/60">
-                        {selectedImageIndex + 1} / {galleryItems.length}
+                        {currentFilteredIndex + 1} / {filteredGalleryItems.length}
                       </span>
                     </div>
                   </div>
