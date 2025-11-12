@@ -8,7 +8,7 @@ const Sections = () => {
   const sections = [
     {
       id: 'creche_etoile',
-      title: 'Crèche SectionEtoile',
+      title: 'Crèche - Section Etoile',
       ageRange: '3 - 18 mois',
       capacity: '15 enfants',
       ratio: '1 adulte pour 5 bébés',
@@ -29,7 +29,7 @@ const Sections = () => {
     },
     {
       id: 'creche_nuage',
-      title: 'Crèche Section Nuage',
+      title: 'Crèche - Section Nuage',
       ageRange: '18 - 24 mois',
       capacity: '16 enfants',
       ratio: '1 adulte pour 8 enfants',
@@ -51,45 +51,45 @@ const Sections = () => {
     },
     {
       id: 'creche_soleil',
-      title: 'Section Crèche Soleil',
+      title: 'Crèche - Section Soleil',
       ageRange: '24 - 36 mois',
-      capacity: '30 enfants',
-      ratio: '1 adulte pour 10 enfants',
+      capacity: '16 enfants',
+      ratio: '1 adulte pour 8 enfants',
       color: 'accent',
       icon: BookOpen,
-      description: 'Préparation douce vers l\'école maternelle',
+      description: 'Une préparation douce et joyeuse vers l’école maternelle',
       activities: [
         'Pré-graphisme et découverte de l\'écrit',
-        'Ateliers scientifiques simples',
-        'Théâtre et expression corporelle',
-        'Sorties pédagogiques'
+        'Expériences scientifiques simples et observations ludiques',
+        'Théâtre, expression corporelle et jeux de rôle',
+        'Ateliers créatifs et sensoriels',
+        'Découvertes extérieures et mini-sorties pédagogiques'
       ],
       schedule: {
-        morning: 'Activités dirigées, temps libre',
-        midday: 'Repas autonome, repos calme',
-        afternoon: 'Ateliers créatifs, préparation départ'
+        morning: 'accueil chaleureux, activités sportives, cercle matinal, collation conviviale, ateliers dirigés d’éveil et de motricité fine ou globale',
+        midday: 'repas en semi-autonomie, rituel de sieste',
+        afternoon: 'ateliers créatifs, temps d’activités en plein air,, lecture, comptine, temps libre d’exploration'
       }
     },
     {
       id: 'garderie',
       title: 'Section Garderie',
       ageRange: '3 - 8 ans',
-      capacity: '30 enfants',
-      ratio: '1 adulte pour 12 enfants',
+      capacity: '10 enfants',
+      ratio: '1 adulte pour 10 enfants',
       color: 'primary',
       icon: Users,
-      description: 'Accueil périscolaire',
+      description: 'Accueil périscolaire : un espace d’épanouissement et d’accompagnement après l’école',
       activities: [
-        'Aide aux devoirs (primaire)',
-        'Ateliers créatifs avancés',
-        'Sports et activités physiques',
-        'Sorties culturelles',
-        'Projets collaboratifs'
+        'Aide personnalisée aux devoirs (niveau primaire)',
+        'Ateliers créatifs et manuels',
+        'Activités sportives et jeux collectifs',
+        'Découvertes culturelles et ludiques',
+        'Projets de groupe favorisant la coopération et l’autonomie'
       ],
       schedule: {
-        morning: 'Accueil libre, jeux',
-        midday: 'Cantine, temps calme',
-        afternoon: 'Activités, goûter, jeux extérieurs'
+        midday: 'repas à la cantine, temps calme',
+        afternoon: 'aide aux devoirs, activités thématiques, goûter et jeux en plein air'
       }
     },
     {
@@ -100,17 +100,18 @@ const Sections = () => {
       ratio: '1 adulte pour 10 enfants',
       color: 'accent',
       icon: BookOpen,
-      description: 'l\'école maternelle',
+      description: 'La Petite Section marque le début du parcours scolaire. À cet âge, l’enfant découvre le plaisir d’apprendre à travers le jeu, le mouvement et la communication.',
       activities: [
-        'Pré-graphisme et découverte de l\'écrit',
-        'Ateliers scientifiques simples',
-        'Théâtre et expression corporelle',
-        'Sorties pédagogiques'
+        'Mobilisation du language : développement de l’expression orale, premières comptines (salutations, couleurs, objets).',
+        'Activité physique : motricité fine et globale, jeux d’équilibre et parcours moteurs.',
+        'Activités artistiques : dessin, peinture, modelage, musique et découverte des sons.',
+        'Les premiers outils pour structurer sa pensée : premiers jeux mathématiques, tri, classement, reconnaissance des formes et couleurs.',
+        'Explorer le monde : observation de la nature, découverte des animaux, des saisons et des cinq sens.'
       ],
       schedule: {
-        morning: 'Activités dirigées, temps libre',
-        midday: 'Repas autonome, repos calme',
-        afternoon: 'Ateliers créatifs, préparation départ'
+        morning: 'accueil individualisé, jeux libres, rituels du jour, ateliers dirigés, chansons et activités d’apprentissage.',
+        midday: 'repas autonome suivi d’un temps de sieste.',
+        afternoon: 'ateliers créatifs, temps d’exploration et de jeux en extérieur'
       }
     },
     {
@@ -121,17 +122,18 @@ const Sections = () => {
       ratio: '1 adulte pour 10 enfants',
       color: 'accent',
       icon: BookOpen,
-      description: 'l\'école maternelle',
+      description: 'En Moyenne Section, les apprentissages se consolident. L’enfant affine son langage, sa motricité et commence à organiser sa pensée. Les activités favorisent la curiosité, l’autonomie et la coopération avec les autres.',
       activities: [
-        'Pré-graphisme et découverte de l\'écrit',
-        'Ateliers scientifiques simples',
-        'Théâtre et expression corporelle',
-        'Sorties pédagogiques'
+        'Langage et communication : enrichissement du vocabulaire, phrases complètes, premiers jeux phonologiques, anglais oral quotidien.',
+        'Activités physiques et sportives : coordination, jeux collectifs, équilibre, danses',
+        'Arts et expression : peinture, bricolage, expression corporelle et chant',
+        'Découverte du monde et premiers outils mathématiques : repérage dans le temps et l’espace, tri, comparaison, reconnaissance des nombres et des quantités',
+        'Observation et curiosité scientifique : petites expériences sensorielles, découverte des plantes et des animaux.'
       ],
       schedule: {
-        morning: 'Activités dirigées, temps libre',
-        midday: 'Repas autonome, repos calme',
-        afternoon: 'Ateliers créatifs, préparation départ'
+        morning: 'accueil individualisé, jeux libres, rituels du jour, ateliers dirigés, chansons et activités d’apprentissage',
+        midday: 'repas en autonomie, sieste ou temps calme',
+        afternoon: 'ateliers scientifiques, activités artistiques, exploration et de jeux en extérieur'
       }
     },
     {
@@ -142,17 +144,18 @@ const Sections = () => {
       ratio: '1 adulte pour 10 enfants',
       color: 'accent',
       icon: BookOpen,
-      description: 'l\'école maternelle',
+      description: 'La Grande Section prépare en douceur le passage vers l’école primaire. Les activités développent la curiosité intellectuelle, la rigueur, la confiance en soi et l’envie d’apprendre. L’anglais devient plus structuré à travers des jeux, chansons et situations de la vie quotidienne',
       activities: [
-        'Pré-graphisme et découverte de l\'écrit',
-        'Ateliers scientifiques simples',
-        'Théâtre et expression corporelle',
-        'Sorties pédagogiques'
+        'Langage oral et écrit : conscience phonologique, reconnaissance des lettres, premiers mots simples, initiation à la lecture.',
+        'Agir et s’exprimer à travers le corps : activités sportives, danses, motricité fine et autonomie.',
+        'Arts et créativité : dessin d’observation, créations collectives, théâtre et musique',
+        'Découverte des nombres et du raisonnement logique : comparaison, suite logique, comptage jusqu’à 20, premiers calculs simples.',
+        'Explorer le monde et l’environnement : découverte des saisons, du temps qui passe, des métiers et du monde vivant.'
       ],
       schedule: {
-        morning: 'Activités dirigées, temps libre',
-        midday: 'Repas autonome, repos calme',
-        afternoon: 'Ateliers créatifs, préparation départ'
+        morning: 'accueil individualisé, jeux libres, rituels du jour, ateliers dirigés, chansons et activités d’apprentissage.',
+        midday: 'repas en autonomie, sieste, temps calme ou lecture',
+        afternoon: 'projets collectifs, anglais, jeux éducatifs, exploration et de jeux en extérieur.'
       }
     }
   ];
@@ -186,11 +189,6 @@ const Sections = () => {
                 Découvrez nos différentes sections conçues pour répondre aux besoins spécifiques de chaque tranche d'âge.
               </p>
             </div>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0">
-            <svg viewBox="0 0 120" className="w-full h-20 text-background">
-              <path fill="currentColor" d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-            </svg>
           </div>
         </section>
 

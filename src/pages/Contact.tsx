@@ -30,13 +30,13 @@ const Contact = () => {
   };
 
   const openingHours = [
-    { day: 'Lundi', hours: '7h30 - 18h30', isOpen: true },
-    { day: 'Mardi', hours: '7h30 - 18h30', isOpen: true },
-    { day: 'Mercredi', hours: '7h30 - 18h30', isOpen: true },
-    { day: 'Jeudi', hours: '7h30 - 18h30', isOpen: true },
-    { day: 'Vendredi', hours: '7h30 - 18h30', isOpen: true },
-    { day: 'Samedi (Espace de jeu en plein air)', hours: '12h30 - 17h30', isOpen: true },
-    { day: 'Dimanche', hours: 'Fermé', isOpen: false },
+    { day: 'Lundi', hours: '7h30 - 19h00', isOpen: true },
+    { day: 'Mardi', hours: '7h30 - 19h00', isOpen: true },
+    { day: 'Mercredi', hours: '7h30 - 19h00', isOpen: true },
+    { day: 'Jeudi', hours: '7h30 - 19h00', isOpen: true },
+    { day: 'Vendredi', hours: '7h30 - 19h00', isOpen: true },
+    { day: 'Samedi (Espace de jeu en plein air)', hours: '12h30 - 18h30', isOpen: true },
+    { day: 'Dimanche (Espace de jeu en plein air)', hours: '12h30 - 18h30', isOpen: true },
   ];
 
   return (

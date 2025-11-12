@@ -19,8 +19,8 @@ const Header = () => {
     { name: 'Accueil', href: '/' },
     { name: 'À Propos', href: '/about' },
     { name: 'Nos Sections', href: '/sections' },
-    { name: 'Galerie', href: '/gallery' },
-    { name: 'Actualités', href: '/news' },
+    //{ name: 'Galerie', href: '/gallery' },
+    //{ name: 'Actualités', href: '/news' },
     { name: 'Contact', href: '/contact' },
   ];
 

@@ -115,10 +115,10 @@ bâtir un futur enrichissant pour chaque enfant.
               Nos partenaires
               </h2>
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Pour offrir aux enfants un <strong>accompagnement complet et de qualité</strong>, <em>Les Petits
-              Rayons de Soleil</em> s’entoure de <strong>professionnels spécialisés</strong> qui interviennent
-  régulièrement au sein de l’établissement, participant à <strong>l’épanouissement global des enfants </strong>
-  grâce à leur <strong>savoir-faire</strong> et à des <strong>activités enrichissantes</strong> qui
+              Pour offrir aux enfants un <span className="font-semibold text-accent">accompagnement complet et de qualité</span>, <em>Les Petits
+              Rayons de Soleil</em> s’entoure de <span className="font-semibold text-accent">professionnels spécialisés</span> qui interviennent
+  régulièrement au sein de l’établissement, participant à <span className="font-semibold text-accent">l’épanouissement global des enfants </span>
+  grâce à leur <span className="font-semibold text-accent">savoir-faire</span> et à des <span className="font-semibold text-accent">activités enrichissantes</span> qui
 complètent notre approche pédagogique.
               </p>
             </div>
