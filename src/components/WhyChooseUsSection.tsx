@@ -1,5 +1,8 @@
 import { Heart, Shield, Users, BookOpen, Send, Brain, Dices } from 'lucide-react';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
+import whyChooseImg1 from '@/assets/choose-img-v1.jpg';
+import whyChooseImg2 from '@/assets/choose-img-v2.jpg';
+
 import whyChooseUsImage from '@/assets/why-choose-us-main.jpg';
 import whyDiff from '@/assets/why-diff.jpg';
 
@@ -58,9 +61,8 @@ const WhyChooseUsSection = () => {
           <div className="text-lg font-bold text-secondary tracking-wider uppercase mb-4">
             Pourquoi Nous Sommes Différents
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-fredoka text-foreground leading-tight">
-            <span className='text-primary'>Engagés</span> pour la <span className='text-primary'>Croissance</span> et<br className="hidden sm:block" />
-            le <span className='text-primary'>Bonheur</span> de Votre <span className='text-primary'>Enfant</span>
+          <h2 className="text-primary text-3xl sm:text-4xl lg:text-5xl font-fredoka text-foreground leading-tight">
+            Engagés pour la Croissance <br /> et le Bonheur de Votre Enfant
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
           Offrir à votre enfant le meilleur, c’est lui permettre de grandir, découvrir et
@@ -95,7 +97,7 @@ pensé pour son éveil et sa sécurité.
               {/* Image principale */}
               <div className="relative overflow-hidden rounded-3xl mb-10">
                 <img 
-                  src={whyDiff} 
+                  src={whyChooseImg2} 
                   alt="Éducateur jouant avec un enfant" 
                   className="w-full h-auto object-cover"
                 />
@@ -105,7 +107,7 @@ pensé pour son éveil et sa sécurité.
 
               <div className="relative overflow-hidden rounded-3xl">
                 <img 
-                  src={whyDiff} 
+                  src={whyChooseImg1} 
                   alt="Éducateur jouant avec un enfant" 
                   className="w-full h-auto object-cover"
                 />
