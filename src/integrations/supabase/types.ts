@@ -355,7 +355,7 @@ export type Database = {
           is_draft: boolean
           is_validated: boolean | null
           lunch_eaten: string | null
-          mood: string | null
+          mood: string[]
           nap_duration_minutes: number | null
           nap_taken: boolean | null
           photos: Json | null
@@ -388,7 +388,7 @@ export type Database = {
           is_draft?: boolean
           is_validated?: boolean | null
           lunch_eaten?: string | null
-          mood?: string | null
+          mood?: string[]
           nap_duration_minutes?: number | null
           nap_taken?: boolean | null
           photos?: Json | null
@@ -421,7 +421,7 @@ export type Database = {
           is_draft?: boolean
           is_validated?: boolean | null
           lunch_eaten?: string | null
-          mood?: string | null
+          mood?: string[]
           nap_duration_minutes?: number | null
           nap_taken?: boolean | null
           photos?: Json | null

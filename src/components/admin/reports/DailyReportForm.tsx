@@ -60,7 +60,7 @@ interface DailyReportData {
   hygiene_bath: boolean;
   hygiene_bowel_movement: boolean;
   hygiene_frequency_notes?: string;
-  mood: string;
+  mood: string[];
   special_observations?: string;
   photos: File[];
 }
@@ -72,7 +72,6 @@ interface DailyReportFormProps {
   onSaved?: () => void;
   restrictToAssigned?: boolean; // Quand true pour un éducateur, limite aux enfants de son groupe
 }
-
 
 const MOOD_OPTIONS = [
   { value: 'joyeux', label: 'Joyeux', icon: '😊', color: 'text-green-500' },
@@ -103,7 +102,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     snack_eaten: 'bien_mange',
     hygiene_bath: false,
     hygiene_bowel_movement: false,
-    mood: '',
+    mood: [],
     photos: []
   });
   
@@ -115,6 +114,26 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   
   const { toast } = useToast();
   const { profile } = useAuth();
+
+  const normalizeMoodValue = (value: string | string[] | null | undefined): string[] => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (typeof value === 'string' && value.trim()) {
+      return [value];
+    }
+    return [];
+  };
+
+  const toggleMoodSelection = (moodValue: string) => {
+    setFormData(prev => {
+      const isSelected = prev.mood.includes(moodValue);
+      const updatedMood = isSelected
+        ? prev.mood.filter(m => m !== moodValue)
+        : [...prev.mood, moodValue];
+      return { ...prev, mood: updatedMood };
+    });
+  };
 
   // Charger la liste des enfants si pas de childId fourni
   useEffect(() => {
@@ -137,7 +156,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       
       setFormData({
         ...existingReport,
-        mood: existingReport.mood || '',
+        mood: normalizeMoodValue(existingReport.mood),
         photos: [] // Les photos existantes sont des URLs, on les met dans formData mais pas dans photos File[]
       });
       setSelectedActivities(existingReport.activities || []);
@@ -401,7 +420,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         hygiene_bath: formData.hygiene_bath,
         hygiene_bowel_movement: formData.hygiene_bowel_movement,
         hygiene_frequency_notes: formData.hygiene_frequency_notes || null,
-        mood: formData.mood || null,
+        mood: formData.mood,
         special_observations: formData.special_observations || null,
         photos: [],
         is_draft: !sendForValidation,
@@ -973,10 +992,10 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Smile className="h-5 w-5" />
-              Humeur du jour
+              Humeurs du jour
             </CardTitle>
             <CardDescription>
-              Sélectionnez l'humeur observée
+              Sélectionnez une ou plusieurs humeurs observées
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -985,19 +1004,17 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                 <div
                   key={mood.value}
                   className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    formData.mood === mood.value 
-                      ? 'border-primary bg-primary/5' 
+                    formData.mood.includes(mood.value)
+                      ? 'border-primary bg-primary/5'
                       : 'hover:border-primary/50'
                   }`}
-                  onClick={() => setFormData(prev => ({ ...prev, mood: mood.value }))}
+                  onClick={() => toggleMoodSelection(mood.value)}
                 >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    formData.mood === mood.value ? 'border-primary' : 'border-gray-300'
-                  }`}>
-                    {formData.mood === mood.value && (
-                      <div className="w-3 h-3 rounded-full bg-primary" />
-                    )}
-                  </div>
+                  <Checkbox
+                    checked={formData.mood.includes(mood.value)}
+                    onCheckedChange={() => toggleMoodSelection(mood.value)}
+                    onClick={(event) => event.stopPropagation()}
+                  />
                   <span className="text-2xl">{mood.icon}</span>
                   <Label className={`cursor-pointer ${mood.color}`}>
                     {mood.label}
