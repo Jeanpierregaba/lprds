@@ -17,6 +17,7 @@ import {
   Bed, 
   Droplets,
   Camera,
+  Video,
   Save,
   Send,
   User,
@@ -26,7 +27,8 @@ import {
   Frown,
   Baby,
   Search,
-  CheckCircle
+  CheckCircle,
+  Play
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -273,21 +275,28 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     
-    // Validation des fichiers (images uniquement)
-    const imageFiles = files.filter(file => {
-      if (!file.type.startsWith('image/')) {
+    // Validation des fichiers (images et vidéos)
+    const validFiles = files.filter(file => {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      
+      if (!isImage && !isVideo) {
         toast({
           title: "Format non supporté",
-          description: `Le fichier ${file.name} n'est pas une image`,
+          description: `Le fichier ${file.name} n'est ni une image ni une vidéo`,
           variant: "destructive"
         });
         return false;
       }
-      // Limiter la taille à 10MB par fichier
-      if (file.size > 10 * 1024 * 1024) {
+      
+      // Limiter la taille : 10MB pour images, 50MB pour vidéos
+      const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+      const maxSizeLabel = isVideo ? '50MB' : '10MB';
+      
+      if (file.size > maxSize) {
         toast({
           title: "Fichier trop volumineux",
-          description: `Le fichier ${file.name} dépasse 10MB`,
+          description: `Le fichier ${file.name} dépasse ${maxSizeLabel}`,
           variant: "destructive"
         });
         return false;
@@ -295,9 +304,9 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       return true;
     });
 
-    if (imageFiles.length > 0) {
-      setPhotoFiles(prev => [...prev, ...imageFiles]);
-      setFormData(prev => ({ ...prev, photos: [...prev.photos, ...imageFiles] }));
+    if (validFiles.length > 0) {
+      setPhotoFiles(prev => [...prev, ...validFiles]);
+      setFormData(prev => ({ ...prev, photos: [...prev.photos, ...validFiles] }));
     }
 
     // Réinitialiser l'input pour permettre de sélectionner le même fichier à nouveau
@@ -312,15 +321,16 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     }));
   };
 
-  const uploadPhotos = async (reportId: string): Promise<string[]> => {
+  const uploadMediaFiles = async (reportId: string): Promise<string[]> => {
     const uploadedUrls: string[] = [];
 
     for (const file of photoFiles) {
       try {
         const fileExt = file.name.split('.').pop();
         const fileName = `${reportId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const fileType = file.type.startsWith('video/') ? 'vidéo' : 'photo';
 
-        console.log('Tentative d\'upload:', fileName, 'Taille:', file.size, 'Type:', file.type);
+        console.log(`Tentative d'upload ${fileType}:`, fileName, 'Taille:', file.size, 'Type:', file.type);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('daily-reports')
@@ -330,11 +340,11 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
           });
 
         if (uploadError) {
-          console.error('Erreur détaillée upload:', uploadError);
+          console.error(`Erreur détaillée upload ${fileType}:`, uploadError);
           throw uploadError;
         }
 
-        console.log('Upload réussi:', uploadData);
+        console.log(`Upload ${fileType} réussi:`, uploadData);
 
         const { data: { publicUrl } } = supabase.storage
           .from('daily-reports')
@@ -342,11 +352,12 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
         uploadedUrls.push(publicUrl);
       } catch (error: any) {
-        console.error('Erreur upload photo:', error);
+        console.error('Erreur upload média:', error);
         const errorMessage = error?.message || error?.error || 'Erreur inconnue';
+        const fileType = file.type.startsWith('video/') ? 'la vidéo' : 'la photo';
         toast({
           title: "Erreur upload",
-          description: `Impossible d'uploader ${file.name}: ${errorMessage}`,
+          description: `Impossible d'uploader ${fileType} ${file.name}: ${errorMessage}`,
           variant: "destructive"
         });
       }
@@ -439,13 +450,13 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         }
       }
 
-      // Upload des photos si nécessaire
+      // Upload des photos et vidéos si nécessaire
       if (photoFiles.length > 0) {
-        const photoUrls = await uploadPhotos(reportId);
+        const mediaUrls = await uploadMediaFiles(reportId);
         
-        if (photoUrls.length > 0) {
-          // Récupérer les photos existantes pour les fusionner avec les nouvelles
-          let existingPhotos: string[] = [];
+        if (mediaUrls.length > 0) {
+          // Récupérer les médias existants pour les fusionner avec les nouveaux
+          let existingMedia: string[] = [];
           if (existingReport?.id) {
             const { data: existingReportData } = await supabase
               .from('daily_reports')
@@ -454,16 +465,16 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
               .single();
             
             if (existingReportData?.photos && Array.isArray(existingReportData.photos)) {
-              existingPhotos = existingReportData.photos as string[];
+              existingMedia = existingReportData.photos as string[];
             }
           }
 
-          // Fusionner les photos existantes avec les nouvelles (éviter les doublons)
-          const allPhotos = Array.from(new Set([...existingPhotos, ...photoUrls]));
+          // Fusionner les médias existants avec les nouveaux (éviter les doublons)
+          const allMedia = Array.from(new Set([...existingMedia, ...mediaUrls]));
           
           const { error: updateError } = await supabase
             .from('daily_reports')
-            .update({ photos: allPhotos })
+            .update({ photos: allMedia })
             .eq('id', reportId);
 
           if (updateError) throw updateError;
@@ -1072,43 +1083,71 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Photos */}
+      {/* Photos et Vidéos */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
-            Photos de la journée
+            <Video className="h-5 w-5" />
+            Photos et Vidéos de la journée
           </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Images (max 10MB) • Vidéos (max 50MB)
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Input
               type="file"
               multiple
-              accept="image/*"
+              accept="image/*,video/*"
               onChange={handlePhotoUpload}
             />
           </div>
           
           {photoFiles.length > 0 && (
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-              {photoFiles.map((file, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={`Photo ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-lg"
-                  />
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-                    onClick={() => removePhoto(index)}
-                  >
-                    ×
-                  </Button>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {photoFiles.map((file, index) => {
+                const isVideo = file.type.startsWith('video/');
+                const fileUrl = URL.createObjectURL(file);
+                
+                return (
+                  <div key={index} className="relative group">
+                    {isVideo ? (
+                      <div className="relative w-full h-24 bg-gray-900 rounded-lg overflow-hidden">
+                        <video
+                          src={fileUrl}
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Play className="h-8 w-8 text-white" />
+                        </div>
+                        <Badge 
+                          variant="secondary" 
+                          className="absolute bottom-1 left-1 text-xs"
+                        >
+                          Vidéo
+                        </Badge>
+                      </div>
+                    ) : (
+                      <img
+                        src={fileUrl}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                    )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                      onClick={() => removePhoto(index)}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
