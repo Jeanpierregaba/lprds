@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, Plus, Mail, Phone, MapPin, Loader2 } from 'lucide-react';
+import { User, Plus, Mail, Phone, MapPin, Loader2, Pencil, RefreshCcw, SquarePen } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,6 +26,14 @@ const parentFormSchema = z.object({
 
 const PAGE_SIZE = 10;
 
+const editParentSchema = z.object({
+  first_name: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
+  last_name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  is_active: z.boolean()
+});
+
 const ParentsPage = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -38,6 +46,10 @@ const ParentsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingParent, setEditingParent] = useState<any | null>(null);
+  const [isUpdatingParent, setIsUpdatingParent] = useState(false);
+  const [resendingParentId, setResendingParentId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof parentFormSchema>>({
     resolver: zodResolver(parentFormSchema),
@@ -51,6 +63,17 @@ const ParentsPage = () => {
       relationship: 'parent',
       is_primary_contact: false,
     },
+  });
+
+  const editForm = useForm<z.infer<typeof editParentSchema>>({
+    resolver: zodResolver(editParentSchema),
+    defaultValues: {
+      first_name: '',
+      last_name: '',
+      phone: '',
+      address: '',
+      is_active: true
+    }
   });
 
   useEffect(() => {
@@ -101,15 +124,17 @@ const ParentsPage = () => {
     setLoading(false);
   };
 
+  const getRedirectUrl = () => {
+    const siteUrl = window.location.hostname === 'localhost'
+      ? window.location.origin
+      : `https://${window.location.hostname}`;
+    return `${siteUrl}/reset-password`;
+  };
+
   const onSubmitParent = async (values: z.infer<typeof parentFormSchema>) => {
     try {
       setIsCreating(true);
-      // Use the deployed URL for production, or current origin for development
-      const siteUrl = window.location.hostname === 'localhost' 
-        ? window.location.origin 
-        : `https://${window.location.hostname}`;
-      
-      const redirectUrl = `${siteUrl}/reset-password`;
+      const redirectUrl = getRedirectUrl();
       console.log('Creating parent account with email:', values.email);
       console.log('Email redirect URL:', redirectUrl);
       
@@ -194,6 +219,84 @@ const ParentsPage = () => {
 
   const totalPages = Math.ceil(totalParents / PAGE_SIZE);
 
+  const openEditParentDialog = (parent: any) => {
+    setEditingParent(parent);
+    editForm.reset({
+      first_name: parent.first_name || '',
+      last_name: parent.last_name || '',
+      phone: parent.phone || '',
+      address: parent.address || '',
+      is_active: parent.is_active ?? true
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const onSubmitEditParent = async (values: z.infer<typeof editParentSchema>) => {
+    if (!editingParent) return;
+    try {
+      setIsUpdatingParent(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: values.first_name,
+          last_name: values.last_name,
+          phone: values.phone,
+          address: values.address,
+          is_active: values.is_active
+        })
+        .eq('id', editingParent.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Parent mis à jour', description: 'Les informations ont été sauvegardées.' });
+      setIsEditDialogOpen(false);
+      setEditingParent(null);
+      fetchParents();
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message || 'Impossible de mettre à jour le parent', variant: 'destructive' });
+    } finally {
+      setIsUpdatingParent(false);
+    }
+  };
+
+  const handleResendInvitation = async (parent: any) => {
+    if (!parent?.email) {
+      toast({ title: 'Email manquant', description: "Impossible d'envoyer une invitation sans email", variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setResendingParentId(parent.id);
+      const redirectUrl = getRedirectUrl();
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: parent.email,
+        options: { emailRedirectTo: redirectUrl }
+      });
+
+      if (error && !error.message?.includes('already confirmed')) {
+        throw error;
+      }
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(parent.email, {
+        redirectTo: redirectUrl
+      });
+
+      if (resetError) {
+        throw resetError;
+      }
+
+      toast({
+        title: 'Invitation renvoyée',
+        description: `Un lien de création ou de réinitialisation a été envoyé à ${parent.email}.`
+      });
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error.message || "Impossible d'envoyer l'invitation", variant: 'destructive' });
+    } finally {
+      setResendingParentId(null);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -228,10 +331,13 @@ const ParentsPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr>
+
                   <th className="font-medium text-left">Nom</th>
                   <th className="font-medium text-left">Email</th>
                   <th className="font-medium text-left">Téléphone</th>
                   <th className="font-medium text-left">Statut</th>
+                  <th className="font-medium text-left">Actions</th>
+                  <th className="font-medium text-left">&nbsp;</th>
                 </tr>
               </thead>
               <tbody>
@@ -241,6 +347,29 @@ const ParentsPage = () => {
                     <td>{parent.email}</td>
                     <td>{parent.phone || '-'}</td>
                     <td><Badge variant={parent.is_active ? 'default' : 'secondary'}>{parent.is_active ? 'Actif' : 'Inactif'}</Badge></td>
+                    <td>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleResendInvitation(parent)}
+                          disabled={resendingParentId === parent.id}
+                        >
+                          <RefreshCcw className="h-4 w-4 mr-1" />
+                          {resendingParentId === parent.id ? 'Envoi...' : 'Réinviter'}
+                        </Button>
+                      </div>
+                    </td>
+                    <td>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditParentDialog(parent)}
+                        aria-label={`Modifier ${parent.first_name}`}
+                      >
+                        <SquarePen className="h-4 w-4" />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {parents.length === 0 && (
@@ -324,6 +453,61 @@ const ParentsPage = () => {
               </Button>
               <Button type="submit" disabled={isCreating}>
                 {isCreating ? 'Création...' : 'Créer et envoyer invitation'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour éditer un parent */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Modifier le parent</DialogTitle>
+            <DialogDescription>Mettez à jour les informations du parent et son statut.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(onSubmitEditParent)} className="space-y-4">
+            <div className="flex gap-2">
+              <Input placeholder="Prénom *" {...editForm.register('first_name')} />
+              <Input placeholder="Nom *" {...editForm.register('last_name')} />
+            </div>
+            <Input
+              placeholder="Email"
+              type="email"
+              value={editingParent?.email || ''}
+              readOnly
+              disabled
+            />
+            <Input placeholder="Téléphone" {...editForm.register('phone')} />
+            <Input placeholder="Adresse" {...editForm.register('address')} />
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Statut</label>
+              <Select
+                value={editForm.watch('is_active') ? 'active' : 'inactive'}
+                onValueChange={(value) => editForm.setValue('is_active', value === 'active')}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Actif</SelectItem>
+                  <SelectItem value="inactive">Inactif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { setIsEditDialogOpen(false); setEditingParent(null); }}
+                disabled={isUpdatingParent}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" disabled={isUpdatingParent}>
+                {isUpdatingParent ? 'Enregistrement...' : 'Enregistrer'}
               </Button>
             </div>
           </form>
