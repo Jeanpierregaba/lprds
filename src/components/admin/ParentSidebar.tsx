@@ -22,7 +22,7 @@ const parentSections = [
   { key: 'children', icon: Baby, label: 'Mes Enfants' },
   { key: 'attendance', icon: Calendar, label: 'Présences' },
   { key: 'reports', icon: FileText, label: 'Rapports' },
-  { key: 'messages', icon: MessageSquare, label: 'Messages' },
+  //{ key: 'messages', icon: MessageSquare, label: 'Messages' },
 ];
 
 interface ParentSidebarProps {
