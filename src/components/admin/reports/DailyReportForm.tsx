@@ -78,7 +78,8 @@ const MOOD_OPTIONS = [
   { value: 'calme', label: 'Calme', icon: '😌', color: 'text-blue-500' },
   { value: 'agite', label: 'Agité', icon: '😤', color: 'text-orange-500' },
   { value: 'triste', label: 'Triste', icon: '😢', color: 'text-red-500' },
-  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' }
+  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' },
+  { value: 'grincheux', label: 'Grincheux', icon: '😠', color: 'text-purple-500' }
 ];
 
 const DailyReportForm: React.FC<DailyReportFormProps> = ({
