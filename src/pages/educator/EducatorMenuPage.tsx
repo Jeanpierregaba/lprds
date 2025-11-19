@@ -9,7 +9,7 @@ export default function EducatorMenuPage() {
           <UtensilsCrossed className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Menus de la Semaine</h1>
+          <h1 className="text-primary text-2xl lg:text-3xl font-bold text-foreground">Menus de la Semaine</h1>
           <p className="text-sm text-muted-foreground">
             Consultez les repas prévus pour les enfants
           </p>

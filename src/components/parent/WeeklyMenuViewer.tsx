@@ -4,8 +4,7 @@ import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Coffee, UtensilsCrossed, IceCream, Cookie, Info } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ChevronLeft, ChevronRight, Coffee, UtensilsCrossed, IceCream, Cookie } from 'lucide-react';
 
 interface MealPlan {
   id: string;
@@ -79,7 +78,7 @@ export default function WeeklyMenuViewer() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <CardTitle className="text-xl">
+              <CardTitle className="text-primary text-xl">
                 Menus de la semaine
               </CardTitle>
               <CardDescription>
@@ -100,88 +99,160 @@ export default function WeeklyMenuViewer() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {DAYS_OF_WEEK.map((dayName, index) => {
-            const date = addDays(currentWeekStart, index);
-            const dateStr = format(date, 'yyyy-MM-dd');
-            const isToday = isSameDay(date, new Date());
-            const mealPlan = mealPlans[dateStr];
+          <div className="overflow-x-auto">
+            <table className="w-full border-separate border-spacing-0 text-xs sm:text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left font-semibold">
+                    Repas
+                  </th>
+                  {DAYS_OF_WEEK.map((dayName, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const isToday = isSameDay(date, new Date());
 
-            return (
-              <Card key={dateStr} className={isToday ? 'border-primary shadow-sm' : ''}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {dayName}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {format(date, 'd MMMM', { locale: fr })}
-                    </span>
-                    {isToday && (
-                      <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                        Aujourd'hui
-                      </span>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {mealPlan ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {mealPlan.snack_morning && (
-                          <div className="flex items-start gap-2">
-                            <Coffee className="h-4 w-4 mt-1 text-primary flex-shrink-0" />
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground">Collation matin</p>
-                              <p className="text-sm">{mealPlan.snack_morning}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-start gap-2">
-                          <UtensilsCrossed className="h-4 w-4 mt-1 text-primary flex-shrink-0" />
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground">Déjeuner</p>
-                            <p className="text-sm font-medium">{mealPlan.lunch}</p>
-                          </div>
+                    return (
+                      <th
+                        key={dateStr}
+                        className={`min-w-[120px] border border-border px-3 py-2 text-center align-middle ${
+                          isToday ? 'bg-primary/10 text-primary font-semibold' : 'bg-muted/60'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          <span>{dayName}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {format(date, 'd MMMM', { locale: fr })}
+                          </span>
+                          {isToday && (
+                            <span className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              Aujourd'hui
+                            </span>
+                          )}
                         </div>
-
-                        {mealPlan.dessert && (
-                          <div className="flex items-start gap-2">
-                            <IceCream className="h-4 w-4 mt-1 text-primary flex-shrink-0" />
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground">Dessert</p>
-                              <p className="text-sm">{mealPlan.dessert}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {mealPlan.snack_afternoon && (
-                          <div className="flex items-start gap-2">
-                            <Cookie className="h-4 w-4 mt-1 text-primary flex-shrink-0" />
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground">Goûter</p>
-                              <p className="text-sm">{mealPlan.snack_afternoon}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {mealPlan.notes && (
-                        <Alert>
-                          <Info className="h-4 w-4" />
-                          <AlertDescription className="text-sm">
-                            {mealPlan.notes}
-                          </AlertDescription>
-                        </Alert>
-                      )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <div className="flex items-center gap-2">
+                      <Coffee className="h-4 w-4" />
+                      <span>Collation</span>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">
-                      Menu non encore planifié
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr];
+
+                    return (
+                      <td key={`${dateStr}-snack-morning`} className="border border-border px-3 py-3 align-top">
+                        {mealPlan?.snack_morning ? (
+                          <span className="text-xs sm:text-sm">{mealPlan.snack_morning}</span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">Non prévu</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <div className="flex items-center gap-2">
+                      <UtensilsCrossed className="h-4 w-4" />
+                      <span>Déjeuner</span>
+                    </div>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr];
+
+                    return (
+                      <td key={`${dateStr}-lunch`} className="border border-border px-3 py-3 align-top">
+                        {mealPlan?.lunch ? (
+                          <span className="text-xs sm:text-sm font-medium">{mealPlan.lunch}</span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">Menu non encore planifié</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <div className="flex items-center gap-2">
+                      <IceCream className="h-4 w-4" />
+                      <span>Dessert</span>
+                    </div>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr];
+
+                    return (
+                      <td key={`${dateStr}-dessert`} className="border border-border px-3 py-3 align-top">
+                        {mealPlan?.dessert ? (
+                          <span className="text-xs sm:text-sm">{mealPlan.dessert}</span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">Non prévu</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <div className="flex items-center gap-2">
+                      <Cookie className="h-4 w-4" />
+                      <span>Goûter</span>
+                    </div>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr];
+
+                    return (
+                      <td key={`${dateStr}-snack-afternoon`} className="border border-border px-3 py-3 align-top">
+                        {mealPlan?.snack_afternoon ? (
+                          <span className="text-xs sm:text-sm">{mealPlan.snack_afternoon}</span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">Non prévu</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <span>Notes</span>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr];
+
+                    return (
+                      <td key={`${dateStr}-notes`} className="border border-border px-3 py-3 align-top">
+                        {mealPlan?.notes ? (
+                          <span className="text-xs sm:text-sm break-words">{mealPlan.notes}</span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">Aucune note</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] sm:text-xs text-muted-foreground text-center">
+            Tous nos repas sont faits maison avec beaucoup d'amour.
+          </p>
         </CardContent>
       </Card>
     </div>

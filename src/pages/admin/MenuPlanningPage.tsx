@@ -164,101 +164,190 @@ export default function MenuPlanningPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {DAYS_OF_WEEK.map((dayName, index) => {
-            const date = addDays(currentWeekStart, index);
-            const dateStr = format(date, 'yyyy-MM-dd');
-            const isToday = isSameDay(date, new Date());
-            const mealPlan = mealPlans[dateStr] || { plan_date: dateStr, lunch: '' };
+          <div className="overflow-x-auto">
+            <table className="w-full border-separate border-spacing-0 text-xs sm:text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left font-semibold">
+                    Repas
+                  </th>
+                  {DAYS_OF_WEEK.map((dayName, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const isToday = isSameDay(date, new Date());
 
-            return (
-              <Card key={dateStr} className={isToday ? 'border-primary' : ''}>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {dayName}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {format(date, 'd MMMM', { locale: fr })}
-                    </span>
-                    {isToday && (
-                      <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                        Aujourd'hui
-                      </span>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Coffee className="h-4 w-4" />
-                        Collation du matin
-                      </Label>
-                      <Input
-                        placeholder="Ex: Fruits frais, yaourt"
-                        value={mealPlan.snack_morning || ''}
-                        onChange={(e) => updateMealField(dateStr, 'snack_morning', e.target.value)}
-                      />
-                    </div>
+                    return (
+                      <th
+                        key={dateStr}
+                        className={`min-w-[140px] border border-border px-3 py-2 text-center align-middle ${
+                          isToday ? 'bg-primary/10 text-primary font-semibold' : 'bg-muted/60'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          <span>{dayName}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {format(date, 'd MMMM', { locale: fr })}
+                          </span>
+                          {isToday && (
+                            <span className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                              Aujourd'hui
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <Label className="flex items-center gap-2">
+                      <Coffee className="h-4 w-4" />
+                      Collation du matin
+                    </Label>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr] || { plan_date: dateStr, lunch: '' };
 
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <UtensilsCrossed className="h-4 w-4" />
+                    return (
+                      <td key={`${dateStr}-snack-morning`} className="border border-border px-2 py-2 align-top">
+                        <Input
+                          placeholder="Ex: Fruits frais, yaourt"
+                          value={mealPlan.snack_morning || ''}
+                          onChange={(e) => updateMealField(dateStr, 'snack_morning', e.target.value)}
+                          className="h-8 text-xs sm:text-sm"
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <Label className="flex items-center gap-2">
+                      <UtensilsCrossed className="h-4 w-4" />
+                      <span>
                         Déjeuner <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        placeholder="Ex: Poulet, riz, légumes"
-                        value={mealPlan.lunch || ''}
-                        onChange={(e) => updateMealField(dateStr, 'lunch', e.target.value)}
-                        required
-                      />
-                    </div>
+                      </span>
+                    </Label>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr] || { plan_date: dateStr, lunch: '' };
 
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <IceCream className="h-4 w-4" />
-                        Dessert
-                      </Label>
-                      <Input
-                        placeholder="Ex: Compote, fruit"
-                        value={mealPlan.dessert || ''}
-                        onChange={(e) => updateMealField(dateStr, 'dessert', e.target.value)}
-                      />
-                    </div>
+                    return (
+                      <td key={`${dateStr}-lunch`} className="border border-border px-2 py-2 align-top">
+                        <Input
+                          placeholder="Ex: Poulet, riz, légumes"
+                          value={mealPlan.lunch || ''}
+                          onChange={(e) => updateMealField(dateStr, 'lunch', e.target.value)}
+                          required
+                          className="h-8 text-xs sm:text-sm"
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <Label className="flex items-center gap-2">
+                      <IceCream className="h-4 w-4" />
+                      Dessert
+                    </Label>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr] || { plan_date: dateStr, lunch: '' };
 
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Cookie className="h-4 w-4" />
-                        Goûter
-                      </Label>
-                      <Input
-                        placeholder="Ex: Pain, chocolat, lait"
-                        value={mealPlan.snack_afternoon || ''}
-                        onChange={(e) => updateMealField(dateStr, 'snack_afternoon', e.target.value)}
-                      />
-                    </div>
-                  </div>
+                    return (
+                      <td key={`${dateStr}-dessert`} className="border border-border px-2 py-2 align-top">
+                        <Input
+                          placeholder="Ex: Compote, fruit"
+                          value={mealPlan.dessert || ''}
+                          onChange={(e) => updateMealField(dateStr, 'dessert', e.target.value)}
+                          className="h-8 text-xs sm:text-sm"
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <Label className="flex items-center gap-2">
+                      <Cookie className="h-4 w-4" />
+                      Goûter
+                    </Label>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr] || { plan_date: dateStr, lunch: '' };
 
-                  <div className="space-y-2">
-                    <Label>Notes supplémentaires</Label>
-                    <Textarea
-                      placeholder="Remarques, allergènes, etc."
-                      value={mealPlan.notes || ''}
-                      onChange={(e) => updateMealField(dateStr, 'notes', e.target.value)}
-                      rows={2}
-                    />
-                  </div>
+                    return (
+                      <td key={`${dateStr}-snack-afternoon`} className="border border-border px-2 py-2 align-top">
+                        <Input
+                          placeholder="Ex: Pain, chocolat, lait"
+                          value={mealPlan.snack_afternoon || ''}
+                          onChange={(e) => updateMealField(dateStr, 'snack_afternoon', e.target.value)}
+                          className="h-8 text-xs sm:text-sm"
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-top font-medium">
+                    <span>Notes</span>
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr] || { plan_date: dateStr, lunch: '' };
 
-                  <Button 
-                    onClick={() => handleSaveMeal(dateStr)}
-                    disabled={saving || !mealPlan.lunch?.trim()}
-                    className="w-full sm:w-auto"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Enregistrer
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+                    return (
+                      <td key={`${dateStr}-notes`} className="border border-border px-2 py-2 align-top">
+                        <Textarea
+                          placeholder="Remarques, allergènes, etc."
+                          value={mealPlan.notes || ''}
+                          onChange={(e) => updateMealField(dateStr, 'notes', e.target.value)}
+                          rows={2}
+                          className="text-xs sm:text-sm"
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-background border border-r border-border px-3 py-3 text-left align-middle font-medium">
+                    Actions
+                  </th>
+                  {DAYS_OF_WEEK.map((_, index) => {
+                    const date = addDays(currentWeekStart, index);
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const mealPlan = mealPlans[dateStr] || { plan_date: dateStr, lunch: '' };
+
+                    return (
+                      <td key={`${dateStr}-actions`} className="border border-border px-2 py-2 align-middle">
+                        <Button
+                          onClick={() => handleSaveMeal(dateStr)}
+                          disabled={saving || !mealPlan.lunch?.trim()}
+                          size="sm"
+                          className="w-full"
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          Enregistrer
+                        </Button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -15,6 +15,7 @@ import { ChildDetailsDialog } from '@/components/parent/ChildDetailsDialog';
 const DailyReportsViewer = lazy(() => import('@/components/parent/DailyReportsViewer'));
 const ParentMessagesPage = lazy(() => import('@/pages/parent/MessagesPage'));
 const ParentAttendancePage = lazy(() => import('@/pages/parent/ParentAttendancePage'));
+const ParentMenuPage = lazy(() => import('@/pages/parent/MenuPage'));
 const RecentActivitiesAndAnnouncements = lazy(() => import('@/components/parent/RecentActivitiesAndAnnouncements'));
 
 interface ParentStats {
@@ -293,14 +294,18 @@ const ParentDashboard = () => {
                 </div>
               )}
 
-              {/* Présences */}
               {activeView === 'attendance' && (
                 <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
                   <ParentAttendancePage />
                 </Suspense>
               )}
 
-              {/* Rapports */}
+              {activeView === 'menus' && (
+                <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
+                  <ParentMenuPage />
+                </Suspense>
+              )}
+
               {activeView === 'reports' && (
                 <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
                   <DailyReportsViewer />
