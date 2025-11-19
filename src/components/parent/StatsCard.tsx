@@ -9,6 +9,7 @@ interface StatsCardProps {
   iconColor?: string;
   titleColor?: string;
   loading?: boolean;
+  onClick?: () => void;
 }
 
 export const StatsCard = ({ 
@@ -18,7 +19,8 @@ export const StatsCard = ({
   icon: Icon, 
   iconColor = 'text-muted-foreground',
   titleColor = 'text-sm',
-  loading = false 
+  loading = false,
+  onClick,
 }: StatsCardProps) => {
   if (loading) {
     return (
@@ -35,8 +37,23 @@ export const StatsCard = ({
     );
   }
 
+  const isClickable = Boolean(onClick);
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card
+      className={`hover:shadow-md transition-shadow ${
+        isClickable ? 'cursor-pointer hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none' : ''
+      }`}
+      onClick={onClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={isClickable ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      } : undefined}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className={`${titleColor} font-medium`}>{title}</CardTitle>
         <Icon className={`h-4 w-4 ${iconColor}`} />

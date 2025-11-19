@@ -235,6 +235,7 @@ const ParentDashboard = () => {
                       icon={Baby}
                       titleColor="text-sm"
                       loading={loading}
+                      onClick={() => setActiveView('children')}
                     />
                     <StatsCard
                       title="Présents Aujourd'hui"
@@ -244,6 +245,7 @@ const ParentDashboard = () => {
                       titleColor="text-green-600 text-sm"
                       iconColor="text-green-600"
                       loading={loading}
+                      onClick={() => setActiveView('attendance')}
                     />
                     <StatsCard
                       title="Nouvelles Activités"
@@ -262,6 +264,7 @@ const ParentDashboard = () => {
                       titleColor="text-red-600 text-sm"
                       iconColor="text-red-600"
                       loading={loading}
+                      onClick={() => setActiveView('reports')}
                     />
                   </div>
                   
