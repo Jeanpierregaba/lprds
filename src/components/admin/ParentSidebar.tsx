@@ -32,7 +32,7 @@ interface ParentSidebarProps {
 }
 
 export default function ParentSidebar({ activeView, setActiveView }: ParentSidebarProps) {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const { profile, signOut } = useAuth();
   const { toast } = useToast();
   // Handler de déconnexion
@@ -69,7 +69,12 @@ export default function ParentSidebar({ activeView, setActiveView }: ParentSideb
                   <SidebarMenuButton
                     asChild={false}
                     isActive={activeView === section.key}
-                    onClick={() => setActiveView(section.key)}
+                    onClick={() => {
+                      setActiveView(section.key);
+                      if (isMobile) {
+                        setOpenMobile(false);
+                      }
+                    }}
                   >
                     <section.icon className="size-4" />
                     <span>{section.label}</span>

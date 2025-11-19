@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar"
 
 export function AdminSidebar() {
-  const { state } = useSidebar()
+  const { state, isMobile, setOpenMobile } = useSidebar()
   const { profile, signOut } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -74,6 +74,11 @@ export function AdminSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={isActive(item.url, item.exact)}
+                    onClick={() => {
+                      if (isMobile) {
+                        setOpenMobile(false)
+                      }
+                    }}
                   >
                     <NavLink to={item.url}>
                       <item.icon className="size-4" />
