@@ -85,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email to all parents
     const emailPromises = parentEmails.map(parent => 
       resend.emails.send({
-        from: "La Petite Rose des Sables <onboarding@resend.dev>",
+        from: "Les Petits Rayons de Soleil <info@lapetitsrayonsdesoleil.com>",
         to: [parent.email],
         subject: `📢 ${subject}`,
         html: `
@@ -120,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
               </p>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${supabaseUrl.replace('.supabase.co', '.lovable.app')}/admin/dashboard/messages" 
+                <a href="${supabaseUrl.replace('.supabase.co',)}/admin/dashboard/messages" 
                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
                           color: white; 
                           padding: 12px 30px; 
@@ -135,9 +135,9 @@ const handler = async (req: Request): Promise<Response> => {
               <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
               
               <p style="font-size: 14px; color: #6b7280; text-align: center; margin: 0;">
-                La Petite Rose des Sables<br/>
+                Les Petits Rayons de Soleil<br/>
                 Message envoyé par ${sender_name}<br/>
-                <a href="mailto:contact@lapetiterosedesables.com" style="color: #f59e0b; text-decoration: none;">contact@lapetiterosedesables.com</a>
+                <a href="mailto:info@lespetitsrayonsdesoleil.fr" style="color: #f59e0b; text-decoration: none;">info@lespetitsrayonsdesoleil.fr</a>
               </p>
             </div>
           </div>
