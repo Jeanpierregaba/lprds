@@ -16,6 +16,7 @@ const DailyReportsViewer = lazy(() => import('@/components/parent/DailyReportsVi
 const ParentMessagesPage = lazy(() => import('@/pages/parent/MessagesPage'));
 const ParentAttendancePage = lazy(() => import('@/pages/parent/ParentAttendancePage'));
 const ParentMenuPage = lazy(() => import('@/pages/parent/MenuPage'));
+const ParentGalleryPage = lazy(() => import('@/pages/parent/ParentGalleryPage'));
 const RecentActivitiesAndAnnouncements = lazy(() => import('@/components/parent/RecentActivitiesAndAnnouncements'));
 
 interface ParentStats {
@@ -306,6 +307,12 @@ const ParentDashboard = () => {
               {activeView === 'menus' && (
                 <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
                   <ParentMenuPage />
+                </Suspense>
+              )}
+
+              {activeView === 'gallery' && (
+                <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
+                  <ParentGalleryPage />
                 </Suspense>
               )}
 

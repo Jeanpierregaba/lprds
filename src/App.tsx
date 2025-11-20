@@ -22,8 +22,10 @@ import DailyReportsPage from "@/pages/admin/DailyReportsPage";
 import MessagesPage from "@/pages/admin/MessagesPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import QRScanPage from "@/pages/admin/QRScanPage";
+import AdminGalleryPage from "@/pages/admin/AdminGalleryPage";
 import ParentDashboard from "@/pages/parent/Dashboard";
 import ParentMenuPage from "@/pages/parent/MenuPage";
+import ParentGalleryPage from "@/pages/parent/ParentGalleryPage";
 import EducatorDashboardLayout from "@/pages/educator/EducatorDashboardLayout";
 import EducatorGroupPage from "@/pages/educator/EducatorGroupPage";
 import EducatorDailyReportsPage from "@/pages/educator/EducatorDailyReportsPage";
@@ -63,6 +65,7 @@ const App = () => (
               <Route path="qr-scanner" element={<QRScanPage />} />
               <Route path="daily-reports" element={<DailyReportsPage />} />
               <Route path="messages" element={<MessagesPage />} />
+              <Route path="gallery" element={<AdminGalleryPage />} />
               <Route path="menus" element={<MenuPlanningPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
@@ -75,6 +78,7 @@ const App = () => (
             <Route path="/parent/dashboard">
               <Route index element={<ParentDashboard />} />
               <Route path="menus" element={<ParentMenuPage />} />
+              <Route path="gallery" element={<ParentGalleryPage />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

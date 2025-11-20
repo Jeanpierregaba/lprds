@@ -13,7 +13,8 @@ import {
   Shield,
   DollarSign,
   QrCode,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -95,6 +96,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Menus", 
         url: "/admin/dashboard/menus", 
         icon: UtensilsCrossed 
+      },
+      { 
+        title: "Galerie", 
+        url: "/admin/dashboard/gallery", 
+        icon: ImageIcon 
       },
     );
 
