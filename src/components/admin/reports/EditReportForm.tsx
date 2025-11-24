@@ -15,7 +15,8 @@ import {
   Bed, 
   Droplets,
   Save,
-  X
+  X,
+  Smile
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,40 +27,85 @@ interface EditReportFormProps {
   onCancel: () => void;
 }
 
-const ACTIVITY_OPTIONS = [
-  'Peinture', 'Dessin', 'Lecture', 'Jeux d\'extérieur', 'Jeux de construction',
-  'Musique', 'Chant', 'Danse', 'Jardinage', 'Cuisine', 'Motricité',
-  'Jeux d\'eau', 'Puzzle', 'Jeux de société', 'Activité sensorielle'
+const MOOD_OPTIONS = [
+  { value: 'joyeux', label: 'Joyeux', icon: '😊', color: 'text-green-500' },
+  { value: 'calme', label: 'Calme', icon: '😌', color: 'text-blue-500' },
+  { value: 'agite', label: 'Agité', icon: '😤', color: 'text-orange-500' },
+  { value: 'triste', label: 'Triste', icon: '😢', color: 'text-red-500' },
+  { value: 'fatigue', label: 'Fatigué', icon: '😴', color: 'text-purple-500' },
+  { value: 'grincheux', label: 'Grincheux', icon: '😠', color: 'text-purple-500' }
 ];
 
-const MOOD_OPTIONS = [
-  { value: 'happy', label: 'Joyeux', icon: '😊' },
-  { value: 'calm', label: 'Calme', icon: '😌' },
-  { value: 'agitated', label: 'Agité', icon: '😤' },
-  { value: 'sad', label: 'Triste', icon: '😢' },
-  { value: 'tired', label: 'Fatigué', icon: '😴' }
-];
+// Fonction pour normaliser les valeurs mood (support des anciennes valeurs)
+const normalizeMoodValue = (value: string | string[] | null | undefined): string[] => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    // Convertir les anciennes valeurs anglaises si nécessaire
+    const moodMap: Record<string, string> = {
+      'happy': 'joyeux',
+      'calm': 'calme',
+      'agitated': 'agite',
+      'sad': 'triste',
+      'tired': 'fatigue'
+    };
+    const normalized = moodMap[value] || value;
+    return [normalized];
+  }
+  return [];
+};
 
 const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCancel }) => {
+  // Normaliser les valeurs du rapport existant
+  const normalizedMood = normalizeMoodValue(report.mood);
+  
+  // Normaliser health_status (convertir les anciennes valeurs si nécessaire)
+  const normalizeHealthStatus = (status: string | null | undefined): 'bien' | 'surveiller' | 'malade' => {
+    if (!status) return 'bien';
+    const statusMap: Record<string, 'bien' | 'surveiller' | 'malade'> = {
+      'well': 'bien',
+      'monitor': 'surveiller',
+      'sick': 'malade'
+    };
+    return statusMap[status] || (status as 'bien' | 'surveiller' | 'malade');
+  };
+
+  // Normaliser les valeurs de repas
+  const normalizeMealStatus = (status: string | null | undefined): 'bien_mange' | 'peu_mange' | 'rien_mange' => {
+    if (!status) return 'bien_mange';
+    const mealMap: Record<string, 'bien_mange' | 'peu_mange' | 'rien_mange'> = {
+      'well': 'bien_mange',
+      'little': 'peu_mange',
+      'nothing': 'rien_mange'
+    };
+    return mealMap[status] || (status as 'bien_mange' | 'peu_mange' | 'rien_mange');
+  };
+
   const [formData, setFormData] = useState({
-    arrival_time: report.arrival_time || '',
-    departure_time: report.departure_time || '',
-    health_status: report.health_status || 'well',
+    arrival_time: report.arrival_time ? (typeof report.arrival_time === 'string' ? report.arrival_time.slice(0, 5) : '') : '',
+    departure_time: report.departure_time ? (typeof report.departure_time === 'string' ? report.departure_time.slice(0, 5) : '') : '',
+    health_status: normalizeHealthStatus(report.health_status),
     health_notes: report.health_notes || '',
-    activities: report.activities || [],
+    temperature_arrival: report.temperature_arrival || undefined,
+    temperature_departure: report.temperature_departure || undefined,
+    activities: Array.isArray(report.activities) ? report.activities : [],
     nap_taken: report.nap_taken || false,
-    nap_duration_minutes: report.nap_duration_minutes || '',
-    breakfast_eaten: report.breakfast_eaten || 'well',
-    lunch_eaten: report.lunch_eaten || 'well',
-    snack_eaten: report.snack_eaten || 'well',
+    nap_duration_minutes: report.nap_duration_minutes || undefined,
+    breakfast_eaten: normalizeMealStatus(report.breakfast_eaten),
+    lunch_eaten: normalizeMealStatus(report.lunch_eaten),
+    snack_eaten: normalizeMealStatus(report.snack_eaten),
     hygiene_bath: report.hygiene_bath || false,
     hygiene_bowel_movement: report.hygiene_bowel_movement || false,
     hygiene_frequency_notes: report.hygiene_frequency_notes || '',
-    mood: report.mood || 'happy',
+    mood: normalizedMood,
     special_observations: report.special_observations || ''
   });
   
-  const [selectedActivities, setSelectedActivities] = useState<string[]>(report.activities || []);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>(
+    Array.isArray(report.activities) ? report.activities : []
+  );
+  const [newActivity, setNewActivity] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
@@ -75,16 +121,61 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
     });
   };
 
+  const handleAddActivity = () => {
+    if (newActivity.trim()) {
+      const activity = newActivity.trim();
+      if (!selectedActivities.includes(activity)) {
+        const newActivities = [...selectedActivities, activity];
+        setSelectedActivities(newActivities);
+        setFormData(prevData => ({ ...prevData, activities: newActivities }));
+      }
+      setNewActivity('');
+    }
+  };
+
+  const handleRemoveActivity = (activity: string) => {
+    const newActivities = selectedActivities.filter(a => a !== activity);
+    setSelectedActivities(newActivities);
+    setFormData(prevData => ({ ...prevData, activities: newActivities }));
+  };
+
+  const toggleMoodSelection = (moodValue: string) => {
+    setFormData(prev => {
+      const isSelected = prev.mood.includes(moodValue);
+      const updatedMood = isSelected
+        ? prev.mood.filter(m => m !== moodValue)
+        : [...prev.mood, moodValue];
+      return { ...prev, mood: updatedMood };
+    });
+  };
+
   const handleSave = async () => {
     setIsSubmitting(true);
     
     try {
+      const updateData = {
+        arrival_time: formData.arrival_time || null,
+        departure_time: formData.departure_time || null,
+        health_status: formData.health_status,
+        health_notes: formData.health_notes || null,
+        temperature_arrival: formData.temperature_arrival || null,
+        temperature_departure: formData.temperature_departure || null,
+        activities: selectedActivities,
+        nap_taken: formData.nap_taken,
+        nap_duration_minutes: formData.nap_duration_minutes || null,
+        breakfast_eaten: formData.breakfast_eaten,
+        lunch_eaten: formData.lunch_eaten,
+        snack_eaten: formData.snack_eaten,
+        hygiene_bath: formData.hygiene_bath,
+        hygiene_bowel_movement: formData.hygiene_bowel_movement,
+        hygiene_frequency_notes: formData.hygiene_frequency_notes || null,
+        mood: formData.mood,
+        special_observations: formData.special_observations || null
+      };
+
       const { error } = await supabase
         .from('daily_reports')
-        .update({
-          ...formData,
-          activities: selectedActivities
-        })
+        .update(updateData)
         .eq('id', report.id);
 
       if (error) throw error;
@@ -160,17 +251,55 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
           <CardContent className="space-y-3">
             <Select
               value={formData.health_status}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, health_status: value }))}
+              onValueChange={(value: 'bien' | 'surveiller' | 'malade') => 
+                setFormData(prev => ({ ...prev, health_status: value }))
+              }
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="well">Bien</SelectItem>
-                <SelectItem value="monitor">À surveiller</SelectItem>
-                <SelectItem value="sick">Malade</SelectItem>
+                <SelectItem value="bien">Bien</SelectItem>
+                <SelectItem value="surveiller">À surveiller</SelectItem>
+                <SelectItem value="malade">Malade</SelectItem>
               </SelectContent>
             </Select>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="temperature_arrival">Température à l'arrivée (°C)</Label>
+                <Input
+                  id="temperature_arrival"
+                  type="number"
+                  step="0.1"
+                  min="30"
+                  max="45"
+                  placeholder="37.0"
+                  value={formData.temperature_arrival || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    temperature_arrival: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="temperature_departure">Température au départ (°C)</Label>
+                <Input
+                  id="temperature_departure"
+                  type="number"
+                  step="0.1"
+                  min="30"
+                  max="45"
+                  placeholder="37.0"
+                  value={formData.temperature_departure || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    temperature_departure: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                />
+              </div>
+            </div>
             
             <div>
               <Label htmlFor="health_notes">Notes de santé</Label>
@@ -197,15 +326,17 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
               <Label>Petit-déjeuner</Label>
               <Select
                 value={formData.breakfast_eaten}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, breakfast_eaten: value }))}
+                onValueChange={(value: 'bien_mange' | 'peu_mange' | 'rien_mange') => 
+                  setFormData(prev => ({ ...prev, breakfast_eaten: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="well">Bien mangé</SelectItem>
-                  <SelectItem value="little">Peu mangé</SelectItem>
-                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                  <SelectItem value="bien_mange">Bien mangé</SelectItem>
+                  <SelectItem value="peu_mange">Peu mangé</SelectItem>
+                  <SelectItem value="rien_mange">Rien mangé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -214,15 +345,17 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
               <Label>Déjeuner</Label>
               <Select
                 value={formData.lunch_eaten}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, lunch_eaten: value }))}
+                onValueChange={(value: 'bien_mange' | 'peu_mange' | 'rien_mange') => 
+                  setFormData(prev => ({ ...prev, lunch_eaten: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="well">Bien mangé</SelectItem>
-                  <SelectItem value="little">Peu mangé</SelectItem>
-                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                  <SelectItem value="bien_mange">Bien mangé</SelectItem>
+                  <SelectItem value="peu_mange">Peu mangé</SelectItem>
+                  <SelectItem value="rien_mange">Rien mangé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -231,15 +364,17 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
               <Label>Goûter</Label>
               <Select
                 value={formData.snack_eaten}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, snack_eaten: value }))}
+                onValueChange={(value: 'bien_mange' | 'peu_mange' | 'rien_mange') => 
+                  setFormData(prev => ({ ...prev, snack_eaten: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="well">Bien mangé</SelectItem>
-                  <SelectItem value="little">Peu mangé</SelectItem>
-                  <SelectItem value="nothing">Rien mangé</SelectItem>
+                  <SelectItem value="bien_mange">Bien mangé</SelectItem>
+                  <SelectItem value="peu_mange">Peu mangé</SelectItem>
+                  <SelectItem value="rien_mange">Rien mangé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -272,8 +407,11 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
                   type="number"
                   min="0"
                   max="300"
-                  value={formData.nap_duration_minutes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nap_duration_minutes: parseInt(e.target.value) || 0 }))}
+                  value={formData.nap_duration_minutes || ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    nap_duration_minutes: e.target.value ? parseInt(e.target.value) : undefined 
+                  }))}
                 />
               </div>
             )}
@@ -322,20 +460,33 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
         {/* Humeur */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Humeur</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Smile className="h-4 w-4" />
+              Humeurs du jour
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {MOOD_OPTIONS.map((mood) => (
-                <Button
+                <div
                   key={mood.value}
-                  variant={formData.mood === mood.value ? 'default' : 'outline'}
-                  onClick={() => setFormData(prev => ({ ...prev, mood: mood.value }))}
-                  className="justify-start"
+                  className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    formData.mood.includes(mood.value)
+                      ? 'border-primary bg-primary/5'
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={() => toggleMoodSelection(mood.value)}
                 >
-                  <span className="mr-2">{mood.icon}</span>
-                  {mood.label}
-                </Button>
+                  <Checkbox
+                    checked={formData.mood.includes(mood.value)}
+                    onCheckedChange={() => toggleMoodSelection(mood.value)}
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                  <span className="text-2xl">{mood.icon}</span>
+                  <Label className={`cursor-pointer ${mood.color}`}>
+                    {mood.label}
+                  </Label>
+                </div>
               ))}
             </div>
           </CardContent>
@@ -345,26 +496,56 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
       {/* Activités */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Activités</CardTitle>
+          <CardTitle className="text-base">Activités réalisées</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {ACTIVITY_OPTIONS.map((activity) => (
-              <div key={activity} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`activity-${activity}`}
-                  checked={selectedActivities.includes(activity)}
-                  onCheckedChange={() => handleActivityToggle(activity)}
-                />
-                <Label
-                  htmlFor={`activity-${activity}`}
-                  className="text-sm cursor-pointer"
-                >
-                  {activity}
-                </Label>
-              </div>
-            ))}
+        <CardContent className="space-y-4">
+          {/* Champ d'ajout d'activité */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Ex: Peinture, Lecture, Jeux d'extérieur..."
+              value={newActivity}
+              onChange={(e) => setNewActivity(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddActivity();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              onClick={handleAddActivity}
+              size="icon"
+              variant="default"
+            >
+              +
+            </Button>
           </div>
+
+          {/* Liste des activités ajoutées */}
+          {selectedActivities.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Activités de la journée :</Label>
+              <div className="flex flex-wrap gap-2">
+                {selectedActivities.map((activity, index) => (
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="text-sm px-3 py-1 flex items-center gap-2"
+                  >
+                    {activity}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveActivity(activity)}
+                      className="hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
