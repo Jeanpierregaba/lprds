@@ -24,7 +24,7 @@ const parentSections = [
   //{ key: 'gallery', icon: ImageIcon, label: 'Galerie' },
   { key: 'menus', icon: UtensilsCrossed, label: 'Menus' },
   { key: 'reports', icon: FileText, label: 'Rapports' },
-  //{ key: 'messages', icon: MessageSquare, label: 'Messages' },
+  { key: 'messages', icon: MessageSquare, label: 'Messages' },
 ];
 
 interface ParentSidebarProps {

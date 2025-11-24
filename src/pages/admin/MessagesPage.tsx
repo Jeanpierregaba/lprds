@@ -132,38 +132,44 @@ const MessagesPage = () => {
           </TabsTrigger>
           <TabsTrigger value="broadcast">
             <Megaphone className="mr-2 h-4 w-4" />
-            Diffusions
+            Cahier de liaison
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="conversations" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[700px]">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Conversations list */}
-            <Card className="lg:col-span-1">
-              <ConversationsList 
-                onSelectConversation={handleSelectConversation}
-                selectedUserId={selectedUserId}
-              />
+            <Card className="lg:col-span-1 flex flex-col h-[700px]">
+              <CardContent className="flex-1 p-0 overflow-hidden">
+                <ConversationsList 
+                  onSelectConversation={handleSelectConversation}
+                  selectedUserId={selectedUserId}
+                />
+              </CardContent>
             </Card>
 
             {/* Chat interface */}
-            <Card className="lg:col-span-2">
-              {selectedUserId ? (
-                <ChatInterface
-                  recipientId={selectedUserId}
-                  recipientName={selectedUserName}
-                  recipientRole={selectedUserRole}
-                  childId={selectedChildId}
-                  onNewMessage={() => {}}
-                />
-              ) : (
-                <CardContent className="flex flex-col items-center justify-center h-full">
-                  <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground text-center">
-                    Sélectionnez une conversation pour commencer
-                  </p>
-                </CardContent>
-              )}
+            <Card className="lg:col-span-2 flex flex-col h-[700px]">
+              <CardContent className="flex-1 p-0 overflow-hidden">
+                {selectedUserId ? (
+                  <div className="h-full">
+                    <ChatInterface
+                      recipientId={selectedUserId}
+                      recipientName={selectedUserName}
+                      recipientRole={selectedUserRole}
+                      childId={selectedChildId}
+                      onNewMessage={() => {}}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <MessageSquare className="h-16 w-16 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground text-center">
+                      Sélectionnez une conversation pour commencer
+                    </p>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           </div>
         </TabsContent>

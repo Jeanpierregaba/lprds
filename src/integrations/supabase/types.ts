@@ -824,6 +824,7 @@ export type Database = {
       }
       is_admin_or_secretary: { Args: { user_uuid: string }; Returns: boolean }
       is_educator: { Args: { user_uuid: string }; Returns: boolean }
+      get_active_admin_ids: { Args: Record<never, never>; Returns: Array<{ id: string }> }
     }
     Enums: {
       child_section:

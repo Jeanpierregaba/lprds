@@ -250,11 +250,8 @@ const ReportValidation: React.FC = () => {
 
       if (error) throw error;
 
-      // Si le rapport est approuvé, envoyer un message au parent et une notification email
+      // Si le rapport est approuvé, envoyer une notification email aux parents
       if (isApproved) {
-        await sendReportToParent(selectedReport);
-        
-        // Send email notification to parents
         try {
           await supabase.functions.invoke('send-daily-report-notification', {
             body: {
@@ -265,14 +262,14 @@ const ReportValidation: React.FC = () => {
           });
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
-          // Don't fail the whole operation if email fails
+          // Ne pas faire échouer toute l'opération si l'email échoue
         }
       }
 
       toast({
         title: isApproved ? "Rapport validé" : "Rapport rejeté",
         description: isApproved 
-          ? "Le rapport a été validé et les parents ont été notifiés par email et message"
+          ? "Le rapport a été validé et les parents ont été notifiés par email"
           : "Le rapport a été rejeté et retourné à l'éducatrice"
       });
 
@@ -292,51 +289,6 @@ const ReportValidation: React.FC = () => {
       });
     } finally {
       setIsValidating(false);
-    }
-  };
-
-  const sendReportToParent = async (report: PendingReport) => {
-    try {
-      // Récupérer les parents de l'enfant
-      const { data: parentLinks, error: parentError } = await supabase
-        .from('parent_children')
-        .select('parent_id')
-        .eq('child_id', report.child.id);
-
-      if (parentError) throw parentError;
-
-      // Créer un message pour chaque parent
-      for (const link of parentLinks || []) {
-        const messageContent = `
-Nouveau rapport journalier disponible pour ${report.child.first_name} ${report.child.last_name}
-
-Date: ${new Date(report.report_date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-
-${validationNote ? `Note de validation: ${validationNote}` : ''}
-
-Consultez l'onglet "Rapports journaliers" pour voir tous les détails.
-        `.trim();
-
-        const { error: messageError } = await supabase
-          .from('messages')
-          .insert({
-            sender_id: profile!.id,
-            recipient_id: link.parent_id,
-            child_id: report.child.id,
-            subject: `Rapport journalier - ${report.child.first_name} ${report.child.last_name}`,
-            content: messageContent
-          });
-
-        if (messageError) throw messageError;
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi du message:', error);
-      // Ne pas bloquer la validation si l'envoi du message échoue
-      toast({
-        title: "Attention",
-        description: "Le rapport a été validé mais l'envoi du message a échoué",
-        variant: "destructive"
-      });
     }
   };
 

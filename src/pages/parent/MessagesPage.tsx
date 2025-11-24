@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, Megaphone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ConversationsList } from '@/components/messaging/ConversationsList';
 import { ChatInterface } from '@/components/messaging/ChatInterface';
+import { BroadcastMessages } from '@/components/messaging/BroadcastMessages';
 
 interface AdminProfile {
   id: string;
@@ -29,37 +27,26 @@ const ParentMessagesPage = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversation | null>(null);
-  const [admins, setAdmins] = useState<AdminProfile[]>([]);
-  const [showNewConversation, setShowNewConversation] = useState(false);
-  const [selectedAdmin, setSelectedAdmin] = useState<string>('');
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (profile?.id) {
-      loadAdmins();
+      initializeConversation();
       loadUnreadCount();
     }
   }, [profile]);
 
-  const loadAdmins = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, role')
-        .in('role', ['admin', 'secretary'])
-        .eq('is_active', true)
-        .order('first_name');
+  const initializeConversation = async () => {
+    if (!profile?.id) return;
 
-      if (error) throw error;
-      setAdmins(data || []);
-    } catch (error) {
-      console.error('Error loading admins:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger la liste des administrateurs",
-        variant: "destructive"
-      });
-    }
+    // Always initialize conversation with "Administration"
+    // The ChatInterface will handle checking for admins when loading/sending messages
+    // This avoids RLS issues where parents can't see admin profiles
+    setSelectedConversation({
+      userId: 'admin-group', // Special identifier for admin group
+      userName: 'Administration',
+      userRole: 'admin',
+    });
   };
 
   const loadUnreadCount = async () => {
@@ -77,152 +64,73 @@ const ParentMessagesPage = () => {
     }
   };
 
-  const handleStartNewConversation = async () => {
-    if (!selectedAdmin) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner un destinataire",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const admin = admins.find(a => a.id === selectedAdmin);
-    if (admin) {
-      setSelectedConversation({
-        userId: admin.id,
-        userName: `${admin.first_name} ${admin.last_name}`,
-        userRole: admin.role
-      });
-    }
-    
-    setShowNewConversation(false);
-    setSelectedAdmin('');
-  };
-
-  const handleConversationSelect = (userId: string, userName: string, userRole: string, childId?: string) => {
-    setSelectedConversation({ userId, userName, userRole, childId });
-  };
-
   return (
-    <div className="">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-primary text-3xl font-bold tracking-tight">Messages</h1>
-          <p className="text-primary">
+    <div className="w-full">
+      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+        <div className="flex-1">
+          <h1 className="text-primary text-2xl sm:text-3xl font-bold tracking-tight">Messages</h1>
+          <p className="text-primary text-sm sm:text-base mt-1">
             Communiquez avec l'administration de la crèche
           </p>
         </div>
         {unreadCount > 0 && (
-          <Badge variant="destructive" className="text-lg px-3 py-1">
+          <Badge variant="destructive" className="text-sm sm:text-lg px-3 py-1 self-start sm:self-auto">
             {unreadCount} non lu{unreadCount > 1 ? 's' : ''}
           </Badge>
         )}
       </div>
 
-      <Tabs defaultValue="conversations" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="conversations">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Conversations
+      <Tabs defaultValue="broadcast" className="space-y-4 sm:space-y-6">
+        <TabsList className="grid w-full grid-cols-2 h-auto">
+          <TabsTrigger value="broadcast" className="text-xs sm:text-sm py-2 sm:py-2.5">
+            <Megaphone className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden xs:inline">Cahier de liaison</span>
+            <span className="xs:hidden">Cahier</span>
+          </TabsTrigger>
+          <TabsTrigger value="conversations" className="text-xs sm:text-sm py-2 sm:py-2.5">
+            <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden xs:inline">Messagerie école-famille</span>
+            <span className="xs:hidden">Messagerie</span>
             {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-2">
+              <Badge variant="destructive" className="ml-1 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 p-0 flex items-center justify-center text-[10px] sm:text-xs">
                 {unreadCount}
               </Badge>
             )}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="conversations">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Liste des conversations */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Vos conversations</CardTitle>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowNewConversation(!showNewConversation)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <CardDescription>
-                    Cliquez sur une conversation pour l'ouvrir
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {showNewConversation && (
-                    <div className="mb-4 p-4 border rounded-lg space-y-3">
-                      <h4 className="font-semibold text-sm">Nouvelle conversation</h4>
-                      <Select value={selectedAdmin} onValueChange={setSelectedAdmin}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un destinataire" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {admins.map((admin) => (
-                            <SelectItem key={admin.id} value={admin.id}>
-                              {admin.first_name} {admin.last_name} ({admin.role === 'admin' ? 'Admin' : 'Secrétaire'})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1"
-                          onClick={handleStartNewConversation}
-                        >
-                          Démarrer
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setShowNewConversation(false);
-                            setSelectedAdmin('');
-                          }}
-                        >
-                          Annuler
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  <ConversationsList
-                    onSelectConversation={handleConversationSelect}
-                    selectedUserId={selectedConversation?.userId}
-                  />
-                </CardContent>
-              </Card>
-            </div>
+        <TabsContent value="broadcast" className="mt-4 sm:mt-6">
+          <Card className="h-[calc(100vh-280px)] sm:h-[calc(100vh-320px)] md:h-[600px] flex flex-col">
+            <CardContent className="flex-1 p-0 sm:p-4 md:p-6 overflow-hidden">
+              <BroadcastMessages />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {/* Interface de chat */}
-            <div className="lg:col-span-2">
-              {selectedConversation ? (
+        <TabsContent value="conversations" className="mt-4 sm:mt-6">
+          <div className="w-full">
+            {selectedConversation ? (
+              <div className="h-[calc(100vh-280px)] sm:h-[calc(100vh-320px)] md:h-[600px]">
                 <ChatInterface
                   recipientId={selectedConversation.userId}
                   recipientName={selectedConversation.userName}
                   recipientRole={selectedConversation.userRole}
                   childId={selectedConversation.childId}
+                  isAdminGroup={selectedConversation.userId === 'admin-group'}
                   onNewMessage={() => loadUnreadCount()}
                 />
-              ) : (
-                <Card className="h-[600px] flex items-center justify-center">
-                  <CardContent className="text-center">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Aucune conversation sélectionnée</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Sélectionnez une conversation existante ou démarrez-en une nouvelle
-                    </p>
-                    <Button onClick={() => setShowNewConversation(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nouvelle conversation
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+              </div>
+            ) : (
+              <Card className="h-[calc(100vh-280px)] sm:h-[calc(100vh-320px)] md:h-[600px] flex items-center justify-center">
+                <CardContent className="text-center p-4 sm:p-6">
+                  <MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold mb-2">Messagerie école-famille</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    Aucun compte administration n'est disponible pour la messagerie pour le moment.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
       </Tabs>

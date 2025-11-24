@@ -33,9 +33,10 @@ interface Conversation {
 interface ConversationsListProps {
   onSelectConversation: (userId: string, userName: string, userRole: string, childId?: string) => void
   selectedUserId?: string
+  allowedRoles?: string[]
 }
 
-export const ConversationsList = ({ onSelectConversation, selectedUserId }: ConversationsListProps) => {
+export const ConversationsList = ({ onSelectConversation, selectedUserId, allowedRoles }: ConversationsListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
@@ -137,7 +138,11 @@ export const ConversationsList = ({ onSelectConversation, selectedUserId }: Conv
     }
   }
 
-  const filteredConversations = conversations.filter(conv =>
+  const conversationsByRole = allowedRoles
+    ? conversations.filter(conv => allowedRoles.includes(conv.other_user.role))
+    : conversations
+
+  const filteredConversations = conversationsByRole.filter(conv =>
     `${conv.other_user.first_name} ${conv.other_user.last_name}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
