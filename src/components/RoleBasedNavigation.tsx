@@ -130,6 +130,11 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Scanner QR", 
         url: "/admin/dashboard/qr-scanner", 
         icon: QrCode 
+      },
+      {
+        title: "Menus",
+        url: "/admin/dashboard/menus",
+        icon: UtensilsCrossed
       }
     ];
   }
