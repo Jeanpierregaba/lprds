@@ -772,6 +772,85 @@ export type Database = {
           },
         ]
       }
+      periodic_assessments: {
+        Row: {
+          assessment_date: string
+          child_id: string
+          created_at: string
+          domains: Json
+          educator_id: string
+          id: string
+          is_validated: boolean | null
+          period_name: string
+          rejection_reason: string | null
+          school_year: string
+          status: string
+          teacher_comment: string | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_notes: string | null
+        }
+        Insert: {
+          assessment_date?: string
+          child_id: string
+          created_at?: string
+          domains?: Json
+          educator_id: string
+          id?: string
+          is_validated?: boolean | null
+          period_name: string
+          rejection_reason?: string | null
+          school_year: string
+          status?: string
+          teacher_comment?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+        }
+        Update: {
+          assessment_date?: string
+          child_id?: string
+          created_at?: string
+          domains?: Json
+          educator_id?: string
+          id?: string
+          is_validated?: boolean | null
+          period_name?: string
+          rejection_reason?: string | null
+          school_year?: string
+          status?: string
+          teacher_comment?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodic_assessments_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodic_assessments_educator_id_fkey"
+            columns: ["educator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodic_assessments_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
