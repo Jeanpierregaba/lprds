@@ -42,7 +42,7 @@ interface DailyReport {
   hygiene_bath: boolean
   hygiene_bowel_movement: boolean
   hygiene_frequency_notes?: string
-  mood?: string
+  mood?: string | string[]
   special_observations?: string
   photos: any
   is_validated: boolean
@@ -153,7 +153,16 @@ const DailyReportsManagement = () => {
           .maybeSingle()
 
         if (reportError) throw reportError
-        setDailyReport(reportData)
+        // Transform mood to expected type
+        const transformedReport = reportData ? {
+          ...reportData,
+          mood: Array.isArray(reportData.mood) 
+            ? reportData.mood.join(', ') 
+            : typeof reportData.mood === 'string' 
+              ? reportData.mood 
+              : ''
+        } : null
+        setDailyReport(transformedReport as DailyReport | null)
 
         if (reportData) {
           setReportForm({
@@ -168,7 +177,7 @@ const DailyReportsManagement = () => {
             hygiene_bath: reportData.hygiene_bath || false,
             hygiene_bowel_movement: reportData.hygiene_bowel_movement || false,
             hygiene_frequency_notes: reportData.hygiene_frequency_notes || '',
-            mood: reportData.mood || '',
+            mood: Array.isArray(reportData.mood) ? reportData.mood.map(String).join(', ') : (typeof reportData.mood === 'string' ? reportData.mood : ''),
             special_observations: reportData.special_observations || ''
           })
         } else {

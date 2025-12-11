@@ -64,7 +64,7 @@ interface PendingReport {
   hygiene_bath: boolean;
   hygiene_bowel_movement: boolean;
   hygiene_frequency_notes?: string;
-  mood: string;
+  mood: string | string[];
   special_observations?: string;
   photos?: string[];
   created_at: string;
@@ -782,8 +782,8 @@ const ReportValidation: React.FC = () => {
                     <div className="p-4 border rounded-md">
                       <h4 className="font-medium mb-2">Humeur</h4>
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">{getMoodEmoji(selectedReport.mood)}</span>
-                        <span className="capitalize">{selectedReport.mood}</span>
+                        <span className="text-2xl">{getMoodEmoji(Array.isArray(selectedReport.mood) ? selectedReport.mood[0] || '' : selectedReport.mood)}</span>
+                        <span className="capitalize">{Array.isArray(selectedReport.mood) ? selectedReport.mood.join(', ') : selectedReport.mood}</span>
                       </div>
                     </div>
 

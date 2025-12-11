@@ -120,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
               </p>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${supabaseUrl.replace('.supabase.co',)}/admin/dashboard/messages" 
+                <a href="https://lespetitsrayonsdesoleil.lovable.app/parent/dashboard/messages" 
                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
                           color: white; 
                           padding: 12px 30px; 

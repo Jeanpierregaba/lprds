@@ -86,8 +86,13 @@ export const ReportsList = ({
       });
 
       // Map to expected Report type with status field
-      const mappedReports = filteredData.map(report => ({
+      const mappedReports: Report[] = filteredData.map(report => ({
         ...report,
+        mood: Array.isArray(report.mood) 
+          ? report.mood.join(', ') 
+          : typeof report.mood === 'string' 
+            ? report.mood 
+            : undefined,
         status: report.is_validated ? 'validated' as const : 
                 (report.validation_notes && !report.is_validated) ? 'rejected' as const :
                 report.is_draft ? 'draft' as const : 'pending' as const
