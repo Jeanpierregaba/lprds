@@ -355,7 +355,7 @@ export type Database = {
           is_draft: boolean
           is_validated: boolean | null
           lunch_eaten: string | null
-          mood: string[]
+          mood: Json
           nap_duration_minutes: number | null
           nap_taken: boolean | null
           photos: Json | null
@@ -388,7 +388,7 @@ export type Database = {
           is_draft?: boolean
           is_validated?: boolean | null
           lunch_eaten?: string | null
-          mood?: string[]
+          mood?: Json
           nap_duration_minutes?: number | null
           nap_taken?: boolean | null
           photos?: Json | null
@@ -421,7 +421,7 @@ export type Database = {
           is_draft?: boolean
           is_validated?: boolean | null
           lunch_eaten?: string | null
-          mood?: string[]
+          mood?: Json
           nap_duration_minutes?: number | null
           nap_taken?: boolean | null
           photos?: Json | null
@@ -639,6 +639,42 @@ export type Database = {
           },
         ]
       }
+      message_signatures: {
+        Row: {
+          id: string
+          message_id: string
+          parent_id: string
+          signed_at: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          parent_id: string
+          signed_at?: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          parent_id?: string
+          signed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_signatures_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_signatures_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           child_id: string | null
@@ -740,6 +776,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          email: string
           emergency_contact: string | null
           emergency_phone: string | null
           first_name: string
@@ -754,6 +791,7 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          email: string
           emergency_contact?: string | null
           emergency_phone?: string | null
           first_name: string
@@ -768,6 +806,7 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          email?: string
           emergency_contact?: string | null
           emergency_phone?: string | null
           first_name?: string
@@ -816,6 +855,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_active_admin_ids: {
+        Args: never
+        Returns: {
+          id: string
+        }[]
+      }
       get_educator_children: { Args: { user_uuid: string }; Returns: string[] }
       get_parent_children: { Args: { user_uuid: string }; Returns: string[] }
       get_user_role: {
@@ -824,7 +869,6 @@ export type Database = {
       }
       is_admin_or_secretary: { Args: { user_uuid: string }; Returns: boolean }
       is_educator: { Args: { user_uuid: string }; Returns: boolean }
-      get_active_admin_ids: { Args: Record<never, never>; Returns: Array<{ id: string }> }
     }
     Enums: {
       child_section:
