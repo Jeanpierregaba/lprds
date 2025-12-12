@@ -33,8 +33,11 @@ import EducatorAttendancePage from "@/pages/educator/EducatorAttendancePage";
 import EducatorMenuPage from "@/pages/educator/EducatorMenuPage";
 import MenuPlanningPage from "@/pages/admin/MenuPlanningPage";
 import AssessmentsValidationPage from "@/pages/admin/AssessmentsValidationPage";
+import WeeklyReportsValidationPage from "@/pages/admin/WeeklyReportsValidationPage";
 import EducatorAssessmentsPage from "@/pages/educator/EducatorAssessmentsPage";
+import EducatorWeeklyReportsPage from "@/pages/educator/EducatorWeeklyReportsPage";
 import ParentAssessmentsPage from "@/pages/parent/AssessmentsPage";
+import ParentWeeklyReportsPage from "@/pages/parent/WeeklyReportsPage";
 import ForgotPassword from "@/pages/admin/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 
@@ -71,6 +74,7 @@ const App = () => (
               <Route path="gallery" element={<AdminGalleryPage />} />
               <Route path="menus" element={<MenuPlanningPage />} />
               <Route path="assessments" element={<AssessmentsValidationPage />} />
+              <Route path="weekly-reports" element={<WeeklyReportsValidationPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="/educator/dashboard" element={<EducatorDashboardLayout />}>
@@ -78,12 +82,14 @@ const App = () => (
               <Route path="attendance" element={<EducatorAttendancePage />} />
               <Route path="daily-reports" element={<EducatorDailyReportsPage />} />
               <Route path="assessments" element={<EducatorAssessmentsPage />} />
+              <Route path="weekly-reports" element={<EducatorWeeklyReportsPage />} />
               <Route path="menus" element={<EducatorMenuPage />} />
             </Route>
             <Route path="/parent/dashboard">
               <Route index element={<ParentDashboard />} />
               <Route path="menus" element={<ParentMenuPage />} />
               <Route path="assessments" element={<ParentAssessmentsPage />} />
+              <Route path="weekly-reports" element={<ParentWeeklyReportsPage />} />
               <Route path="gallery" element={<ParentGalleryPage />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

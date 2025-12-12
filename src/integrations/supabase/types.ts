@@ -929,6 +929,79 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_reports: {
+        Row: {
+          child_id: string
+          content: string
+          created_at: string
+          educator_id: string
+          id: string
+          is_validated: boolean | null
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_notes: string | null
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          child_id: string
+          content: string
+          created_at?: string
+          educator_id: string
+          id?: string
+          is_validated?: boolean | null
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          child_id?: string
+          content?: string
+          created_at?: string
+          educator_id?: string
+          id?: string
+          is_validated?: boolean | null
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_notes?: string | null
+          week_end_date?: string
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_reports_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_reports_educator_id_fkey"
+            columns: ["educator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_reports_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
