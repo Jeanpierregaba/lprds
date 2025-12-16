@@ -56,7 +56,7 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
 
     // Fonctionnalités communes admin
     adminNav.push(
-      { 
+      {
         title: "Enfants", 
         url: "/admin/dashboard/children", 
         icon: Baby 
