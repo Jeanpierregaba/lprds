@@ -14,7 +14,9 @@ import {
   DollarSign,
   QrCode,
   UtensilsCrossed,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ClipboardCheck,
+  Mail
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -98,6 +100,16 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: UtensilsCrossed 
       },
       { 
+        title: "Bilans Périodiques", 
+        url: "/admin/dashboard/assessments", 
+        icon: ClipboardCheck 
+      },
+      { 
+        title: "Rapports Hebdo", 
+        url: "/admin/dashboard/weekly-reports", 
+        icon: Mail 
+      },
+      { 
         title: "Galerie", 
         url: "/admin/dashboard/gallery", 
         icon: ImageIcon 
@@ -159,6 +171,16 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: FileText 
       },
       { 
+        title: "Bilans Périodiques", 
+        url: "/educator/dashboard/assessments", 
+        icon: ClipboardCheck 
+      },
+      { 
+        title: "Rapports Hebdo", 
+        url: "/educator/dashboard/weekly-reports", 
+        icon: Mail 
+      },
+      { 
         title: "Menus", 
         url: "/educator/dashboard/menus", 
         icon: UtensilsCrossed 
@@ -184,6 +206,16 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         title: "Suivi Quotidien", 
         url: "/parent/dashboard/daily-reports", 
         icon: FileText 
+      },
+      { 
+        title: "Bilans Périodiques", 
+        url: "/parent/dashboard/assessments", 
+        icon: ClipboardCheck 
+      },
+      { 
+        title: "Rapports Hebdo", 
+        url: "/parent/dashboard/weekly-reports", 
+        icon: Mail 
       },
       { 
         title: "Activités", 
