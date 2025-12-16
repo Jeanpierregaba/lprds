@@ -88,7 +88,7 @@ const getCurrentSchoolYear = () => {
 };
 
 const EducatorAssessmentsPage = () => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   
   const [children, setChildren] = useState<Child[]>([]);
@@ -107,33 +107,104 @@ const EducatorAssessmentsPage = () => {
   );
   const [teacherComment, setTeacherComment] = useState('');
   const [saving, setSaving] = useState(false);
+  const [educatorProfileId, setEducatorProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.id) {
-      fetchChildren();
-      fetchAssessments();
+      console.log('Profile available, ID:', profile.id);
+      setEducatorProfileId(profile.id);
+      initializeEducatorData();
     }
   }, [profile]);
 
-  const fetchChildren = async () => {
+  const initializeEducatorData = async () => {
     try {
-      // Get children assigned to this educator
-      const { data, error } = await supabase
+      if (!profile?.id) {
+        console.warn('No profile ID available');
+        return;
+      }
+
+      console.log('Initializing educator data, profile ID:', profile.id);
+      await Promise.all([
+        fetchChildren(profile.id),
+        fetchAssessments(profile.id)
+      ]);
+    } catch (error) {
+      console.error('Error initializing educator data for assessments:', error);
+    }
+  };
+
+  const fetchChildren = async (educatorId?: string) => {
+    try {
+      const effectiveEducatorId = educatorId || educatorProfileId;
+      if (!effectiveEducatorId) {
+        console.log('No educator ID available');
+        return;
+      }
+
+      console.log('Fetching children for educator ID:', effectiveEducatorId);
+
+      // First, try to get children directly assigned to this educator
+      const { data: directChildren, error: directError } = await supabase
         .from('children')
         .select('id, first_name, last_name, photo_url, section')
-        .eq('assigned_educator_id', profile?.id)
+        .eq('assigned_educator_id', effectiveEducatorId)
         .eq('status', 'active')
         .order('first_name');
 
-      if (error) throw error;
-      setChildren(data || []);
+      if (directError) {
+        console.error('Error fetching directly assigned children:', directError);
+      }
+
+      // Also get children via groups (educator assigned to group, children in that group)
+      const { data: groupData, error: groupError } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('assigned_educator_id', effectiveEducatorId)
+        .maybeSingle();
+
+      let groupChildren: any[] = [];
+      if (!groupError && groupData?.id) {
+        const { data: childrenInGroup, error: childrenError } = await supabase
+          .from('children')
+          .select('id, first_name, last_name, photo_url, section')
+          .eq('group_id', groupData.id)
+          .eq('status', 'active')
+          .order('first_name');
+
+        if (childrenError) {
+          console.error('Error fetching children from group:', childrenError);
+        } else {
+          groupChildren = childrenInGroup || [];
+        }
+      }
+
+      // Combine both lists and remove duplicates
+      const allChildren = [
+        ...(directChildren || []),
+        ...groupChildren
+      ];
+
+      // Remove duplicates based on id
+      const uniqueChildren = allChildren.filter((child, index, self) =>
+        index === self.findIndex((c) => c.id === child.id)
+      );
+
+      console.log('Direct children:', directChildren?.length || 0);
+      console.log('Group children:', groupChildren.length);
+      console.log('Total unique children:', uniqueChildren.length);
+
+      setChildren(uniqueChildren);
     } catch (error) {
       console.error('Error fetching children:', error);
     }
   };
 
-  const fetchAssessments = async () => {
+  const fetchAssessments = async (educatorId?: string) => {
     try {
+      const effectiveEducatorId = educatorId || educatorProfileId;
+      if (!effectiveEducatorId) return;
+
       setLoading(true);
       const { data, error } = await supabase
         .from('periodic_assessments')
@@ -141,7 +212,7 @@ const EducatorAssessmentsPage = () => {
           *,
           child:children(id, first_name, last_name, photo_url, section)
         `)
-        .eq('educator_id', profile?.id)
+        .eq('educator_id', effectiveEducatorId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -205,9 +276,18 @@ const EducatorAssessmentsPage = () => {
 
     setSaving(true);
     try {
+      if (!educatorProfileId) {
+        toast({
+          title: 'Erreur',
+          description: 'Profil éducatrice introuvable',
+          variant: 'destructive'
+        });
+        return;
+      }
+
       const assessmentData = {
         child_id: selectedChildId,
-        educator_id: profile?.id,
+        educator_id: educatorProfileId,
         period_name: periodName,
         school_year: schoolYear,
         domains: domains as unknown as any,
@@ -401,7 +481,15 @@ const EducatorAssessmentsPage = () => {
       </Tabs>
 
       {/* Form Dialog */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (open) {
+            fetchChildren();
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
@@ -422,14 +510,25 @@ const EducatorAssessmentsPage = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un enfant" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {children.map((child) => (
-                        <SelectItem key={child.id} value={child.id}>
-                          {child.first_name} {child.last_name}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="z-[100]">
+                      {children.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          Aucun enfant assigné
+                        </div>
+                      ) : (
+                        children.map((child) => (
+                          <SelectItem key={child.id} value={child.id}>
+                            {child.first_name} {child.last_name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+                  {children.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {children.length} enfant(s) assigné(s)
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
