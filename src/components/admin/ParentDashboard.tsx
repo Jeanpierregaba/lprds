@@ -17,6 +17,8 @@ const ParentMessagesPage = lazy(() => import('@/pages/parent/MessagesPage'));
 const ParentAttendancePage = lazy(() => import('@/pages/parent/ParentAttendancePage'));
 const ParentMenuPage = lazy(() => import('@/pages/parent/MenuPage'));
 const ParentGalleryPage = lazy(() => import('@/pages/parent/ParentGalleryPage'));
+const ParentAssessmentsPage = lazy(() => import('@/pages/parent/AssessmentsPage'));
+const ParentWeeklyReportsPage = lazy(() => import('@/pages/parent/WeeklyReportsPage'));
 const RecentActivitiesAndAnnouncements = lazy(() => import('@/components/parent/RecentActivitiesAndAnnouncements'));
 
 interface ParentStats {
@@ -326,6 +328,20 @@ const ParentDashboard = () => {
               {activeView === 'messages' && (
                 <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
                   <ParentMessagesPage />
+                </Suspense>
+              )}
+
+              {/* Bilans Périodiques */}
+              {activeView === 'assessments' && (
+                <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
+                  <ParentAssessmentsPage />
+                </Suspense>
+              )}
+
+              {/* Rapports Hebdomadaires */}
+              {activeView === 'weekly-reports' && (
+                <Suspense fallback={<div className="text-center py-8">Chargement...</div>}>
+                  <ParentWeeklyReportsPage />
                 </Suspense>
               )}
             </main>

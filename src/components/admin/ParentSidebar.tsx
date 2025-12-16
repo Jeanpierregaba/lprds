@@ -1,4 +1,4 @@
-import { Calendar, Baby, MessageSquare, FileText, LayoutDashboard, LogOut, UtensilsCrossed, Image as ImageIcon } from 'lucide-react';
+import { Calendar, Baby, MessageSquare, FileText, LayoutDashboard, LogOut, UtensilsCrossed, Image as ImageIcon, ClipboardCheck, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,10 @@ const parentSections = [
   { key: 'overview', icon: LayoutDashboard, label: "Vue d'ensemble" },
   { key: 'children', icon: Baby, label: 'Mes Enfants' },
   { key: 'attendance', icon: Calendar, label: 'Présences' },
-  //{ key: 'gallery', icon: ImageIcon, label: 'Galerie' },
   { key: 'menus', icon: UtensilsCrossed, label: 'Menus' },
-  { key: 'reports', icon: FileText, label: 'Rapports' },
+  { key: 'reports', icon: FileText, label: 'Suivi Quotidien' },
+  { key: 'assessments', icon: ClipboardCheck, label: 'Bilans Périodiques' },
+  { key: 'weekly-reports', icon: Mail, label: 'Rapports Hebdo' },
   { key: 'messages', icon: MessageSquare, label: 'Messages' },
 ];
 
