@@ -111,7 +111,6 @@ const EducatorAssessmentsPage = () => {
 
   useEffect(() => {
     if (profile?.id) {
-      console.log('Profile available, ID:', profile.id);
       setEducatorProfileId(profile.id);
       initializeEducatorData();
     }
@@ -120,11 +119,9 @@ const EducatorAssessmentsPage = () => {
   const initializeEducatorData = async () => {
     try {
       if (!profile?.id) {
-        console.warn('No profile ID available');
         return;
       }
 
-      console.log('Initializing educator data, profile ID:', profile.id);
       await Promise.all([
         fetchChildren(profile.id),
         fetchAssessments(profile.id)
@@ -138,11 +135,8 @@ const EducatorAssessmentsPage = () => {
     try {
       const effectiveEducatorId = educatorId || educatorProfileId;
       if (!effectiveEducatorId) {
-        console.log('No educator ID available');
         return;
       }
-
-      console.log('Fetching children for educator ID:', effectiveEducatorId);
 
       // First, try to get children directly assigned to this educator
       const { data: directChildren, error: directError } = await supabase
@@ -189,10 +183,6 @@ const EducatorAssessmentsPage = () => {
       const uniqueChildren = allChildren.filter((child, index, self) =>
         index === self.findIndex((c) => c.id === child.id)
       );
-
-      console.log('Direct children:', directChildren?.length || 0);
-      console.log('Group children:', groupChildren.length);
-      console.log('Total unique children:', uniqueChildren.length);
 
       setChildren(uniqueChildren);
     } catch (error) {
