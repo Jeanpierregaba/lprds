@@ -138,49 +138,40 @@ const EducatorAssessmentsPage = () => {
         return;
       }
 
-      // First, try to get children directly assigned to this educator
-      const { data: directChildren, error: directError } = await supabase
-        .from('children')
-        .select('id, first_name, last_name, photo_url, section')
-        .eq('assigned_educator_id', effectiveEducatorId)
-        .eq('status', 'active')
-        .order('first_name');
-
-      if (directError) {
-        console.error('Error fetching directly assigned children:', directError);
-      }
-
-      // Also get children via groups (educator assigned to group, children in that group)
-      const { data: groupData, error: groupError } = await supabase
+      // Get all group ids for this educator
+      const { data: groupsData, error: groupsError } = await supabase
         .from('groups')
         .select('id')
-        .eq('assigned_educator_id', effectiveEducatorId)
-        .maybeSingle();
+        .eq('assigned_educator_id', effectiveEducatorId);
 
-      let groupChildren: any[] = [];
-      if (!groupError && groupData?.id) {
-        const { data: childrenInGroup, error: childrenError } = await supabase
-          .from('children')
-          .select('id, first_name, last_name, photo_url, section')
-          .eq('group_id', groupData.id)
-          .eq('status', 'active')
-          .order('first_name');
-
-        if (childrenError) {
-          console.error('Error fetching children from group:', childrenError);
-        } else {
-          groupChildren = childrenInGroup || [];
-        }
+      if (groupsError) {
+        console.error('Error fetching groups for educator:', groupsError);
       }
 
-      // Combine both lists and remove duplicates
-      const allChildren = [
-        ...(directChildren || []),
-        ...groupChildren
+      const groupIds = (groupsData || []).map(g => g.id).filter(Boolean);
+
+      // Build OR filter for children: direct assignment OR group assignment
+      const orFilters = [
+        `assigned_educator_id.eq.${effectiveEducatorId}`,
       ];
+      if (groupIds.length > 0) {
+        orFilters.push(`group_id.in.(${groupIds.join(',')})`);
+      }
+
+      const { data: childrenData, error: childrenError } = await supabase
+        .from('children')
+        .select('id, first_name, last_name, photo_url, section')
+        .eq('status', 'active')
+        .or(orFilters.join(','))
+        .order('first_name');
+
+      if (childrenError) {
+        console.error('Error fetching children:', childrenError);
+        return;
+      }
 
       // Remove duplicates based on id
-      const uniqueChildren = allChildren.filter((child, index, self) =>
+      const uniqueChildren = (childrenData || []).filter((child, index, self) =>
         index === self.findIndex((c) => c.id === child.id)
       );
 

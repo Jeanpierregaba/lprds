@@ -204,20 +204,30 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         .select('id, first_name, last_name, photo_url, section')
         .eq('status', 'active');
 
-      // Si éducateur et restriction activée, limiter aux enfants de son groupe
+      // Si éducateur et restriction activée, limiter aux enfants directement assignés
+      // ou via les groupes qui lui sont assignés
       if (profile?.role === 'educator' && restrictToAssigned) {
-        const { data: educatorGroup, error: groupError } = await supabase
+        const { data: educatorGroups, error: groupError } = await supabase
           .from('groups')
           .select('id')
-          .eq('assigned_educator_id', profile.id)
-          .single();
+          .eq('assigned_educator_id', profile.id);
 
-        if (groupError || !educatorGroup) {
+        if (groupError) {
+          console.error('Erreur chargement groupes éducateur:', groupError);
           setAvailableChildren([]);
           return;
         }
 
-        query = query.eq('group_id', educatorGroup.id);
+        const groupIds = (educatorGroups || []).map(g => g.id).filter(Boolean);
+
+        if (groupIds.length === 0) {
+          query = query.eq('assigned_educator_id', profile.id);
+        } else {
+          query = query.or([
+            `assigned_educator_id.eq.${profile.id}`,
+            `group_id.in.(${groupIds.join(',')})`
+          ].join(','));
+        }
       }
 
       const { data, error } = await query.order('first_name');
@@ -237,11 +247,35 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
   const loadChild = async (id: string) => {
     try {
-      const { data, error } = await supabase
+      let childQuery = supabase
         .from('children')
-        .select('id, first_name, last_name, photo_url, section')
-        .eq('id', id)
-        .single();
+        .select('id, first_name, last_name, photo_url, section, group_id')
+        .eq('id', id);
+
+      if (profile?.role === 'educator' && restrictToAssigned) {
+        const { data: educatorGroups, error: groupError } = await supabase
+          .from('groups')
+          .select('id')
+          .eq('assigned_educator_id', profile.id);
+
+        if (groupError) {
+          console.error('Erreur chargement groupes éducateur:', groupError);
+          return;
+        }
+
+        const groupIds = (educatorGroups || []).map(g => g.id).filter(Boolean);
+
+        if (groupIds.length === 0) {
+          childQuery = childQuery.eq('assigned_educator_id', profile.id);
+        } else {
+          childQuery = childQuery.or([
+            `assigned_educator_id.eq.${profile.id}`,
+            `group_id.in.(${groupIds.join(',')})`
+          ].join(','));
+        }
+      }
+
+      const { data, error } = await childQuery.single();
 
       if (error) throw error;
       setChild(data);

@@ -81,11 +81,27 @@ export default function EducatorWeeklyReportsPage() {
       .single();
 
     if (profile) {
+      const { data: groups, error: groupsError } = await supabase
+        .from("groups")
+        .select("id")
+        .eq("assigned_educator_id", profile.id);
+
+      if (groupsError) {
+        console.error("Error fetching educator groups:", groupsError);
+      }
+
+      const groupIds = (groups || []).map((g) => g.id).filter(Boolean);
+
+      const orFilters = [`assigned_educator_id.eq.${profile.id}`];
+      if (groupIds.length > 0) {
+        orFilters.push(`group_id.in.(${groupIds.join(",")})`);
+      }
+
       const { data } = await supabase
         .from("children")
         .select("id, first_name, last_name")
-        .eq("assigned_educator_id", profile.id)
         .eq("status", "active")
+        .or(orFilters.join(","))
         .order("first_name");
       
       if (data) setChildren(data);

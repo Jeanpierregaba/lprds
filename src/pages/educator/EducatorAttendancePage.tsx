@@ -79,14 +79,17 @@ const EducatorAttendancePage = () => {
     try {
       setLoading(true)
 
-      // Identify educator's group
-      const { data: group, error: groupError } = await supabase
+      // Identify all educator's groups
+      const { data: groups, error: groupsError } = await supabase
         .from('groups')
         .select('id')
         .eq('assigned_educator_id', profile.id)
-        .single()
 
-      if (groupError || !group) {
+      if (groupsError) throw groupsError
+
+      const groupIds = (groups || []).map(g => g.id).filter(Boolean)
+
+      if (groupIds.length === 0) {
         setAttendanceData([])
         setStats({ total: 0, present: 0, absent: 0, late: 0 })
         return
@@ -98,7 +101,7 @@ const EducatorAttendancePage = () => {
           .from('children')
           .select('*')
           .eq('status', 'active')
-          .eq('group_id', group.id)
+          .in('group_id', groupIds)
           .order('first_name'),
         supabase
           .from('daily_attendance')
