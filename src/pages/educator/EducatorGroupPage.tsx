@@ -39,7 +39,8 @@ interface Group {
 
 const EducatorGroupPage = () => {
   const [children, setChildren] = useState<Child[]>([])
-  const [group, setGroup] = useState<Group | null>(null)
+  const [groups, setGroups] = useState<Group[]>([])
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const { profile } = useAuth()
@@ -52,13 +53,13 @@ const EducatorGroupPage = () => {
     try {
       setLoading(true)
 
-      // Fetch group and children in parallel
+      // Fetch groups and children in parallel
       const [groupRes, childrenRes] = await Promise.all([
         supabase
           .from('groups')
           .select('*')
           .eq('assigned_educator_id', profile.id)
-          .single(),
+          .order('name'),
         supabase
           .from('children')
           .select('*')
@@ -66,28 +67,33 @@ const EducatorGroupPage = () => {
           .order('first_name')
       ])
 
-      if (groupRes.error) {
-        if (groupRes.error.code === 'PGRST116') {
-          toast({
-            variant: 'default',
-            title: 'Information',
-            description: 'Aucun groupe ne vous est assigné pour le moment.'
-          })
-        } else {
-          throw groupRes.error
-        }
-        setGroup(null)
+      if (groupRes.error) throw groupRes.error
+
+      const educatorGroups = groupRes.data || []
+      setGroups(educatorGroups)
+
+      if (educatorGroups.length === 0) {
+        toast({
+          variant: 'default',
+          title: 'Information',
+          description: 'Aucun groupe ne vous est assigné pour le moment.'
+        })
         setChildren([])
+        setSelectedGroupId(null)
         return
       }
 
-      setGroup(groupRes.data)
+      // Select first group by default if none selected
+      const initialGroupId = selectedGroupId && educatorGroups.some(g => g.id === selectedGroupId)
+        ? selectedGroupId
+        : educatorGroups[0].id
+      setSelectedGroupId(initialGroupId)
 
-      // Filter children by group
+      // Filter children by selected group
       const groupChildren = (childrenRes.data || []).filter(
-        child => child.group_id === groupRes.data.id
+        child => child.group_id === initialGroupId
       )
-      
+
       setChildren(groupChildren)
     } catch (error) {
       console.error('Error loading group and children:', error)
@@ -99,7 +105,7 @@ const EducatorGroupPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [profile, toast])
+  }, [profile, toast, selectedGroupId])
 
   useEffect(() => {
     loadGroupAndChildren()
@@ -116,7 +122,21 @@ const EducatorGroupPage = () => {
   }, [children, searchTerm])
 
   // Statistiques mémorisées
+  const currentGroup = useMemo(
+    () => groups.find(g => g.id === selectedGroupId) || null,
+    [groups, selectedGroupId]
+  )
+
   const stats = useMemo(() => {
+    if (!currentGroup) {
+      return {
+        totalChildren: 0,
+        withAllergies: 0,
+        withMedicalInfo: 0,
+        withSpecialNeeds: 0,
+        occupancyRate: 0
+      }
+    }
     const totalChildren = children.length
     const withAllergies = children.filter(c => c.allergies).length
     const withMedicalInfo = children.filter(c => c.medical_info).length
@@ -127,9 +147,9 @@ const EducatorGroupPage = () => {
       withAllergies,
       withMedicalInfo,
       withSpecialNeeds,
-      occupancyRate: group ? Math.round((totalChildren / group.capacity) * 100) : 0
+      occupancyRate: currentGroup.capacity ? Math.round((totalChildren / currentGroup.capacity) * 100) : 0
     }
-  }, [children, group])
+  }, [children, currentGroup])
 
   const getSectionLabel = (section: string) => {
     const labels: Record<string, string> = {
@@ -161,7 +181,7 @@ const EducatorGroupPage = () => {
     )
   }
 
-  if (!group) {
+  if (!currentGroup) {
     return (
       <div className="p-4 sm:p-6">
         <Alert>
@@ -177,18 +197,37 @@ const EducatorGroupPage = () => {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* En-tête */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">{group.name}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="text-sm">
-            {getSectionLabel(group.section)}
-          </Badge>
-          <span className="text-sm text-muted-foreground">
-            {stats.totalChildren} / {group.capacity} enfants
-          </span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">{currentGroup.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" className="text-sm">
+              {getSectionLabel(currentGroup.section)}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {stats.totalChildren} / {currentGroup.capacity} enfants
+            </span>
+          </div>
+          {currentGroup.description && (
+            <p className="text-muted-foreground mt-2">{currentGroup.description}</p>
+          )}
         </div>
-        {group.description && (
-          <p className="text-muted-foreground mt-2">{group.description}</p>
+        {groups.length > 1 && (
+          <div className="w-full sm:w-64">
+            <Label className="text-sm font-medium">Vos groupes</Label>
+            <Select value={selectedGroupId || ''} onValueChange={(v) => setSelectedGroupId(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner un groupe" />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name} ({getSectionLabel(g.section)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
 
