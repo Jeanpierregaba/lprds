@@ -679,7 +679,7 @@ function CreateGroupForm({ educators, onSuccess }: {
     section: '' as 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS' | '',
     type: 'mixed_group' as 'age_group' | 'mixed_group' | 'class',
     capacity: 15,
-    assigned_educator_id: '',
+    assigned_educator_id: 'none',
     age_min_months: '',
     age_max_months: '',
   });
@@ -710,7 +710,7 @@ function CreateGroupForm({ educators, onSuccess }: {
           capacity: formData.capacity,
           age_min_months: formData.age_min_months ? parseInt(formData.age_min_months) : null,
           age_max_months: formData.age_max_months ? parseInt(formData.age_max_months) : null,
-          assigned_educator_id: formData.assigned_educator_id || null,
+          assigned_educator_id: formData.assigned_educator_id === 'none' ? null : formData.assigned_educator_id,
         }]);
 
       if (error) throw error;
@@ -806,6 +806,7 @@ function CreateGroupForm({ educators, onSuccess }: {
             <SelectValue placeholder="Sélectionner un éducateur" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="none">Aucun éducateur</SelectItem>
             {educators.map((educator) => (
               <SelectItem key={educator.id} value={educator.id}>
                 {educator.first_name} {educator.last_name}
@@ -1156,7 +1157,7 @@ function EditGroupForm({ group, educators, onSuccess }: {
     name: group.name || '',
     description: group.description || '',
     capacity: group.capacity || 15,
-    assigned_educator_id: group.assigned_educator_id || '',
+    assigned_educator_id: group.assigned_educator_id || 'none',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1169,7 +1170,7 @@ function EditGroupForm({ group, educators, onSuccess }: {
           name: formData.name,
           description: formData.description,
           capacity: formData.capacity,
-          assigned_educator_id: formData.assigned_educator_id || null,
+          assigned_educator_id: formData.assigned_educator_id === 'none' ? null : formData.assigned_educator_id,
         })
         .eq('id', group.id);
 
@@ -1243,7 +1244,7 @@ function EditGroupForm({ group, educators, onSuccess }: {
             <SelectValue placeholder="Sélectionner un éducateur" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Aucun éducateur</SelectItem>
+            <SelectItem value="none">Aucun éducateur</SelectItem>
             {educators.map((educator) => (
               <SelectItem key={educator.id} value={educator.id}>
                 {educator.first_name} {educator.last_name}
