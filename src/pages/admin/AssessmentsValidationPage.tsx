@@ -516,20 +516,39 @@ const AssessmentsValidationPage = () => {
 
               {/* Domains Table */}
               <div className="border rounded-lg overflow-hidden">
-                <div className="grid grid-cols-[1fr,auto,2fr] bg-muted/50 font-semibold text-sm">
-                  <div className="p-3 border-r">Domaines</div>
-                  <div className="p-3 border-r text-center">Notation</div>
-                  <div className="p-3">Commentaires</div>
-                </div>
-                {selectedAssessment?.domains.map((domain, index) => (
-                  <div key={index} className="grid grid-cols-[1fr,auto,2fr] border-t">
-                    <div className="p-3 border-r text-sm">{domain.domain}</div>
-                    <div className="p-3 border-r flex items-center justify-center">
-                      {getRatingDisplay(domain.rating)}
-                    </div>
-                    <div className="p-3 text-sm text-muted-foreground">{domain.comment || '-'}</div>
-                  </div>
-                ))}
+                <table className="w-full border-collapse table-fixed">
+                  <colgroup>
+                    <col className="w-[35%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[45%]" />
+                  </colgroup>
+                  <thead>
+                    <tr className="bg-muted/50 font-semibold text-sm">
+                      <th className="p-4 border-r border-b text-left h-14">Domaines</th>
+                      <th className="p-4 border-r border-b text-center h-14">Notation</th>
+                      <th className="p-4 border-b text-left h-14">Commentaires</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedAssessment?.domains.map((domain, index) => (
+                      <tr key={index} className="border-b last:border-b-0">
+                        <td className="p-4 border-r align-top min-h-[80px]">
+                          <div className="text-sm">{domain.domain}</div>
+                        </td>
+                        <td className="p-4 border-r align-middle text-center min-h-[80px]">
+                          <div className="flex items-center justify-center">
+                            {getRatingDisplay(domain.rating)}
+                          </div>
+                        </td>
+                        <td className="p-4 align-top min-h-[80px]">
+                          <div className="text-sm text-muted-foreground break-words whitespace-pre-wrap">
+                            {domain.comment || '-'}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {/* Teacher Comment */}
