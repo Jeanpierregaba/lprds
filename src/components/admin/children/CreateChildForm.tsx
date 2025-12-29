@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,8 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('child');
   const [loading, setLoading] = useState(false);
+  const [educators, setEducators] = useState<any[]>([]);
+  const [selectedEducators, setSelectedEducators] = useState<string[]>([]);
 
   // Informations personnelles
   const [personalInfo, setPersonalInfo] = useState({
@@ -136,6 +138,23 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
     updated[index] = { ...updated[index], [field]: value };
     setAuthorizedPersons(updated);
   };
+
+  useEffect(() => {
+    const loadEducators = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('role', 'educator')
+          .order('first_name');
+        if (error) throw error;
+        setEducators(data || []);
+      } catch (error) {
+        console.error('Erreur chargement éducateurs:', error);
+      }
+    };
+    loadEducators();
+  }, []);
 
   // Génération d'un code unique (A-Z0-9, 5 caractères)
   const generateRandomToken = () => {
@@ -333,6 +352,20 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
         }
       }
 
+      // Lier les éducateurs sélectionnés (relation many-to-many)
+      if (selectedEducators.length > 0) {
+        const links = selectedEducators.map(eid => ({
+          child_id: childRecord.id,
+          educator_id: eid
+        }));
+        const { error: linkError } = await supabase
+          .from('child_educators')
+          .insert(links);
+        if (linkError) {
+          console.error('Error linking educators:', linkError);
+        }
+      }
+
       toast({
         title: "Succès",
         description: "Profil enfant créé avec succès",
@@ -369,7 +402,7 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="child" className="flex items-center gap-1">
             <User className="w-4 h-4" />
             Enfant
@@ -381,6 +414,10 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
           <TabsTrigger value="authorized" className="flex items-center gap-1">
             <Users className="w-4 h-4" />
             Personnes autorisées
+          </TabsTrigger>
+          <TabsTrigger value="educators" className="flex items-center gap-1">
+            <Users className="w-4 h-4" />
+            Éducateurs
           </TabsTrigger>
           <TabsTrigger value="summary" className="flex items-center gap-1">
             <FileText className="w-4 h-4" />
@@ -421,6 +458,45 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
             removeEmergencyContact={removeAuthorizedPerson}
             updateEmergencyContact={updateAuthorizedPerson}
           />
+        </TabsContent>
+
+        <TabsContent value="educators" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Éducateurs assignés (multi)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {educators.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun éducateur disponible.</p>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {educators.map((edu) => {
+                    const checked = selectedEducators.includes(edu.id);
+                    return (
+                      <label
+                        key={edu.id}
+                        className="flex items-center gap-2 p-2 border rounded-md cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            setSelectedEducators((prev) =>
+                              v
+                                ? [...prev, edu.id]
+                                : prev.filter((id) => id !== edu.id)
+                            );
+                          }}
+                        />
+                        <span className="text-sm">
+                          {edu.first_name} {edu.last_name}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="summary" className="space-y-6">

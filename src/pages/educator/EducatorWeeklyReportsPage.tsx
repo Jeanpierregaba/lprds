@@ -97,6 +97,16 @@ export default function EducatorWeeklyReportsPage() {
         orFilters.push(`group_id.in.(${groupIds.join(",")})`);
       }
 
+      // children via child_educators
+      const { data: links, error: linksError } = await supabase
+        .from("child_educators")
+        .select("child_id")
+        .eq("educator_id", profile.id);
+      if (linksError) {
+        console.error("Error fetching child_educators:", linksError);
+      }
+      const linkIds = (links || []).map((l: any) => l.child_id);
+
       const { data } = await supabase
         .from("children")
         .select("id, first_name, last_name")
@@ -104,7 +114,23 @@ export default function EducatorWeeklyReportsPage() {
         .or(orFilters.join(","))
         .order("first_name");
       
-      if (data) setChildren(data);
+      let allChildren = data || [];
+      if (linkIds.length > 0) {
+        const { data: extra, error: extraError } = await supabase
+          .from("children")
+          .select("id, first_name, last_name")
+          .eq("status", "active")
+          .in("id", linkIds);
+        if (extraError) {
+          console.error("Error fetching linked children:", extraError);
+        } else {
+          allChildren = [...allChildren, ...(extra || [])];
+        }
+      }
+
+      // dedupe
+      const unique = allChildren.filter((c, i, self) => i === self.findIndex(cc => cc.id === c.id));
+      setChildren(unique);
     }
     setLoading(false);
   };

@@ -150,10 +150,8 @@ const EducatorAssessmentsPage = () => {
 
       const groupIds = (groupsData || []).map(g => g.id).filter(Boolean);
 
-      // Build OR filter for children: direct assignment OR group assignment
-      const orFilters = [
-        `assigned_educator_id.eq.${effectiveEducatorId}`,
-      ];
+      // Direct/group children
+      const orFilters = [`assigned_educator_id.eq.${effectiveEducatorId}`];
       if (groupIds.length > 0) {
         orFilters.push(`group_id.in.(${groupIds.join(',')})`);
       }
@@ -170,8 +168,33 @@ const EducatorAssessmentsPage = () => {
         return;
       }
 
+      // Children via child_educators
+      const { data: linkData, error: linkError } = await supabase
+        .from('child_educators')
+        .select('child_id')
+        .eq('educator_id', effectiveEducatorId);
+      if (linkError) {
+        console.error('Error fetching child_educators:', linkError);
+      }
+      const childIds = (linkData || []).map((l: any) => l.child_id);
+
+      let extraChildren: any[] = [];
+      if (childIds.length > 0) {
+        const { data: extraData, error: extraError } = await supabase
+          .from('children')
+          .select('id, first_name, last_name, photo_url, section')
+          .eq('status', 'active')
+          .in('id', childIds)
+          .order('first_name');
+        if (extraError) {
+          console.error('Error fetching linked children:', extraError);
+        } else {
+          extraChildren = extraData || [];
+        }
+      }
+
       // Remove duplicates based on id
-      const uniqueChildren = (childrenData || []).filter((child, index, self) =>
+      const uniqueChildren = ([...(childrenData || []), ...extraChildren]).filter((child, index, self) =>
         index === self.findIndex((c) => c.id === child.id)
       );
 

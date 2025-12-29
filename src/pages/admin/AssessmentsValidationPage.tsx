@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   FileText, 
@@ -18,7 +20,11 @@ import {
   Cloud,
   Eye,
   User,
-  Calendar
+  Calendar,
+  Edit,
+  Save,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -69,6 +75,26 @@ const RATING_OPTIONS = [
   { value: 'a_consolider', label: 'À consolider', icon: Cloud, color: 'text-blue-400', bg: 'bg-blue-100' }
 ];
 
+const DEFAULT_DOMAINS = [
+  'Développement et structuration du langage oral et écrit',
+  'Agir, s\'exprimer, comprendre à travers les activités physiques',
+  'Agir, s\'exprimer, comprendre à travers les activités artistiques',
+  'L\'acquisition des premiers outils mathématiques',
+  'Explorer le monde',
+  'Anglais'
+];
+
+const getCurrentSchoolYear = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  // School year starts in September
+  if (month >= 8) { // September or later
+    return `${year}-${year + 1}`;
+  }
+  return `${year - 1}-${year}`;
+};
+
 const AssessmentsValidationPage = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -80,9 +106,21 @@ const AssessmentsValidationPage = () => {
   const [selectedTab, setSelectedTab] = useState('pending');
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  
+  // Edit form state
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState('');
+  const [periodName, setPeriodName] = useState('Période 1');
+  const [schoolYear, setSchoolYear] = useState(getCurrentSchoolYear());
+  const [domains, setDomains] = useState<AssessmentDomain[]>([]);
+  const [teacherComment, setTeacherComment] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchAssessments();
+    fetchChildren();
   }, []);
 
   const fetchAssessments = async () => {
@@ -115,6 +153,21 @@ const AssessmentsValidationPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChildren = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('children')
+        .select('id, first_name, last_name, photo_url, section')
+        .eq('status', 'active')
+        .order('first_name');
+
+      if (error) throw error;
+      setChildren(data || []);
+    } catch (error) {
+      console.error('Error fetching children:', error);
     }
   };
 
@@ -194,6 +247,102 @@ const AssessmentsValidationPage = () => {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleEdit = (assessment: Assessment) => {
+    setEditingAssessment(assessment);
+    setSelectedChildId(assessment.child_id);
+    setPeriodName(assessment.period_name);
+    setSchoolYear(assessment.school_year);
+    setDomains(assessment.domains.length > 0 ? assessment.domains : DEFAULT_DOMAINS.map(d => ({ domain: d, rating: 'acquis' as const, comment: '' })));
+    setTeacherComment(assessment.teacher_comment || '');
+    setShowEditForm(true);
+    setShowDetails(false);
+  };
+
+  const handleAddDomain = () => {
+    setDomains([...domains, { domain: '', rating: 'acquis', comment: '' }]);
+  };
+
+  const handleRemoveDomain = (index: number) => {
+    if (domains.length > 1) {
+      setDomains(domains.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleDomainChange = (index: number, field: keyof AssessmentDomain, value: string) => {
+    const updated = [...domains];
+    updated[index] = { ...updated[index], [field]: value };
+    setDomains(updated);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedChildId) {
+      toast({
+        title: 'Erreur',
+        description: 'Veuillez sélectionner un enfant',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (domains.some(d => !d.domain.trim())) {
+      toast({
+        title: 'Erreur',
+        description: 'Tous les domaines doivent avoir un nom',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!editingAssessment) return;
+
+    setSaving(true);
+    try {
+      const assessmentData = {
+        child_id: selectedChildId,
+        period_name: periodName,
+        school_year: schoolYear,
+        domains: domains as unknown as any,
+        teacher_comment: teacherComment,
+        assessment_date: editingAssessment.assessment_date || format(new Date(), 'yyyy-MM-dd')
+      };
+
+      const { error } = await supabase
+        .from('periodic_assessments')
+        .update(assessmentData)
+        .eq('id', editingAssessment.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Bilan modifié avec succès'
+      });
+
+      setShowEditForm(false);
+      setEditingAssessment(null);
+      resetEditForm();
+      fetchAssessments();
+    } catch (error) {
+      console.error('Error saving assessment:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de sauvegarder les modifications',
+        variant: 'destructive'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetEditForm = () => {
+    setSelectedChildId('');
+    setPeriodName('Période 1');
+    setSchoolYear(getCurrentSchoolYear());
+    setDomains(DEFAULT_DOMAINS.map(d => ({ domain: d, rating: 'acquis' as const, comment: '' })));
+    setTeacherComment('');
+    setEditingAssessment(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -308,6 +457,14 @@ const AssessmentsValidationPage = () => {
                           <Eye className="w-4 h-4 mr-2" />
                           Voir
                         </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleEdit(assessment)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Modifier
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -408,6 +565,17 @@ const AssessmentsValidationPage = () => {
             <Button variant="outline" onClick={() => setShowDetails(false)}>
               Fermer
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                if (selectedAssessment) {
+                  handleEdit(selectedAssessment);
+                }
+              }}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Modifier
+            </Button>
             {selectedAssessment?.status === 'pending' && (
               <>
                 <Button 
@@ -427,6 +595,176 @@ const AssessmentsValidationPage = () => {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Form Dialog */}
+      <Dialog open={showEditForm} onOpenChange={(open) => {
+        setShowEditForm(open);
+        if (!open) {
+          resetEditForm();
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Modifier le bilan périodique</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations du bilan
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-6">
+              {/* Child & Period Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Enfant *</Label>
+                  <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un enfant" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      {children.map((child) => (
+                        <SelectItem key={child.id} value={child.id}>
+                          {child.first_name} {child.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Période *</Label>
+                  <Select value={periodName} onValueChange={setPeriodName}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Période 1">Période 1</SelectItem>
+                      <SelectItem value="Période 2">Période 2</SelectItem>
+                      <SelectItem value="Période 3">Période 3</SelectItem>
+                      <SelectItem value="Période 4">Période 4</SelectItem>
+                      <SelectItem value="Période 5">Période 5</SelectItem>
+                      <SelectItem value="Trimestre 1">Trimestre 1</SelectItem>
+                      <SelectItem value="Trimestre 2">Trimestre 2</SelectItem>
+                      <SelectItem value="Trimestre 3">Trimestre 3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Année scolaire *</Label>
+                  <Input value={schoolYear} onChange={(e) => setSchoolYear(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Domains */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-lg font-semibold">Domaines d'évaluation</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={handleAddDomain}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter un domaine
+                  </Button>
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap gap-4 p-3 bg-muted rounded-lg">
+                  {RATING_OPTIONS.map((option) => (
+                    <div key={option.value} className="flex items-center gap-2">
+                      <option.icon className={`w-5 h-5 ${option.color}`} />
+                      <span className="text-sm">{option.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {domains.map((domain, index) => (
+                  <Card key={index}>
+                    <CardContent className="p-4 space-y-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Domaine</Label>
+                              <Input
+                                value={domain.domain}
+                                onChange={(e) => handleDomainChange(index, 'domain', e.target.value)}
+                                placeholder="Nom du domaine"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Notation</Label>
+                              <Select 
+                                value={domain.rating} 
+                                onValueChange={(v) => handleDomainChange(index, 'rating', v)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {RATING_OPTIONS.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      <div className="flex items-center gap-2">
+                                        <option.icon className={`w-4 h-4 ${option.color}`} />
+                                        {option.label}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Commentaire</Label>
+                            <Textarea
+                              value={domain.comment}
+                              onChange={(e) => handleDomainChange(index, 'comment', e.target.value)}
+                              placeholder="Commentaire sur les progrès de l'enfant dans ce domaine..."
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                        {domains.length > 1 && (
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleRemoveDomain(index)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Teacher Comment */}
+              <div className="space-y-2">
+                <Label className="text-lg font-semibold">Petit mot de la maîtresse</Label>
+                <Textarea
+                  value={teacherComment}
+                  onChange={(e) => setTeacherComment(e.target.value)}
+                  placeholder="Un mot d'encouragement personnel pour l'enfant..."
+                  rows={4}
+                />
+              </div>
+            </div>
+          </ScrollArea>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowEditForm(false);
+              resetEditForm();
+            }}>
+              Annuler
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={saving}>
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

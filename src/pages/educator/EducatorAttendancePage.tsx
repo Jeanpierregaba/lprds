@@ -89,7 +89,15 @@ const EducatorAttendancePage = () => {
 
       const groupIds = (groups || []).map(g => g.id).filter(Boolean)
 
-      if (groupIds.length === 0) {
+      // Children linked via child_educators
+      const { data: linkData, error: linkError } = await supabase
+        .from('child_educators')
+        .select('child_id')
+        .eq('educator_id', profile.id)
+      if (linkError) console.error('Error fetching child_educators:', linkError)
+      const linkIds = (linkData || []).map((l: any) => l.child_id)
+
+      if (groupIds.length === 0 && linkIds.length === 0) {
         setAttendanceData([])
         setStats({ total: 0, present: 0, absent: 0, late: 0 })
         return
@@ -101,8 +109,10 @@ const EducatorAttendancePage = () => {
           .from('children')
           .select('*')
           .eq('status', 'active')
-          .in('group_id', groupIds)
-          .order('first_name'),
+          .or([
+            groupIds.length ? `group_id.in.(${groupIds.join(',')})` : '',
+            `assigned_educator_id.eq.${profile.id}`
+          ].filter(Boolean).join(',')),
         supabase
           .from('daily_attendance')
           .select('*')
@@ -111,7 +121,23 @@ const EducatorAttendancePage = () => {
 
       if (childrenRes.error) throw childrenRes.error
 
-      const children = childrenRes.data || []
+      let children: any[] = childrenRes.data || []
+
+      if (linkIds.length > 0) {
+        const { data: extraChildren, error: extraError } = await supabase
+          .from('children')
+          .select('*')
+          .eq('status', 'active')
+          .in('id', linkIds)
+        if (extraError) {
+          console.error('Error fetching linked children:', extraError)
+        } else {
+          children = [...children, ...(extraChildren || [])]
+        }
+      }
+
+      // Deduplicate
+      children = children.filter((c, idx, self) => idx === self.findIndex(cc => cc.id === c.id))
       const attendanceMap = new Map(
         (attendanceRes.data || []).map(a => [a.child_id, a])
       )

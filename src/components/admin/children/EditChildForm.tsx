@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,40 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
     preferences: child.preferences || ''
   });
   const [loading, setLoading] = useState(false);
+  const [educators, setEducators] = useState<any[]>([]);
+  const [selectedEducators, setSelectedEducators] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadEducators = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('role', 'educator')
+          .order('first_name');
+        if (error) throw error;
+        setEducators(data || []);
+      } catch (error) {
+        console.error('Erreur chargement éducateurs:', error);
+      }
+    };
+
+    const loadLinks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('child_educators')
+          .select('educator_id')
+          .eq('child_id', child.id);
+        if (error) throw error;
+        setSelectedEducators((data || []).map((d: any) => d.educator_id));
+      } catch (error) {
+        console.error('Erreur chargement éducateurs assignés:', error);
+      }
+    };
+
+    loadEducators();
+    loadLinks();
+  }, [child.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +206,20 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
         );
       }
 
+      // Synchroniser les éducateurs liés (many-to-many)
+      try {
+        await supabase.from('child_educators').delete().eq('child_id', child.id);
+        if (selectedEducators.length > 0) {
+          const links = selectedEducators.map(eid => ({
+            child_id: child.id,
+            educator_id: eid
+          }));
+          await supabase.from('child_educators').insert(links);
+        }
+      } catch (linkErr) {
+        console.error('Error syncing child educators:', linkErr);
+      }
+
       toast({ 
         title: 'Succès', 
         description: sectionChanged 
@@ -255,6 +303,39 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
           <div>
             <Label>Préférences</Label>
             <Textarea value={form.preferences} onChange={(e) => setForm({ ...form, preferences: e.target.value })} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Éducateurs assignés (multi)</Label>
+            {educators.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun éducateur disponible.</p>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-2">
+                {educators.map((edu) => {
+                  const checked = selectedEducators.includes(edu.id);
+                  return (
+                    <label
+                      key={edu.id}
+                      className="flex items-center gap-2 p-2 border rounded-md cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const v = e.target.checked;
+                          setSelectedEducators((prev) =>
+                            v ? [...prev, edu.id] : prev.filter((id) => id !== edu.id)
+                          );
+                        }}
+                      />
+                      <span className="text-sm">
+                        {edu.first_name} {edu.last_name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
