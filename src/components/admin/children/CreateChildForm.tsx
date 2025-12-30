@@ -352,18 +352,10 @@ export default function CreateChildForm({ onSuccess }: { onSuccess: () => void }
         }
       }
 
-      // Lier les éducateurs sélectionnés (relation many-to-many)
+      // L'éducateur principal est déjà assigné via assigned_educator_id
+      // Les autres éducateurs peuvent être liés via les groupes
       if (selectedEducators.length > 0) {
-        const links = selectedEducators.map(eid => ({
-          child_id: childRecord.id,
-          educator_id: eid
-        }));
-        const { error: linkError } = await supabase
-          .from('child_educators')
-          .insert(links);
-        if (linkError) {
-          console.error('Error linking educators:', linkError);
-        }
+        console.log('Additional educators to assign:', selectedEducators);
       }
 
       toast({

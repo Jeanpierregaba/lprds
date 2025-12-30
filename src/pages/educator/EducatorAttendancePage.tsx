@@ -89,13 +89,13 @@ const EducatorAttendancePage = () => {
 
       const groupIds = (groups || []).map(g => g.id).filter(Boolean)
 
-      // Children linked via child_educators
-      const { data: linkData, error: linkError } = await supabase
-        .from('child_educators')
-        .select('child_id')
-        .eq('educator_id', profile.id)
-      if (linkError) console.error('Error fetching child_educators:', linkError)
-      const linkIds = (linkData || []).map((l: any) => l.child_id)
+      // Children directly assigned to this educator
+      const { data: directChildren } = await supabase
+        .from('children')
+        .select('id')
+        .eq('assigned_educator_id', profile.id)
+        .eq('status', 'active')
+      const linkIds = (directChildren || []).map((c: any) => c.id)
 
       if (groupIds.length === 0 && linkIds.length === 0) {
         setAttendanceData([])

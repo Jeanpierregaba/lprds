@@ -168,15 +168,13 @@ const EducatorAssessmentsPage = () => {
         return;
       }
 
-      // Children via child_educators
-      const { data: linkData, error: linkError } = await supabase
-        .from('child_educators')
-        .select('child_id')
-        .eq('educator_id', effectiveEducatorId);
-      if (linkError) {
-        console.error('Error fetching child_educators:', linkError);
-      }
-      const childIds = (linkData || []).map((l: any) => l.child_id);
+      // Children assigned directly to this educator
+      const { data: directChildren } = await supabase
+        .from('children')
+        .select('id')
+        .eq('assigned_educator_id', effectiveEducatorId)
+        .eq('status', 'active');
+      const childIds = (directChildren || []).map((c: any) => c.id);
 
       let extraChildren: any[] = [];
       if (childIds.length > 0) {
