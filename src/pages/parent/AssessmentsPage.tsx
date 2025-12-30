@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import logoImage from '@/assets/logo.png';
 
 interface Child {
   id: string;
@@ -66,6 +67,40 @@ const RATING_OPTIONS = [
   { value: 'en_cours', label: 'En cours', icon: Star, color: 'text-orange-500', bg: 'bg-orange-100', border: 'border-orange-200' },
   { value: 'a_consolider', label: 'À consolider', icon: Cloud, color: 'text-sky-500', bg: 'bg-sky-100', border: 'border-sky-200' }
 ];
+
+const getSectionAbbreviation = (section?: string): string => {
+  if (!section) return '';
+  const abbreviations: Record<string, string> = {
+    'maternelle_PS1': 'PS',
+    'maternelle_PS2': 'PS',
+    'maternelle_MS': 'MS',
+    'maternelle_GS': 'GS',
+    'creche_etoile': 'Crèche',
+    'creche_nuage': 'Crèche',
+    'creche_soleil': 'TPS',
+    'garderie': 'Garderie'
+  };
+  return abbreviations[section] || '';
+};
+
+const convertImageToBase64 = async (imagePath: string): Promise<string> => {
+  try {
+    const response = await fetch(imagePath);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error converting image to base64:', error);
+    throw error;
+  }
+};
 
 const ParentAssessmentsPage = () => {
   const { profile } = useAuth();
@@ -172,199 +207,330 @@ const ParentAssessmentsPage = () => {
     return domains.filter(d => d.rating === 'acquis').length;
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!selectedAssessment) return;
+    
+    // Convert logo to base64
+    let logoBase64 = '';
+    try {
+      logoBase64 = await convertImageToBase64(logoImage);
+    } catch (error) {
+      console.error('Error converting logo to base64:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger le logo',
+        variant: 'destructive'
+      });
+    }
+
+    const sectionAbbr = getSectionAbbreviation(selectedAssessment.child?.section);
+    
+    // Convert period number to Roman numeral
+    const getPeriodRoman = (periodName: string): string => {
+      const match = periodName.match(/\d+/);
+      if (!match) return 'I';
+      const num = parseInt(match[0]);
+      const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V'];
+      return romanNumerals[num] || num.toString();
+    };
+    
+    const periodRoman = getPeriodRoman(selectedAssessment.period_name);
+    const displayPeriodName = selectedAssessment.period_name.includes('Période') 
+      ? `Période ${periodRoman}` 
+      : selectedAssessment.period_name;
     
     const printContent = `
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="UTF-8">
         <title>Bilan - ${selectedAssessment.child?.first_name} ${selectedAssessment.child?.last_name}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
           body { 
             font-family: 'Nunito', sans-serif; 
-            padding: 40px; 
-            max-width: 800px; 
+            padding: 20px; 
+            background: #fef9e7;
+            color: #333;
+          }
+          .container {
+            max-width: 900px;
             margin: 0 auto;
-            background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
-            min-height: 100vh;
-          }
-          .paper {
             background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            border-radius: 8px;
           }
-          .header { 
-            text-align: center; 
-            margin-bottom: 30px; 
-            padding-bottom: 20px; 
-            border-bottom: 3px dashed #f59e0b;
+          .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
           }
-          .header .year { 
-            color: #92400e; 
+          .logo-container {
+            width: 120px;
+            height: 120px;
+          }
+          .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+          }
+          .year-text {
             font-weight: 700;
             font-size: 14px;
-            letter-spacing: 2px;
+            color: #92400e;
+            text-align: right;
+            letter-spacing: 1px;
+          }
+          .title-section {
+            text-align: center;
+            margin: 20px 0 30px 0;
+          }
+          .title-section h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #f59e0b;
             margin-bottom: 10px;
           }
-          .header h1 { 
-            color: #f59e0b; 
-            margin: 0;
-            font-size: 28px;
-          }
-          .header .period {
-            color: #78716c;
-            margin-top: 5px;
-          }
-          .child-info { 
-            background: linear-gradient(135deg, #fef3c7, #fef9e7);
-            padding: 20px; 
-            border-radius: 12px; 
-            margin-bottom: 25px;
-            border: 2px solid #fcd34d;
+          .child-name-section {
             text-align: center;
+            margin: 25px 0;
           }
-          .child-info h2 {
-            color: #92400e;
-            margin: 0 0 5px 0;
+          .child-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            display: inline-block;
+            border-bottom: 2px dashed #f59e0b;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
           }
-          .child-info p {
-            color: #78716c;
-            margin: 0;
-            font-size: 14px;
-          }
-          .legend { 
-            display: flex; 
+          .teacher-section {
+            display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 25px; 
-            margin-bottom: 25px; 
-            padding: 15px; 
-            background: #f5f5f5; 
-            border-radius: 10px;
+            gap: 15px;
+            margin: 20px 0;
           }
-          .legend-item { 
-            display: flex; 
-            align-items: center; 
+          .teacher-label {
+            font-size: 16px;
+            color: #333;
+          }
+          .teacher-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: inline-block;
+            border-bottom: 2px dashed #f59e0b;
+            padding-bottom: 3px;
+          }
+          .sun-icon {
+            font-size: 48px;
+            color: #fbbf24;
+          }
+          .legend-banner {
+            background: #fef3c7;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #92400e;
+            font-size: 16px;
+          }
+          .paperclip-icon {
+            font-size: 20px;
+            color: #3b82f6;
+          }
+          .legend-items {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0 30px 0;
+            flex-wrap: wrap;
+          }
+          .legend-item {
+            display: flex;
+            align-items: center;
             gap: 8px;
             font-size: 14px;
+            color: #333;
+          }
+          .legend-icon {
+            font-size: 24px;
           }
           table { 
             width: 100%; 
             border-collapse: collapse; 
             margin-bottom: 30px;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid #e5e7eb;
+            border: 2px dashed #e5e7eb;
+          }
+          thead {
+            background: #fef3c7;
           }
           th, td { 
-            padding: 14px; 
+            padding: 12px 15px; 
             text-align: left;
-            border-bottom: 1px dashed #e5e7eb;
+            border: 1px dashed #e5e7eb;
+            vertical-align: top;
           }
           th { 
-            background: linear-gradient(135deg, #fef3c7, #fef9e7);
             font-weight: 700; 
             color: #92400e;
+            font-size: 14px;
           }
-          tr:last-child td { border-bottom: none; }
-          .rating { 
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px; 
-            border-radius: 20px;
-            font-weight: 600;
+          td {
             font-size: 13px;
+            color: #333;
           }
-          .rating-acquis { background: #fef3c7; color: #92400e; }
-          .rating-en_cours { background: #ffedd5; color: #c2410c; }
-          .rating-a_consolider { background: #e0f2fe; color: #0369a1; }
-          .teacher-comment { 
-            background: linear-gradient(135deg, #fef3c7, #fef9e7);
-            padding: 25px; 
-            border-radius: 12px; 
-            margin-top: 25px;
-            border: 2px solid #fcd34d;
+          .domain-col {
+            width: 35%;
+            font-weight: 500;
           }
-          .teacher-comment h3 { 
-            color: #92400e; 
-            margin: 0 0 15px 0;
+          .rating-col {
+            width: 20%;
+            text-align: center;
+          }
+          .comment-col {
+            width: 45%;
+          }
+          .rating-icon {
+            font-size: 32px;
+            display: inline-block;
+          }
+          .teacher-comment-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fef3c7;
+            border-radius: 8px;
+            border: 2px dashed #fcd34d;
+          }
+          .teacher-comment-title {
+            font-weight: 700;
+            font-size: 18px;
+            color: #92400e;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
           }
-          .teacher-comment p {
-            color: #44403c;
+          .rocket-icon {
+            font-size: 24px;
+            color: #f97316;
+          }
+          .teacher-comment-text {
+            color: #444;
             font-style: italic;
-            line-height: 1.7;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #a8a29e;
-            font-size: 12px;
+            line-height: 1.6;
+            font-size: 14px;
           }
           @media print { 
-            body { padding: 20px; background: white; } 
-            .paper { box-shadow: none; }
+            body { 
+              padding: 10px; 
+              background: white; 
+            }
+            .container {
+              box-shadow: none;
+              padding: 20px;
+            }
           }
         </style>
       </head>
       <body>
-        <div class="paper">
-          <div class="header">
-            <p class="year">ANNÉE SCOLAIRE ${selectedAssessment.school_year}</p>
-            <h1>📋 Bilan Périodique</h1>
-            <p class="period">${selectedAssessment.period_name}</p>
-          </div>
-          
-          <div class="child-info">
-            <h2>🌟 ${selectedAssessment.child?.first_name} ${selectedAssessment.child?.last_name}</h2>
-            <p>Éducatrice: ${selectedAssessment.educator?.first_name} ${selectedAssessment.educator?.last_name}</p>
-          </div>
-
-          <div class="legend">
-            <div class="legend-item">☀️ <strong>Acquis</strong></div>
-            <div class="legend-item">⭐ <strong>En cours</strong></div>
-            <div class="legend-item">☁️ <strong>À consolider</strong></div>
+        <div class="container">
+          <!-- Header with logo and year -->
+          <div class="header-top">
+            <div class="logo-container">
+              <img src="${logoBase64}" alt="Logo" />
+            </div>
+            <div class="year-text">
+              ANNÉE SCOLAIRE : ${selectedAssessment.school_year}
+            </div>
           </div>
 
+          <!-- Title -->
+          <div class="title-section">
+            <h1>Le bilan de ma ${displayPeriodName}${sectionAbbr ? ` en ${sectionAbbr}` : ''}</h1>
+          </div>
+
+          <!-- Child name -->
+          <div class="child-name-section">
+            <div class="child-name">${selectedAssessment.child?.last_name?.toUpperCase()} ${selectedAssessment.child?.first_name?.charAt(0).toUpperCase() + selectedAssessment.child?.first_name?.slice(1).toLowerCase()}</div>
+          </div>
+
+          <!-- Teacher section -->
+          <div class="teacher-section">
+            <span class="teacher-label">Mon institutrice est</span>
+            <span class="teacher-name">${selectedAssessment.educator?.first_name} ${selectedAssessment.educator?.last_name}</span>
+            <span class="sun-icon">☀️</span>
+          </div>
+
+          <!-- Legend banner -->
+          <div class="legend-banner">
+            <span class="paperclip-icon">📎</span>
+            <span>Ce que j'ai appris cette période</span>
+          </div>
+
+          <!-- Legend items -->
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="legend-icon">☀️</span>
+              <span><strong>Acquis</strong></span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon">⭐</span>
+              <span><strong>En cours d'acquisition</strong></span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-icon">☁️</span>
+              <span><strong>A consolider</strong></span>
+            </div>
+          </div>
+
+          <!-- Assessment table -->
           <table>
             <thead>
               <tr>
-                <th style="width:30%">Domaine</th>
-                <th style="width:25%">Évaluation</th>
-                <th style="width:45%">Commentaire</th>
+                <th class="domain-col">Domaines</th>
+                <th class="rating-col">Notation</th>
+                <th class="comment-col">Commentaires</th>
               </tr>
             </thead>
             <tbody>
-              ${selectedAssessment.domains.map(d => `
+              ${selectedAssessment.domains.map(d => {
+                const ratingIcon = d.rating === 'acquis' ? '☀️' : d.rating === 'en_cours' ? '⭐' : '☁️';
+                return `
                 <tr>
-                  <td><strong>${d.domain}</strong></td>
-                  <td>
-                    <span class="rating rating-${d.rating}">
-                      ${d.rating === 'acquis' ? '☀️' : d.rating === 'en_cours' ? '⭐' : '☁️'}
-                      ${RATING_OPTIONS.find(r => r.value === d.rating)?.label || d.rating}
-                    </span>
+                  <td class="domain-col">${d.domain}</td>
+                  <td class="rating-col">
+                    <span class="rating-icon">${ratingIcon}</span>
                   </td>
-                  <td>${d.comment || '—'}</td>
+                  <td class="comment-col">${d.comment || '—'}</td>
                 </tr>
-              `).join('')}
+              `;
+              }).join('')}
             </tbody>
           </table>
 
+          <!-- Teacher comment -->
           ${selectedAssessment.teacher_comment ? `
-            <div class="teacher-comment">
-              <h3>💌 Petit mot de la maîtresse</h3>
-              <p>${selectedAssessment.teacher_comment}</p>
+            <div class="teacher-comment-section">
+              <div class="teacher-comment-title">
+                <span>Petit mot de la maîtresse</span>
+                <span class="rocket-icon">🚀</span>
+              </div>
+              <div class="teacher-comment-text">
+                ${selectedAssessment.teacher_comment}
+              </div>
             </div>
           ` : ''}
-          
-          <div class="footer">
-            <p>Les Petits Rayons de Soleil ☀️</p>
-          </div>
         </div>
       </body>
       </html>
