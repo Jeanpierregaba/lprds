@@ -19,6 +19,7 @@ interface Child {
   section?: 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS' | null;
   behavioral_notes?: string | null;
   preferences?: string | null;
+  assigned_educator_id?: string | null;
 }
 
 
@@ -54,15 +55,9 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
     };
 
     const loadLinks = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('child_educators')
-          .select('educator_id')
-          .eq('child_id', child.id);
-        if (error) throw error;
-        setSelectedEducators((data || []).map((d: any) => d.educator_id));
-      } catch (error) {
-        console.error('Erreur chargement éducateurs assignés:', error);
+      // Use assigned_educator_id from children table directly
+      if (child.assigned_educator_id) {
+        setSelectedEducators([child.assigned_educator_id]);
       }
     };
 
@@ -206,19 +201,8 @@ export default function EditChildForm({ child, onSuccess }: { child: Child; onSu
         );
       }
 
-      // Synchroniser les éducateurs liés (many-to-many)
-      try {
-        await supabase.from('child_educators').delete().eq('child_id', child.id);
-        if (selectedEducators.length > 0) {
-          const links = selectedEducators.map(eid => ({
-            child_id: child.id,
-            educator_id: eid
-          }));
-          await supabase.from('child_educators').insert(links);
-        }
-      } catch (linkErr) {
-        console.error('Error syncing child educators:', linkErr);
-      }
+      // L'éducateur principal est géré via assigned_educator_id dans le formulaire
+      // Pas besoin de table child_educators séparée
 
       toast({ 
         title: 'Succès', 

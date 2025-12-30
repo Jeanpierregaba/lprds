@@ -235,9 +235,11 @@ const ParentAssessmentsPage = () => {
     };
     
     const periodRoman = getPeriodRoman(selectedAssessment.period_name);
-    const displayPeriodName = selectedAssessment.period_name.includes('Période') 
-      ? `Période ${periodRoman}` 
-      : selectedAssessment.period_name;
+    
+    // Calculate font size based on number of domains for single page fit
+    const domainCount = selectedAssessment.domains.length;
+    const baseFontSize = domainCount > 6 ? 9 : domainCount > 4 ? 10 : 11;
+    const rowPadding = domainCount > 6 ? 4 : domainCount > 4 ? 6 : 8;
     
     const printContent = `
       <!DOCTYPE html>
@@ -246,240 +248,278 @@ const ParentAssessmentsPage = () => {
         <meta charset="UTF-8">
         <title>Bilan - ${selectedAssessment.child?.first_name} ${selectedAssessment.child?.last_name}</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Nunito:wght@400;600;700&display=swap');
+          @page {
+            size: A4;
+            margin: 8mm;
+          }
           * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
           }
           body { 
-            font-family: 'Nunito', sans-serif; 
-            padding: 20px; 
-            background: #fef9e7;
+            font-family: 'Nunito', 'Comic Neue', sans-serif;
+            background: #fef6e4;
             color: #333;
+            font-size: ${baseFontSize}px;
+            line-height: 1.3;
           }
-          .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
+          .page-container {
+            width: 100%;
+            min-height: 100vh;
+            padding: 10px 15px;
+            background: #fef6e4;
           }
-          .header-top {
+          .header-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
           }
           .logo-container {
-            width: 120px;
-            height: 120px;
+            width: 70px;
+            height: 70px;
           }
           .logo-container img {
             width: 100%;
             height: 100%;
             object-fit: contain;
           }
+          .header-right {
+            text-align: right;
+          }
           .year-text {
             font-weight: 700;
-            font-size: 14px;
+            font-size: 12px;
             color: #92400e;
-            text-align: right;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+          }
+          .clouds-decoration {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 4px;
+          }
+          .cloud {
+            background: linear-gradient(135deg, #93c5fd, #60a5fa);
+            border-radius: 10px;
+            height: 12px;
+            width: 20px;
           }
           .title-section {
             text-align: center;
-            margin: 20px 0 30px 0;
+            margin: 6px 0;
           }
-          .title-section h1 {
-            font-size: 24px;
+          .title-main {
+            font-size: 16px;
             font-weight: 700;
-            color: #f59e0b;
-            margin-bottom: 10px;
-          }
-          .child-name-section {
-            text-align: center;
-            margin: 25px 0;
+            color: #1f2937;
+            margin-bottom: 4px;
           }
           .child-name {
-            font-size: 28px;
+            font-size: 18px;
             font-weight: 700;
-            color: #333;
-            display: inline-block;
+            color: #1f2937;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+          .dashed-line {
+            display: flex;
+            justify-content: center;
+            margin: 4px 0;
+          }
+          .dashed-line span {
+            width: 80px;
+            height: 0;
             border-bottom: 2px dashed #f59e0b;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
           }
           .teacher-section {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
+            text-align: center;
+            margin: 8px 0;
           }
           .teacher-label {
-            font-size: 16px;
-            color: #333;
+            font-size: 11px;
+            color: #666;
           }
           .teacher-name {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 700;
             color: #333;
-            display: inline-block;
             border-bottom: 2px dashed #f59e0b;
-            padding-bottom: 3px;
+            padding-bottom: 2px;
+            display: inline-block;
           }
-          .sun-icon {
-            font-size: 48px;
-            color: #fbbf24;
+          .sun-decoration {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 24px;
           }
-          .legend-banner {
-            background: #fef3c7;
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin: 25px 0;
+          .section-banner {
+            background: linear-gradient(135deg, #fcd34d, #f59e0b);
+            color: #fff;
+            padding: 6px 20px;
+            border-radius: 20px;
+            margin: 10px auto;
+            width: fit-content;
+            font-weight: 700;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            color: #92400e;
-            font-size: 16px;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
           }
-          .paperclip-icon {
-            font-size: 20px;
-            color: #3b82f6;
+          .clip-icon {
+            font-size: 14px;
           }
-          .legend-items {
+          .legend-row {
             display: flex;
             justify-content: center;
             gap: 30px;
-            margin: 20px 0 30px 0;
+            margin: 10px 0;
             flex-wrap: wrap;
           }
           .legend-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #333;
+            gap: 6px;
+            font-size: 10px;
+            color: #555;
           }
           .legend-icon {
-            font-size: 24px;
+            font-size: 18px;
+          }
+          .table-container {
+            margin: 8px 0;
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
           }
           table { 
             width: 100%; 
-            border-collapse: collapse; 
-            margin-bottom: 30px;
-            border: 2px dashed #e5e7eb;
+            border-collapse: collapse;
           }
           thead {
-            background: #fef3c7;
-          }
-          th, td { 
-            padding: 12px 15px; 
-            text-align: left;
-            border: 1px dashed #e5e7eb;
-            vertical-align: top;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
           }
           th { 
+            padding: ${rowPadding}px 10px;
             font-weight: 700; 
             color: #92400e;
-            font-size: 14px;
+            font-size: 12px;
+            text-align: left;
+            border-bottom: 2px dashed #fcd34d;
           }
-          td {
-            font-size: 13px;
-            color: #333;
-          }
-          .domain-col {
-            width: 35%;
-            font-weight: 500;
-          }
-          .rating-col {
-            width: 20%;
+          th.rating-col,
+          td.rating-col {
             text-align: center;
+            width: 80px;
           }
-          .comment-col {
-            width: 45%;
+          td { 
+            padding: ${rowPadding}px 10px;
+            font-size: ${baseFontSize}px;
+            color: #333;
+            border-bottom: 1px dashed #e5e7eb;
+            vertical-align: middle;
+          }
+          tr:last-child td {
+            border-bottom: none;
+          }
+          .domain-name {
+            font-weight: 500;
+            width: 28%;
+          }
+          .comment-text {
+            color: #555;
+            text-align: justify;
+            line-height: 1.35;
           }
           .rating-icon {
-            font-size: 32px;
-            display: inline-block;
+            font-size: 22px;
           }
           .teacher-comment-section {
-            margin-top: 30px;
-            padding: 20px;
-            background: #fef3c7;
-            border-radius: 8px;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
             border: 2px dashed #fcd34d;
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin-top: 10px;
+            text-align: center;
           }
           .teacher-comment-title {
             font-weight: 700;
-            font-size: 18px;
+            font-size: 13px;
             color: #92400e;
-            margin-bottom: 15px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            gap: 8px;
           }
           .rocket-icon {
-            font-size: 24px;
-            color: #f97316;
+            font-size: 16px;
           }
           .teacher-comment-text {
             color: #444;
             font-style: italic;
-            line-height: 1.6;
+            line-height: 1.4;
+            font-size: ${baseFontSize}px;
+          }
+          .clap-icon {
+            margin-left: 4px;
             font-size: 14px;
           }
           @media print { 
             body { 
-              padding: 10px; 
-              background: white; 
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
-            .container {
-              box-shadow: none;
-              padding: 20px;
+            .page-container {
+              padding: 5mm;
             }
           }
         </style>
       </head>
       <body>
-        <div class="container">
+        <div class="page-container">
           <!-- Header with logo and year -->
-          <div class="header-top">
+          <div class="header-row">
             <div class="logo-container">
               <img src="${logoBase64}" alt="Logo" />
             </div>
-            <div class="year-text">
-              ANNÉE SCOLAIRE : ${selectedAssessment.school_year}
+            <div class="header-right">
+              <div class="year-text">ANNÉE SCOLAIRE : ${selectedAssessment.school_year}</div>
+              <div class="clouds-decoration">
+                <div class="cloud"></div>
+                <div class="cloud" style="width: 15px; height: 10px;"></div>
+                <div class="cloud" style="width: 12px; height: 8px;"></div>
+              </div>
             </div>
           </div>
 
           <!-- Title -->
           <div class="title-section">
-            <h1>Le bilan de ma ${displayPeriodName}${sectionAbbr ? ` en ${sectionAbbr}` : ''}</h1>
-          </div>
-
-          <!-- Child name -->
-          <div class="child-name-section">
-            <div class="child-name">${selectedAssessment.child?.last_name?.toUpperCase()} ${selectedAssessment.child?.first_name?.charAt(0).toUpperCase() + selectedAssessment.child?.first_name?.slice(1).toLowerCase()}</div>
+            <div class="title-main">Le bilan de ma Période ${periodRoman}${sectionAbbr ? ` en ${sectionAbbr}` : ''}</div>
+            <div class="child-name">${selectedAssessment.child?.last_name?.toUpperCase()} ${selectedAssessment.child?.first_name}</div>
+            <div class="dashed-line"><span></span></div>
           </div>
 
           <!-- Teacher section -->
           <div class="teacher-section">
-            <span class="teacher-label">Mon institutrice est</span>
-            <span class="teacher-name">${selectedAssessment.educator?.first_name} ${selectedAssessment.educator?.last_name}</span>
-            <span class="sun-icon">☀️</span>
+            <div class="teacher-label">Mon institutrice est</div>
+            <div>
+              <span class="teacher-name">Maîtresse ${selectedAssessment.educator?.last_name}</span>
+              <span class="sun-decoration">☀️</span>
+            </div>
           </div>
 
-          <!-- Legend banner -->
-          <div class="legend-banner">
-            <span class="paperclip-icon">📎</span>
+          <!-- Section banner -->
+          <div class="section-banner">
+            <span class="clip-icon">📎</span>
             <span>Ce que j'ai appris cette période</span>
           </div>
 
-          <!-- Legend items -->
-          <div class="legend-items">
+          <!-- Legend -->
+          <div class="legend-row">
             <div class="legend-item">
               <span class="legend-icon">☀️</span>
               <span><strong>Acquis</strong></span>
@@ -495,29 +535,31 @@ const ParentAssessmentsPage = () => {
           </div>
 
           <!-- Assessment table -->
-          <table>
-            <thead>
-              <tr>
-                <th class="domain-col">Domaines</th>
-                <th class="rating-col">Notation</th>
-                <th class="comment-col">Commentaires</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${selectedAssessment.domains.map(d => {
-                const ratingIcon = d.rating === 'acquis' ? '☀️' : d.rating === 'en_cours' ? '⭐' : '☁️';
-                return `
+          <div class="table-container">
+            <table>
+              <thead>
                 <tr>
-                  <td class="domain-col">${d.domain}</td>
-                  <td class="rating-col">
-                    <span class="rating-icon">${ratingIcon}</span>
-                  </td>
-                  <td class="comment-col">${d.comment || '—'}</td>
+                  <th class="domain-name">Domaines</th>
+                  <th class="rating-col">Notation</th>
+                  <th>Commentaires</th>
                 </tr>
-              `;
-              }).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${selectedAssessment.domains.map(d => {
+                  const ratingIcon = d.rating === 'acquis' ? '☀️' : d.rating === 'en_cours' ? '⭐' : '☁️';
+                  return `
+                  <tr>
+                    <td class="domain-name">${d.domain}</td>
+                    <td class="rating-col">
+                      <span class="rating-icon">${ratingIcon}</span>
+                    </td>
+                    <td class="comment-text">${d.comment || '—'}</td>
+                  </tr>
+                `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
 
           <!-- Teacher comment -->
           ${selectedAssessment.teacher_comment ? `
@@ -527,7 +569,7 @@ const ParentAssessmentsPage = () => {
                 <span class="rocket-icon">🚀</span>
               </div>
               <div class="teacher-comment-text">
-                ${selectedAssessment.teacher_comment}
+                ${selectedAssessment.teacher_comment} <span class="clap-icon">👏</span>
               </div>
             </div>
           ` : ''}

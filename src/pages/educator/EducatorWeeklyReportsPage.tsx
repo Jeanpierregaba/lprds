@@ -97,15 +97,13 @@ export default function EducatorWeeklyReportsPage() {
         orFilters.push(`group_id.in.(${groupIds.join(",")})`);
       }
 
-      // children via child_educators
-      const { data: links, error: linksError } = await supabase
-        .from("child_educators")
-        .select("child_id")
-        .eq("educator_id", profile.id);
-      if (linksError) {
-        console.error("Error fetching child_educators:", linksError);
-      }
-      const linkIds = (links || []).map((l: any) => l.child_id);
+      // Children directly assigned to this educator
+      const { data: directChildren } = await supabase
+        .from("children")
+        .select("id")
+        .eq("assigned_educator_id", profile.id)
+        .eq("status", "active");
+      const linkIds = (directChildren || []).map((c: any) => c.id);
 
       const { data } = await supabase
         .from("children")
