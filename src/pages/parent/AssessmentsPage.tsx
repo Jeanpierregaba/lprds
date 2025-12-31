@@ -578,14 +578,47 @@ const ParentAssessmentsPage = () => {
       </html>
     `;
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 250);
+    // Detect if mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // On mobile, create a blob and download directly
+      const blob = new Blob([printContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Bilan_${selectedAssessment.child?.first_name}_${selectedAssessment.child?.last_name}_${selectedAssessment.period_name}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Téléchargement',
+        description: 'Le fichier a été téléchargé. Ouvrez-le dans votre navigateur pour l\'imprimer.',
+      });
+    } else {
+      // On desktop, use print dialog
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      } else {
+        // Fallback if popup is blocked
+        const blob = new Blob([printContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Bilan_${selectedAssessment.child?.first_name}_${selectedAssessment.child?.last_name}_${selectedAssessment.period_name}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
     }
   };
 
@@ -801,7 +834,7 @@ const ParentAssessmentsPage = () => {
             <Button variant="outline" onClick={() => setShowDetails(false)}>
               Fermer
             </Button>
-            <Button onClick={handleDownloadPDF} className="bg-primary hover:bg-primary/90">
+            <Button onClick={handleDownloadPDF} className="bg-primary">
               <Download className="w-4 h-4 mr-2" />
               Télécharger / Imprimer
             </Button>
