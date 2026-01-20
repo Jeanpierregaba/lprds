@@ -57,6 +57,18 @@ const QRScanner: React.FC = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
   const { isStaff } = usePermissions();
+
+  // Capture une référence temporelle unique pour éviter des divergences entre date/heure
+  const getNowParts = () => {
+    const now = new Date();
+    return {
+      now,
+      isoString: now.toISOString(),
+      dateISO: now.toISOString().slice(0, 10),   // yyyy-mm-dd
+      time: now.toTimeString().slice(0, 8),      // HH:MM:SS (local)
+      epochMs: now.getTime()
+    };
+  };
   // Demander l'accès caméra proactivement (sur action utilisateur)
   const requestCameraAccess = async () => {
     try {
@@ -274,6 +286,8 @@ const QRScanner: React.FC = () => {
     setIsProcessing(true);
     
     try {
+      const { isoString, dateISO, time } = getNowParts();
+
       // Enregistrer dans qr_scan_logs
       const { error: scanError } = await supabase
         .from('qr_scan_logs')
@@ -281,13 +295,13 @@ const QRScanner: React.FC = () => {
           child_id: childId,
           scan_type: scanType,
           scanned_by: profile.id,
-          scan_time: new Date().toISOString()
+          scan_time: isoString
         });
 
       if (scanError) throw scanError;
 
       // Mettre à jour ou créer l'enregistrement de présence du jour
-      const today = new Date().toISOString().split('T')[0];
+      const today = dateISO;
       
       const { data: existingAttendance } = await supabase
         .from('daily_attendance')
@@ -302,14 +316,14 @@ const QRScanner: React.FC = () => {
         // Mettre à jour l'enregistrement existant
         const updateData = scanType === 'arrival' 
           ? { 
-              arrival_time: new Date().toTimeString().split(' ')[0],
+              arrival_time: time,
               arrival_scanned_by: profile.id,
               is_present: true,
               brought_by: personName,
               arrival_temperature: tempValue
             }
           : { 
-              departure_time: new Date().toTimeString().split(' ')[0],
+              departure_time: time,
               departure_scanned_by: profile.id,
               picked_up_by: personName,
               departure_temperature: tempValue
@@ -329,7 +343,7 @@ const QRScanner: React.FC = () => {
             child_id: childId,
             educator_id: profile.id,
             attendance_date: today,
-            arrival_time: new Date().toTimeString().split(' ')[0],
+            arrival_time: time,
             arrival_scanned_by: profile.id,
             is_present: true,
             brought_by: personName,

@@ -33,6 +33,24 @@ interface AttendanceData {
   child: Child
 }
 
+// Helpers for consistent time handling
+const getNowParts = () => {
+  const now = new Date()
+  return {
+    now,
+    isoDate: now.toISOString().slice(0, 10),
+    time: now.toTimeString().slice(0, 8), // HH:mm:ss local
+  }
+}
+
+const isLateArrival = (arrival: string, section: string) => {
+  // Pure string comparison on HH:mm:ss avoids timezone shifts
+  const maternelleSections = ['maternelle_GS', 'maternelle_MS', 'maternelle_PS1', 'maternelle_PS2']
+  const crecheSections = ['creche_etoile', 'creche_nuage', 'creche_soleil']
+  const threshold = maternelleSections.includes(section) ? '08:00:00' : crecheSections.includes(section) ? '09:00:00' : null
+  return threshold ? arrival > threshold : false
+}
+
 const AttendancePage = () => {
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([])
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -79,9 +97,14 @@ const AttendancePage = () => {
 
       if (attendanceError) throw attendanceError
 
+      const attendanceMap = new Map<string, any>()
+      attendanceRecords?.forEach(record => {
+        attendanceMap.set(record.child_id, record)
+      })
+
       // Combine the data
       const combinedData: AttendanceData[] = children?.map(child => {
-        const attendance = attendanceRecords?.find(record => record.child_id === child.id)
+        const attendance = attendanceMap.get(child.id)
         return {
           child,
           attendance: attendance || {
@@ -117,31 +140,15 @@ const AttendancePage = () => {
     const present = data.filter(d => d.attendance?.is_present && d.attendance?.arrival_time).length
     const absent = data.filter(d => !d.attendance?.is_present).length
     
-    // Calculate late based on section:
-    // - Maternelle sections: late after 8:00 AM
-    // - Crèche sections: late after 9:00 AM
-    const late = data.filter(d => {
-      if (!d.attendance?.arrival_time) return false
-      
-      const arrivalTime = new Date(`2000-01-01T${d.attendance.arrival_time}`)
-      const maternelleSections = ['maternelle_GS', 'maternelle_MS', 'maternelle_PS1', 'maternelle_PS2']
-      const crecheSections = ['creche_etoile', 'creche_nuage', 'creche_soleil']
-      
-      if (maternelleSections.includes(d.child.section)) {
-        return arrivalTime > new Date(`2000-01-01T08:00:00`)
-      } else if (crecheSections.includes(d.child.section)) {
-        return arrivalTime > new Date(`2000-01-01T09:00:00`)
-      }
-      
-      return false
-    }).length
+    // Calculate late with pure string comparison to avoid timezone drift
+    const late = data.filter(d => d.attendance?.arrival_time && isLateArrival(d.attendance.arrival_time, d.child.section)).length
 
     setStats({ total, present, absent, late })
   }
 
   const markManualAttendance = async (childId: string, type: 'arrival' | 'departure') => {
     try {
-      const currentTime = format(new Date(), 'HH:mm:ss')
+      const { time } = getNowParts()
       
       // Check if record exists for today
       const { data: existing } = await supabase
@@ -154,8 +161,8 @@ const AttendancePage = () => {
       if (existing) {
         // Update existing record
         const updateData = type === 'arrival' 
-          ? { arrival_time: currentTime, is_present: true }
-          : { departure_time: currentTime }
+          ? { arrival_time: time, is_present: true }
+          : { departure_time: time }
 
         const { error } = await supabase
           .from('daily_attendance')
@@ -171,8 +178,8 @@ const AttendancePage = () => {
             child_id: childId,
             educator_id: '', // This will need to be populated properly
             attendance_date: selectedDate,
-            arrival_time: type === 'arrival' ? currentTime : null,
-            departure_time: type === 'departure' ? currentTime : null,
+            arrival_time: type === 'arrival' ? time : null,
+            departure_time: type === 'departure' ? time : null,
             is_present: type === 'arrival'
           }])
 

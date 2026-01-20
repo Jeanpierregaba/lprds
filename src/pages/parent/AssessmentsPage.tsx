@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import logoImage from '@/assets/logo.png';
+import html2pdf from 'html2pdf.js';
 
 interface Child {
   id: string;
@@ -582,21 +583,85 @@ const ParentAssessmentsPage = () => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (isMobile) {
-      // On mobile, create a blob and download directly
-      const blob = new Blob([printContent], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Bilan_${selectedAssessment.child?.first_name}_${selectedAssessment.child?.last_name}_${selectedAssessment.period_name}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: 'Téléchargement',
-        description: 'Le fichier a été téléchargé. Ouvrez-le dans votre navigateur pour l\'imprimer.',
-      });
+      // On mobile, generate PDF using html2pdf.js
+      try {
+        toast({
+          title: 'Génération du PDF',
+          description: 'Le PDF est en cours de génération...',
+        });
+
+        // Create a temporary hidden container in the DOM
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '0';
+        tempContainer.style.width = '210mm'; // A4 width
+        document.body.appendChild(tempContainer);
+        
+        // Write the HTML content to the container
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '210mm';
+        iframe.style.height = '297mm';
+        iframe.style.border = 'none';
+        tempContainer.appendChild(iframe);
+        
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!iframeDoc) {
+          throw new Error('Could not access iframe document');
+        }
+        
+        iframeDoc.open();
+        iframeDoc.write(printContent);
+        iframeDoc.close();
+        
+        // Wait for content to load
+        await new Promise((resolve) => {
+          iframe.onload = resolve;
+          setTimeout(resolve, 1000); // Fallback timeout
+        });
+        
+        // Get the body element from iframe
+        const bodyElement = iframeDoc.body;
+        
+        // Configure PDF options
+        const margin: [number, number, number, number] = [8, 8, 8, 8];
+        const opt = {
+          margin,
+          filename: `Bilan_${selectedAssessment.child?.first_name}_${selectedAssessment.child?.last_name}_${selectedAssessment.period_name}.pdf`,
+          image: { type: 'jpeg' as const, quality: 0.98 },
+          html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            letterRendering: true,
+            windowWidth: 794, // A4 width in pixels at 96 DPI
+            windowHeight: 1123 // A4 height in pixels at 96 DPI
+          },
+          jsPDF: { 
+            unit: 'mm' as const, 
+            format: 'a4' as const, 
+            orientation: 'portrait' as const
+          }
+        };
+
+        // Generate and download PDF
+        await html2pdf().set(opt as any).from(bodyElement).save();
+        
+        // Clean up
+        document.body.removeChild(tempContainer);
+        
+        toast({
+          title: 'Succès',
+          description: 'Le PDF a été téléchargé avec succès.',
+        });
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de générer le PDF. Veuillez réessayer.',
+          variant: 'destructive'
+        });
+      }
     } else {
       // On desktop, use print dialog
       const printWindow = window.open('', '_blank');

@@ -60,6 +60,17 @@ interface Attendance {
   children?: any
 }
 
+// Utilitaire pour capturer l'heure actuelle de manière cohérente
+const getNowParts = () => {
+  const now = new Date()
+  return {
+    now,
+    isoDate: now.toISOString().slice(0, 10),    // yyyy-MM-dd
+    time: now.toTimeString().slice(0, 8),       // HH:mm:ss (local)
+    isoString: now.toISOString()
+  }
+}
+
 const DailyReportsManagement = () => {
   const { profile } = useAuth()
   const [children, setChildren] = useState<Child[]>([])
@@ -225,14 +236,14 @@ const DailyReportsManagement = () => {
     if (!selectedChild) return
 
     try {
-      const currentTime = format(new Date(), 'HH:mm:ss')
+      const { time, isoString } = getNowParts()
       
       // Update or create attendance record
       const attendanceData = {
         child_id: selectedChild.id,
         educator_id: profile?.id,
         attendance_date: selectedDate,
-        [`${scanType}_time`]: currentTime,
+        [`${scanType}_time`]: time,
         [`${scanType}_scanned_by`]: profile?.user_id,
         is_present: true
       }
@@ -249,7 +260,8 @@ const DailyReportsManagement = () => {
         .insert({
           child_id: selectedChild.id,
           scanned_by: profile?.user_id,
-          scan_type: scanType
+          scan_type: scanType,
+          scan_time: isoString
         })
 
       if (logError) throw logError
