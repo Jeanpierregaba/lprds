@@ -261,7 +261,7 @@ const ParentAssessmentsPage = () => {
           }
           body { 
             font-family: 'Nunito', 'Comic Neue', sans-serif;
-            background: #fef6e4;
+            background: #fff8f3;
             color: #333;
             font-size: ${baseFontSize}px;
             line-height: 1.3;
@@ -269,7 +269,7 @@ const ParentAssessmentsPage = () => {
           .page-container {
             width: 100%;
             min-height: 100vh;
-            padding: 10px 15px;
+            padding: 0;
             background: #fef6e4;
           }
           .header-row {
@@ -579,111 +579,192 @@ const ParentAssessmentsPage = () => {
       </html>
     `;
 
-    // Detect if mobile device
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // On mobile, generate PDF using html2pdf.js
-      try {
-        toast({
-          title: 'Génération du PDF',
-          description: 'Le PDF est en cours de génération...',
-        });
+    // Use html2pdf.js on all devices for consistent PDF generation
+    try {
+      toast({
+        title: 'Génération du PDF',
+        description: 'Le PDF est en cours de génération...',
+      });
 
-        // Create a temporary hidden container in the DOM
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.style.top = '0';
-        tempContainer.style.width = '210mm'; // A4 width
-        document.body.appendChild(tempContainer);
-        
-        // Write the HTML content to the container
-        const iframe = document.createElement('iframe');
-        iframe.style.width = '210mm';
-        iframe.style.height = '297mm';
-        iframe.style.border = 'none';
-        tempContainer.appendChild(iframe);
-        
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (!iframeDoc) {
-          throw new Error('Could not access iframe document');
-        }
-        
-        iframeDoc.open();
-        iframeDoc.write(printContent);
-        iframeDoc.close();
-        
-        // Wait for content to load
-        await new Promise((resolve) => {
-          iframe.onload = resolve;
-          setTimeout(resolve, 1000); // Fallback timeout
-        });
-        
-        // Get the body element from iframe
-        const bodyElement = iframeDoc.body;
-        
-        // Configure PDF options
-        const margin: [number, number, number, number] = [8, 8, 8, 8];
-        const opt = {
-          margin,
-          filename: `Bilan_${selectedAssessment.child?.first_name}_${selectedAssessment.child?.last_name}_${selectedAssessment.period_name}.pdf`,
-          image: { type: 'jpeg' as const, quality: 0.98 },
-          html2canvas: { 
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            letterRendering: true,
-            windowWidth: 794, // A4 width in pixels at 96 DPI
-            windowHeight: 1123 // A4 height in pixels at 96 DPI
-          },
-          jsPDF: { 
-            unit: 'mm' as const, 
-            format: 'a4' as const, 
-            orientation: 'portrait' as const
+      // Create a temporary hidden container in the DOM
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'fixed';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      tempContainer.style.width = '210mm';
+      tempContainer.style.height = '297mm';
+      tempContainer.style.overflow = 'hidden';
+      document.body.appendChild(tempContainer);
+      
+      // Create iframe for better isolation and rendering
+      const iframe = document.createElement('iframe');
+      iframe.style.width = '210mm';
+      iframe.style.height = '297mm';
+      iframe.style.border = 'none';
+      iframe.style.visibility = 'hidden';
+      tempContainer.appendChild(iframe);
+      
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Could not access iframe document');
+      }
+      
+      // Write content to iframe
+      iframeDoc.open();
+      iframeDoc.write(printContent);
+      iframeDoc.close();
+      
+      // Wait for iframe to load and images to be ready
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout waiting for content to load'));
+        }, 10000); // 10 second timeout
+
+        const checkReady = () => {
+          try {
+            const body = iframeDoc.body;
+            if (!body) {
+              setTimeout(checkReady, 100);
+              return;
+            }
+
+            // Wait for all images to load
+            const images = body.querySelectorAll('img');
+            let loadedImages = 0;
+            const totalImages = images.length;
+
+            if (totalImages === 0) {
+              clearTimeout(timeout);
+              resolve();
+              return;
+            }
+
+            const imageLoadHandler = () => {
+              loadedImages++;
+              if (loadedImages === totalImages) {
+                clearTimeout(timeout);
+                resolve();
+              }
+            };
+
+            const imageErrorHandler = () => {
+              loadedImages++;
+              // Continue even if some images fail to load
+              if (loadedImages === totalImages) {
+                clearTimeout(timeout);
+                resolve();
+              }
+            };
+
+            images.forEach((img) => {
+              if (img.complete) {
+                loadedImages++;
+              } else {
+                img.addEventListener('load', imageLoadHandler, { once: true });
+                img.addEventListener('error', imageErrorHandler, { once: true });
+              }
+            });
+
+            if (loadedImages === totalImages) {
+              clearTimeout(timeout);
+              resolve();
+            }
+          } catch (error) {
+            clearTimeout(timeout);
+            reject(error);
           }
         };
 
-        // Generate and download PDF
-        await html2pdf().set(opt as any).from(bodyElement).save();
+        iframe.onload = () => {
+          setTimeout(checkReady, 500); // Give extra time for rendering
+        };
         
-        // Clean up
+        // Fallback: check immediately if already loaded
+        if (iframeDoc.readyState === 'complete') {
+          setTimeout(checkReady, 500);
+        } else {
+          iframeDoc.addEventListener('DOMContentLoaded', checkReady, { once: true });
+        }
+      });
+      
+      // Get the body element from iframe
+      const bodyElement = iframeDoc.body;
+      if (!bodyElement) {
+        throw new Error('Could not access body element');
+      }
+      
+      // Configure PDF options optimized for all devices
+      const margin: [number, number, number, number] = [8, 8, 8, 8];
+      const filename = `Bilan_${selectedAssessment.child?.first_name}_${selectedAssessment.child?.last_name}_${selectedAssessment.period_name}.pdf`;
+      
+      const opt = {
+        margin,
+        filename,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          letterRendering: true,
+          windowWidth: 794, // A4 width in pixels at 96 DPI
+          windowHeight: 1123, // A4 height in pixels at 96 DPI
+          backgroundColor: '#fef6e4',
+          removeContainer: true,
+          onclone: (clonedDoc: Document) => {
+            // Ensure all styles are applied in the cloned document
+            const clonedBody = clonedDoc.body;
+            if (clonedBody) {
+              clonedBody.style.backgroundColor = '#fef6e4';
+            }
+          }
+        },
+        jsPDF: { 
+          unit: 'mm' as const, 
+          format: 'a4' as const, 
+          orientation: 'portrait' as const,
+          compress: true
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      // Generate and download PDF
+      await html2pdf().set(opt as any).from(bodyElement).save();
+      
+      // Clean up
+      try {
         document.body.removeChild(tempContainer);
-        
-        toast({
-          title: 'Succès',
-          description: 'Le PDF a été téléchargé avec succès.',
-        });
-      } catch (error) {
-        console.error('Error generating PDF:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Impossible de générer le PDF. Veuillez réessayer.',
-          variant: 'destructive'
-        });
+      } catch (cleanupError) {
+        // Ignore cleanup errors
+        console.warn('Cleanup error:', cleanupError);
       }
-    } else {
-      // On desktop, use print dialog
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 250);
-      } else {
-        // Fallback if popup is blocked
-        const blob = new Blob([printContent], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Bilan_${selectedAssessment.child?.first_name}_${selectedAssessment.child?.last_name}_${selectedAssessment.period_name}.html`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Succès',
+        description: 'Le PDF a été téléchargé avec succès.',
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      
+      // Clean up on error
+      try {
+        const containers = document.querySelectorAll('div[style*="-9999px"]');
+        containers.forEach(container => {
+          if (container.parentNode) {
+            container.parentNode.removeChild(container);
+          }
+        });
+      } catch (cleanupError) {
+        console.warn('Cleanup error:', cleanupError);
       }
+      
+      toast({
+        title: 'Erreur',
+        description: error instanceof Error 
+          ? `Impossible de générer le PDF: ${error.message}` 
+          : 'Impossible de générer le PDF. Veuillez réessayer.',
+        variant: 'destructive'
+      });
     }
   };
 
