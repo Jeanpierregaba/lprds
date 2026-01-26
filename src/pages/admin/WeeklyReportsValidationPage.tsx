@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import BiMonthlyReportsManagement from "@/components/admin/BiMonthlyReportsManagement";
 
 interface WeeklyReport {
   id: string;
@@ -640,10 +641,15 @@ export default function WeeklyReportsValidationPage() {
       <div className="flex items-center gap-3">
         <FileText className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">Validation des Rapports Bi-mensuels</h1>
-          <p className="text-muted-foreground">Gérez les rapports bi-mensuels des éducateurs</p>
+          <h1 className="text-2xl font-bold">Rapports Bi-mensuels</h1>
+          <p className="text-muted-foreground">
+            Remplissez et validez les rapports bi-mensuels des enfants
+          </p>
         </div>
       </div>
+
+      {/* Bloc de création / édition par l'administration */}
+      <BiMonthlyReportsManagement />
 
       <Tabs defaultValue="pending">
         <TabsList>

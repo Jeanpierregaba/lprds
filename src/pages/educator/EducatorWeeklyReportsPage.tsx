@@ -10,12 +10,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { FileText, Save, Send, Calendar, Loader2, Upload, X, Video, Trash2, FilePlus, Clock, CheckCircle, XCircle, History } from "lucide-react";
+import { FileText, Save, Send, Calendar as CalendarIcon, Loader2, Upload, X, Video, Trash2, FilePlus, Clock, CheckCircle, XCircle, History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import DraftWeeklyReportsList from "@/components/educator/DraftWeeklyReportsList";
 import { WeeklyReportsList } from "@/components/educator/WeeklyReportsList";
 
@@ -62,7 +65,8 @@ export default function EducatorWeeklyReportsPage() {
   const { user } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>("");
-  const [selectedWeek, setSelectedWeek] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [periodStartDate, setPeriodStartDate] = useState<Date | undefined>(new Date());
+  const [periodEndDate, setPeriodEndDate] = useState<Date | undefined>(addDays(new Date(), 13));
   const [educatorProfile, setEducatorProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,16 +105,17 @@ export default function EducatorWeeklyReportsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (selectedChildId && selectedWeek && activeTab === 'new') {
+    if (selectedChildId && periodStartDate && periodEndDate && activeTab === 'new') {
       checkExistingReport();
     }
-  }, [selectedChildId, selectedWeek, activeTab]);
+  }, [selectedChildId, periodStartDate, periodEndDate, activeTab]);
 
   // Load draft data when editing
   useEffect(() => {
     if (selectedDraft) {
       setSelectedChildId(selectedDraft.child_id);
-      setSelectedWeek(new Date(selectedDraft.week_start_date));
+      setPeriodStartDate(new Date(selectedDraft.week_start_date));
+      setPeriodEndDate(new Date(selectedDraft.week_end_date));
       // Load form data from draft
       const draftData = selectedDraft as any;
       const structured =
@@ -240,6 +245,8 @@ export default function EducatorWeeklyReportsPage() {
     setRefreshDrafts(prev => prev + 1);
     setRefreshPending(prev => prev + 1);
     // Reset form
+    setPeriodStartDate(new Date());
+    setPeriodEndDate(addDays(new Date(), 13));
     setActivitiesLearning({
       langage_oral_ecrit: "",
       activites_physiques: "",
@@ -268,7 +275,8 @@ export default function EducatorWeeklyReportsPage() {
   }, []);
 
   const checkExistingReport = async () => {
-    const periodStart = format(selectedWeek, "yyyy-MM-dd");
+    if (!periodStartDate) return;
+    const periodStart = format(periodStartDate, "yyyy-MM-dd");
     
     const { data } = await supabase
       .from("weekly_reports")
@@ -419,15 +427,24 @@ export default function EducatorWeeklyReportsPage() {
       return;
     }
 
+    if (!periodStartDate || !periodEndDate) {
+      toast.error("Veuillez sélectionner les dates de début et de fin de période");
+      return;
+    }
+
+    if (periodEndDate < periodStartDate) {
+      toast.error("La date de fin doit être postérieure à la date de début");
+      return;
+    }
+
     if (!educatorProfile) {
       toast.error("Profil éducateur non trouvé");
       return;
     }
 
     setSaving(true);
-    const periodStart = format(selectedWeek, "yyyy-MM-dd");
-    // Période bi-mensuelle : 2 semaines = 13 jours après le début (du lundi au dimanche suivant)
-    const periodEnd = format(addDays(selectedWeek, 13), "yyyy-MM-dd");
+    const periodStart = format(periodStartDate, "yyyy-MM-dd");
+    const periodEnd = format(periodEndDate, "yyyy-MM-dd");
 
     const reportData: any = {
       child_id: selectedChildId,
@@ -507,16 +524,6 @@ export default function EducatorWeeklyReportsPage() {
     }
   };
 
-  const getBiMonthlyOptions = () => {
-    const periods = [];
-    const today = new Date();
-    for (let i = 0; i < 8; i++) {
-      // Chaque période bi-mensuelle commence un lundi et dure 2 semaines (14 jours)
-      const periodStart = startOfWeek(addDays(today, -i * 14), { weekStartsOn: 1 });
-      periods.push(periodStart);
-    }
-    return periods;
-  };
 
   const getStatusBadge = (status: string, isValidated: boolean) => {
     if (isValidated) return <Badge className="bg-green-500">Validé</Badge>;
@@ -591,7 +598,7 @@ export default function EducatorWeeklyReportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label>Enfant</Label>
                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
@@ -609,22 +616,78 @@ export default function EducatorWeeklyReportsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Période (2 semaines)</Label>
-                <Select 
-                  value={selectedWeek.toISOString()} 
-                  onValueChange={(val) => setSelectedWeek(new Date(val))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getBiMonthlyOptions().map((period) => (
-                      <SelectItem key={period.toISOString()} value={period.toISOString()}>
-                        {format(period, "dd MMM", { locale: fr })} - {format(addDays(period, 13), "dd MMM yyyy", { locale: fr })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Date de début</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !periodStartDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {periodStartDate ? (
+                        format(periodStartDate, "PPP", { locale: fr })
+                      ) : (
+                        <span>Sélectionner une date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={periodStartDate}
+                      onSelect={(date) => {
+                        setPeriodStartDate(date);
+                        // Si la date de fin est avant la nouvelle date de début, ajuster la date de fin
+                        if (date && periodEndDate && date > periodEndDate) {
+                          setPeriodEndDate(addDays(date, 13));
+                        }
+                      }}
+                      initialFocus
+                      locale={fr}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Date de fin</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !periodEndDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {periodEndDate ? (
+                        format(periodEndDate, "PPP", { locale: fr })
+                      ) : (
+                        <span>Sélectionner une date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={periodEndDate}
+                      onSelect={setPeriodEndDate}
+                      disabled={(date) => {
+                        // Désactiver les dates avant la date de début
+                        if (periodStartDate) {
+                          return date < periodStartDate;
+                        }
+                        return false;
+                      }}
+                      initialFocus
+                      locale={fr}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
@@ -651,7 +714,7 @@ export default function EducatorWeeklyReportsPage() {
                         <Textarea
                           value={activitiesLearning.langage_oral_ecrit}
                           onChange={(e) => setActivitiesLearning(prev => ({ ...prev, langage_oral_ecrit: e.target.value }))}
-                          placeholder="Commentaires..."
+                          placeholder="Observations..."
                           className="min-h-[80px] resize-none"
                         />
                       </div>
@@ -660,7 +723,7 @@ export default function EducatorWeeklyReportsPage() {
                         <Textarea
                           value={activitiesLearning.activites_physiques}
                           onChange={(e) => setActivitiesLearning(prev => ({ ...prev, activites_physiques: e.target.value }))}
-                          placeholder="Commentaires..."
+                          placeholder="Observations..."
                           className="min-h-[80px] resize-none"
                         />
                       </div>
@@ -669,7 +732,7 @@ export default function EducatorWeeklyReportsPage() {
                         <Textarea
                           value={activitiesLearning.activites_artistiques}
                           onChange={(e) => setActivitiesLearning(prev => ({ ...prev, activites_artistiques: e.target.value }))}
-                          placeholder="Commentaires..."
+                          placeholder="Observations..."
                           className="min-h-[80px] resize-none"
                         />
                       </div>
@@ -678,7 +741,7 @@ export default function EducatorWeeklyReportsPage() {
                         <Textarea
                           value={activitiesLearning.outils_mathematiques}
                           onChange={(e) => setActivitiesLearning(prev => ({ ...prev, outils_mathematiques: e.target.value }))}
-                          placeholder="Commentaires..."
+                          placeholder="Observations..."
                           className="min-h-[80px] resize-none"
                         />
                       </div>
@@ -687,7 +750,7 @@ export default function EducatorWeeklyReportsPage() {
                         <Textarea
                           value={activitiesLearning.explorer_monde}
                           onChange={(e) => setActivitiesLearning(prev => ({ ...prev, explorer_monde: e.target.value }))}
-                          placeholder="Commentaires..."
+                          placeholder="Observations..."
                           className="min-h-[80px] resize-none"
                         />
                       </div>
@@ -696,7 +759,7 @@ export default function EducatorWeeklyReportsPage() {
                         <Textarea
                           value={activitiesLearning.anglais}
                           onChange={(e) => setActivitiesLearning(prev => ({ ...prev, anglais: e.target.value }))}
-                          placeholder="Commentaires..."
+                          placeholder="Observations..."
                           className="min-h-[80px] resize-none"
                         />
                       </div>
@@ -745,7 +808,7 @@ export default function EducatorWeeklyReportsPage() {
 
                   {/* 3. Relation aux autres */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">3. Relation aux autres</h3>
+                    <h3 className="text-lg font-semibold">3. Relation avec les autres</h3>
                     <div className="space-y-2">
                       {[
                         { value: 'gentil_camarades', label: 'Gentil(le) avec les camarades' },
@@ -810,7 +873,7 @@ export default function EducatorWeeklyReportsPage() {
 
                   <div className="border-t pt-4" />
 
-                  {/* 5. Repas */}
+                  {/* 5. Repas 
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">5. Repas</h3>
                     <RadioGroup value={meals} onValueChange={setMeals}>
@@ -833,26 +896,13 @@ export default function EducatorWeeklyReportsPage() {
                         </Label>
                       </div>
                     </RadioGroup>
-                  </div>
-
-                  <div className="border-t pt-4" />
-
-                  {/* 6. Observations */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">6. Observations de l'enseignante</h3>
-                    <Textarea
-                      value={teacherObservations}
-                      onChange={(e) => setTeacherObservations(e.target.value)}
-                      placeholder="Vos observations..."
-                      className="min-h-[120px] resize-none"
-                    />
-                  </div>
+                  </div>*/}
 
                   <div className="border-t pt-4" />
 
                   {/* 7. Photos de la période */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">7. Photos de la période</h3>
+                    <h3 className="text-lg font-semibold">5. Photos de la période</h3>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Input
@@ -935,6 +985,21 @@ export default function EducatorWeeklyReportsPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* 6. Observations */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">6. Observations de l'enseignante</h3>
+                    <Textarea
+                      value={teacherObservations}
+                      onChange={(e) => setTeacherObservations(e.target.value)}
+                      placeholder="Vos observations..."
+                      className="min-h-[120px] resize-none"
+                    />
+                  </div>
+
+                  <div className="border-t pt-4" />
+
+
                 </div>
               </div>
             )}

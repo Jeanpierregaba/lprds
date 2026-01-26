@@ -105,7 +105,7 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: ClipboardCheck 
       },
       { 
-        title: "Rapports Hebdo", 
+        title: "Rapports Bi-Mensuels", 
         url: "/admin/dashboard/weekly-reports", 
         icon: Mail 
       },
@@ -176,7 +176,7 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: ClipboardCheck 
       },
       { 
-        title: "Rapports Hebdo", 
+        title: "Rapports Bi-Mensuels", 
         url: "/educator/dashboard/weekly-reports", 
         icon: Mail 
       },
@@ -213,7 +213,7 @@ export const useRoleBasedNavigation = (): NavigationItem[] => {
         icon: ClipboardCheck 
       },
       { 
-        title: "Rapports Hebdo", 
+        title: "Rapports Bi-Mensuels", 
         url: "/parent/dashboard/weekly-reports", 
         icon: Mail 
       },

@@ -24,7 +24,7 @@ const parentSections = [
   { key: 'menus', icon: UtensilsCrossed, label: 'Menus' },
   { key: 'reports', icon: FileText, label: 'Suivi Quotidien' },
   { key: 'assessments', icon: ClipboardCheck, label: 'Bilans Périodiques' },
-  { key: 'weekly-reports', icon: Mail, label: 'Rapports Hebdo' },
+  { key: 'weekly-reports', icon: Mail, label: 'Rapports Bi-Mensuels' },
   { key: 'messages', icon: MessageSquare, label: 'Messages' },
 ];
 

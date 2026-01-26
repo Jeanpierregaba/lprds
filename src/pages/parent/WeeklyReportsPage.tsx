@@ -515,7 +515,7 @@ export default function ParentWeeklyReportsPage() {
             <Mail className="h-6 w-6 text-amber-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Lettres Bi-mensuelles</h1>
+            <h1 className="text-2xl font-bold text-primary">Rapports Bi-mensuelles</h1>
             <p className="text-muted-foreground">Découvrez les aventures de la période de 2 semaines de vos enfants</p>
           </div>
         </div>
@@ -594,10 +594,6 @@ export default function ParentWeeklyReportsPage() {
                     </p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Pen className="h-3 w-3" />
-                      {report.profiles?.first_name} {report.profiles?.last_name}
-                    </p>
                     <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50">
                       <Eye className="h-4 w-4 mr-1" />
                       Lire
@@ -615,15 +611,15 @@ export default function ParentWeeklyReportsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader className="pb-4 border-b border-amber-100">
             <div className="flex items-center gap-4">
-              <Avatar className="h-14 w-14 border-2 border-amber-200">
+              <Avatar className="h-14 w-14 border-2 border-accent-200">
                 <AvatarImage src={getChild(selectedReport?.child_id || "")?.photo_url} />
-                <AvatarFallback className="bg-amber-100 text-amber-700 text-lg">
+                <AvatarFallback className="bg-accent-50 text-accent text-lg">
                   {getChild(selectedReport?.child_id || "")?.first_name?.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <DialogTitle className="text-xl">
-                  Lettre de {getChildName(selectedReport?.child_id || "")}
+                <DialogTitle className="text-primary text-xl">
+                  Rapport Bi-Mensuel de {getChildName(selectedReport?.child_id || "")}
                 </DialogTitle>
                 <DialogDescription className="flex items-center gap-2 mt-1">
                   <Calendar className="h-4 w-4" />
@@ -803,13 +799,13 @@ export default function ParentWeeklyReportsPage() {
             <Button variant="outline" onClick={() => setShowDetails(false)}>
               Fermer
             </Button>
-            <Button 
+             {/*<Button 
               onClick={() => selectedReport && downloadAsPDF(selectedReport)}
               className="bg-amber-600 hover:bg-amber-700"
             >
-             <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4 mr-2" />
               Télécharger / Imprimer
-            </Button>
+            </Button>*/}
           </div>
         </DialogContent>
       </Dialog>
