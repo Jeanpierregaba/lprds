@@ -10,6 +10,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
@@ -79,6 +86,8 @@ export default function EducatorWeeklyReportsPage() {
   const [refreshPending, setRefreshPending] = useState(0);
   const [refreshValidated, setRefreshValidated] = useState(0);
   const [refreshRejected, setRefreshRejected] = useState(0);
+  const [viewReport, setViewReport] = useState<WeeklyReport | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   
   // Form state
   const [activitiesLearning, setActivitiesLearning] = useState({
@@ -234,9 +243,36 @@ export default function EducatorWeeklyReportsPage() {
     setLoading(false);
   };
 
-  const handleEditDraft = useCallback((draft: any) => {
-    setSelectedDraft(draft);
-    setActiveTab('new');
+  const handleEditDraft = useCallback(async (draft: any) => {
+    try {
+      const { data, error } = await supabase
+        .from("weekly_reports")
+        .select("*")
+        .eq("id", draft.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error("Erreur lors du chargement du brouillon à modifier:", error);
+        toast.error("Impossible de charger le brouillon à modifier");
+        return;
+      }
+
+      const fullReport = data as WeeklyReport;
+      setSelectedDraft(fullReport as any);
+      setExistingReport(fullReport);
+
+      if (fullReport.week_start_date) {
+        setPeriodStartDate(new Date(fullReport.week_start_date));
+      }
+      if (fullReport.week_end_date) {
+        setPeriodEndDate(new Date(fullReport.week_end_date));
+      }
+
+      setActiveTab('new');
+    } catch (e) {
+      console.error("Erreur inattendue lors du chargement du brouillon:", e);
+      toast.error("Erreur lors du chargement du brouillon");
+    }
   }, []);
 
   const handleReportSaved = useCallback(() => {
@@ -264,14 +300,56 @@ export default function EducatorWeeklyReportsPage() {
     setMediaFiles([]);
   }, []);
 
-  const handleViewReport = useCallback((report: any) => {
-    // TODO: Implémenter la vue détaillée du rapport
-    console.log('View report:', report);
+  const handleViewReport = useCallback(async (report: any) => {
+    try {
+      const { data, error } = await supabase
+        .from("weekly_reports")
+        .select("*")
+        .eq("id", report.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error("Erreur lors du chargement du rapport bi-mensuel:", error);
+        toast.error("Impossible de charger le rapport sélectionné");
+        return;
+      }
+
+      setViewReport(data as WeeklyReport);
+      setViewDialogOpen(true);
+    } catch (e) {
+      console.error("Erreur inattendue lors du chargement du rapport bi-mensuel:", e);
+      toast.error("Erreur lors du chargement du rapport");
+    }
   }, []);
 
-  const handleEditReport = useCallback((report: any) => {
-    setSelectedDraft(report);
-    setActiveTab('new');
+  const handleEditReport = useCallback(async (report: any) => {
+    try {
+      const { data, error } = await supabase
+        .from("weekly_reports")
+        .select("*")
+        .eq("id", report.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error("Erreur lors du chargement du rapport à modifier:", error);
+        toast.error("Impossible de charger le rapport à modifier");
+        return;
+      }
+
+      const fullReport = data as WeeklyReport;
+      setSelectedDraft(fullReport as any);
+      setExistingReport(fullReport);
+      if (fullReport.week_start_date) {
+        setPeriodStartDate(new Date(fullReport.week_start_date));
+      }
+      if (fullReport.week_end_date) {
+        setPeriodEndDate(new Date(fullReport.week_end_date));
+      }
+      setActiveTab('new');
+    } catch (e) {
+      console.error("Erreur inattendue lors du chargement du rapport à modifier:", e);
+      toast.error("Erreur lors du chargement du rapport à modifier");
+    }
   }, []);
 
   const checkExistingReport = async () => {
@@ -1142,6 +1220,148 @@ export default function EducatorWeeklyReportsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialogue de visualisation d'un rapport (tous statuts, dont rejetés) */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Rapport bi-mensuel</DialogTitle>
+            {viewReport && (
+              <DialogDescription>
+                Période du{" "}
+                {format(new Date(viewReport.week_start_date), "dd MMM yyyy", { locale: fr })}{" "}
+                au{" "}
+                {format(new Date(viewReport.week_end_date), "dd MMM yyyy", { locale: fr })}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          {viewReport ? (
+            <div className="space-y-6">
+              {/* 1. Activités & apprentissages */}
+              {viewReport.activities_learning && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">1. Activités & apprentissages</h3>
+                  <div className="space-y-1 text-sm">
+                    {viewReport.activities_learning.langage_oral_ecrit && (
+                      <p>
+                        <span className="font-medium">
+                          Développement et structuration du langage oral et écrit :{" "}
+                        </span>
+                        {viewReport.activities_learning.langage_oral_ecrit}
+                      </p>
+                    )}
+                    {viewReport.activities_learning.activites_physiques && (
+                      <p>
+                        <span className="font-medium">
+                          Activités physiques :{" "}
+                        </span>
+                        {viewReport.activities_learning.activites_physiques}
+                      </p>
+                    )}
+                    {viewReport.activities_learning.activites_artistiques && (
+                      <p>
+                        <span className="font-medium">
+                          Activités artistiques :{" "}
+                        </span>
+                        {viewReport.activities_learning.activites_artistiques}
+                      </p>
+                    )}
+                    {viewReport.activities_learning.outils_mathematiques && (
+                      <p>
+                        <span className="font-medium">
+                          Outils mathématiques :{" "}
+                        </span>
+                        {viewReport.activities_learning.outils_mathematiques}
+                      </p>
+                    )}
+                    {viewReport.activities_learning.explorer_monde && (
+                      <p>
+                        <span className="font-medium">
+                          Explorer le monde :{" "}
+                        </span>
+                        {viewReport.activities_learning.explorer_monde}
+                      </p>
+                    )}
+                    {viewReport.activities_learning.anglais && (
+                      <p>
+                        <span className="font-medium">
+                          Anglais :{" "}
+                        </span>
+                        {viewReport.activities_learning.anglais}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Comportement & attitude */}
+              {viewReport.behavior_attitude && viewReport.behavior_attitude.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">2. Comportement & attitude en classe</h3>
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    {viewReport.behavior_attitude.map((b) => (
+                      <Badge key={b} variant="secondary">
+                        {b}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Relation aux autres */}
+              {viewReport.social_relations && viewReport.social_relations.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">3. Relation avec les autres</h3>
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    {viewReport.social_relations.map((r) => (
+                      <Badge key={r} variant="outline">
+                        {r}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Gestion des émotions */}
+              {viewReport.emotion_management && viewReport.emotion_management.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">4. Gestion des émotions</h3>
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    {viewReport.emotion_management.map((e) => (
+                      <Badge key={e} variant="outline">
+                        {e}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 5. Repas */}
+              {viewReport.meals && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">5. Repas</h3>
+                  <p className="text-sm">{viewReport.meals}</p>
+                </div>
+              )}
+
+              {/* 6. Observations */}
+              {viewReport.teacher_observations && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">6. Observations de l'enseignante</h3>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {viewReport.teacher_observations}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucun rapport sélectionné.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
