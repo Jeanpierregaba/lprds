@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Clock, Search, QrCode, UserCheck, UserX, FileText } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Calendar, Clock, Search, QrCode, UserCheck, UserX, FileText, X } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
@@ -58,6 +59,8 @@ const AttendancePage = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [stats, setStats] = useState<AttendanceStats>({ total: 0, present: 0, absent: 0, late: 0 })
   const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogType, setDialogType] = useState<'present' | 'absent' | 'late' | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -221,6 +224,37 @@ const AttendancePage = () => {
     return <Badge variant="outline">Non pointé</Badge>
   }
 
+  const getChildrenByStatus = (type: 'present' | 'absent' | 'late') => {
+    return attendanceData.filter(data => {
+      if (type === 'present') {
+        return data.attendance?.is_present && data.attendance?.arrival_time
+      } else if (type === 'absent') {
+        return !data.attendance?.is_present
+      } else if (type === 'late') {
+        return data.attendance?.arrival_time && isLateArrival(data.attendance.arrival_time, data.child.section)
+      }
+      return false
+    })
+  }
+
+  const openDialog = (type: 'present' | 'absent' | 'late') => {
+    setDialogType(type)
+    setDialogOpen(true)
+  }
+
+  const getDialogTitle = () => {
+    switch (dialogType) {
+      case 'present':
+        return `Enfants Présents (${getChildrenByStatus('present').length})`
+      case 'absent':
+        return `Enfants Absents (${getChildrenByStatus('absent').length})`
+      case 'late':
+        return `Enfants en Retard (${getChildrenByStatus('late').length})`
+      default:
+        return ''
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -251,7 +285,10 @@ const AttendancePage = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openDialog('present')}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -263,7 +300,10 @@ const AttendancePage = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openDialog('absent')}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -275,7 +315,10 @@ const AttendancePage = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openDialog('late')}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -408,6 +451,89 @@ const AttendancePage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog for children lists */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{getDialogTitle()}</DialogTitle>
+            <DialogDescription>
+              Liste des enfants pour le {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: fr })}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 mt-4">
+            {dialogType && getChildrenByStatus(dialogType).length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Aucun enfant trouvé dans cette catégorie
+              </p>
+            ) : (
+              dialogType && getChildrenByStatus(dialogType).map((data) => (
+                <div key={data.child.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center space-x-3">
+                    <Avatar>
+                      <AvatarImage src={data.child.photo_url} />
+                      <AvatarFallback>
+                        {data.child.first_name[0]}{data.child.last_name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div>
+                      <h4 className="font-medium">
+                        {data.child.first_name} {data.child.last_name}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {data.child.section}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    {dialogType === 'present' && (
+                      <>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Arrivée</p>
+                          <p className="font-medium text-sm">
+                            {data.attendance?.arrival_time || '-'}
+                          </p>
+                        </div>
+                        {data.attendance?.departure_time && (
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">Départ</p>
+                            <p className="font-medium text-sm">
+                              {data.attendance.departure_time}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {dialogType === 'late' && (
+                      <>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Arrivée</p>
+                          <p className="font-medium text-sm text-orange-600">
+                            {data.attendance?.arrival_time || '-'}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-orange-600 border-orange-600">
+                          En retard
+                        </Badge>
+                      </>
+                    )}
+                    
+                    {dialogType === 'absent' && (
+                      <Badge variant="destructive">
+                        Absent
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
