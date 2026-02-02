@@ -48,7 +48,7 @@ const isLateArrival = (arrival: string, section: string) => {
   // Pure string comparison on HH:mm:ss avoids timezone shifts
   const maternelleSections = ['maternelle_GS', 'maternelle_MS', 'maternelle_PS1', 'maternelle_PS2']
   const crecheSections = ['creche_etoile', 'creche_nuage', 'creche_soleil']
-  const threshold = maternelleSections.includes(section) ? '08:00:00' : crecheSections.includes(section) ? '09:00:00' : null
+  const threshold = maternelleSections.includes(section) ? '08:00:00' : crecheSections.includes(section) ? '10:00:00' : null
   return threshold ? arrival > threshold : false
 }
 
@@ -61,6 +61,8 @@ const AttendancePage = () => {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogType, setDialogType] = useState<'present' | 'absent' | 'late' | null>(null)
+  const [dialogSearchQuery, setDialogSearchQuery] = useState('')
+  const [dialogSelectedSection, setDialogSelectedSection] = useState<string>('all')
   const { toast } = useToast()
 
   useEffect(() => {
@@ -239,7 +241,25 @@ const AttendancePage = () => {
 
   const openDialog = (type: 'present' | 'absent' | 'late') => {
     setDialogType(type)
+    setDialogSearchQuery('')
+    setDialogSelectedSection('all')
     setDialogOpen(true)
+  }
+
+  const getFilteredChildrenByStatus = (type: 'present' | 'absent' | 'late') => {
+    const childrenByStatus = getChildrenByStatus(type)
+    
+    return childrenByStatus.filter(data => {
+      // Filtre par recherche
+      const searchLower = dialogSearchQuery.toLowerCase()
+      const childName = `${data.child.first_name} ${data.child.last_name}`.toLowerCase()
+      const matchesSearch = childName.includes(searchLower)
+      
+      // Filtre par section
+      const matchesSection = dialogSelectedSection === 'all' || data.child.section === dialogSelectedSection
+      
+      return matchesSearch && matchesSection
+    })
   }
 
   const getDialogTitle = () => {
@@ -462,13 +482,42 @@ const AttendancePage = () => {
             </DialogDescription>
           </DialogHeader>
           
+          {/* Dialog Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 p-3 bg-gray-50 rounded-lg">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un enfant..."
+                value={dialogSearchQuery}
+                onChange={(e) => setDialogSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            <Select value={dialogSelectedSection} onValueChange={setDialogSelectedSection}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Toutes les sections" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les sections</SelectItem>
+                <SelectItem value="creche_etoile">Crèche Étoile</SelectItem>
+                <SelectItem value="creche_nuage">Crèche Nuage</SelectItem>
+                <SelectItem value="creche_soleil">Crèche Soleil TPS</SelectItem>
+                <SelectItem value="garderie">Garderie</SelectItem>
+                <SelectItem value="maternelle_PS1">Maternelle Petite Section 1</SelectItem>
+                <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
+                <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="space-y-3 mt-4">
-            {dialogType && getChildrenByStatus(dialogType).length === 0 ? (
+            {dialogType && getFilteredChildrenByStatus(dialogType).length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                Aucun enfant trouvé dans cette catégorie
+                Aucun enfant trouvé pour ces filtres
               </p>
             ) : (
-              dialogType && getChildrenByStatus(dialogType).map((data) => (
+              dialogType && getFilteredChildrenByStatus(dialogType).map((data) => (
                 <div key={data.child.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                   <div className="flex items-center space-x-3">
                     <Avatar>
