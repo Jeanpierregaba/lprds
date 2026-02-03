@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { FileText, Check, X, Loader2, Calendar, Image as ImageIcon, Video, BookOpen, Heart, Users, Smile, UtensilsCrossed, Eye, Camera } from "lucide-react";
+import { FileText, Check, X, Loader2, Calendar, Image as ImageIcon, Video, BookOpen, Heart, Users, Smile, UtensilsCrossed, Eye, Camera, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import BiMonthlyReportsManagement from "@/components/admin/BiMonthlyReportsManagement";
+import EditWeeklyReportDialog from "@/components/admin/EditWeeklyReportDialog";
 
 interface WeeklyReport {
   id: string;
@@ -82,6 +83,8 @@ export default function WeeklyReportsValidationPage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [reportToEdit, setReportToEdit] = useState<WeeklyReport | null>(null);
 
   useEffect(() => {
     fetchReports();
@@ -197,6 +200,16 @@ export default function WeeklyReportsValidationPage() {
       fetchReports();
     }
     setProcessing(false);
+  };
+
+  const handleEditReport = (report: WeeklyReport) => {
+    setReportToEdit(report);
+    setEditDialogOpen(true);
+  };
+
+  const handleReportUpdated = () => {
+    fetchReports();
+    setReportToEdit(null);
   };
 
   const pendingReports = reports.filter((r) => r.status === "pending");
@@ -599,6 +612,15 @@ export default function WeeklyReportsValidationPage() {
             <div className="flex gap-3 justify-end mt-6 pt-6 border-t-2 border-muted">
             <Button
               variant="outline"
+              onClick={() => handleEditReport(report)}
+              disabled={processing}
+              className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => {
                 setSelectedReport(report);
                 setRejectDialogOpen(true);
@@ -701,7 +723,7 @@ export default function WeeklyReportsValidationPage() {
             </Card>
           ) : (
             rejectedReports.map((report) => (
-              <ReportCard key={report.id} report={report} />
+              <ReportCard key={report.id} report={report} showActions />
             ))
           )}
         </TabsContent>
@@ -737,6 +759,14 @@ export default function WeeklyReportsValidationPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialogue de modification du rapport */}
+      <EditWeeklyReportDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        report={reportToEdit}
+        onReportUpdated={handleReportUpdated}
+      />
     </div>
   );
 }
