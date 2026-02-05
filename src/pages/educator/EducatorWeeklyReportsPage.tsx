@@ -1084,7 +1084,7 @@ export default function EducatorWeeklyReportsPage() {
 
             {educatorProfile && (
               <div className="text-right text-sm text-muted-foreground italic pt-4 border-t">
-                Signé par: {educatorProfile.first_name}
+                Signé par: Tata {educatorProfile.first_name}
               </div>
             )}
 
