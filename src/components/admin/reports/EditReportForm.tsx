@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,9 +106,32 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
     Array.isArray(report.activities) ? report.activities : []
   );
   const [newActivity, setNewActivity] = useState<string>('');
+  const [existingMedia, setExistingMedia] = useState<string[]>(
+    Array.isArray(report.photos) ? report.photos : []
+  );
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    setExistingMedia(Array.isArray(report.photos) ? report.photos : []);
+    setMediaFiles([]);
+  }, [report?.id]);
+
+  const newMediaPreviews = useMemo(() => {
+    return mediaFiles.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+      isVideo: file.type.startsWith('video/')
+    }));
+  }, [mediaFiles]);
+
+  useEffect(() => {
+    return () => {
+      newMediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [newMediaPreviews]);
 
   const handleActivityToggle = (activity: string) => {
     setSelectedActivities(prev => {
@@ -149,10 +172,93 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
     });
   };
 
+  const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+
+    const validFiles = files.filter(file => {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+
+      if (!isImage && !isVideo) {
+        toast({
+          title: 'Format non supporté',
+          description: `Le fichier ${file.name} n'est ni une image ni une vidéo`,
+          variant: 'destructive'
+        });
+        return false;
+      }
+
+      const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+      const maxSizeLabel = isVideo ? '50MB' : '10MB';
+
+      if (file.size > maxSize) {
+        toast({
+          title: 'Fichier trop volumineux',
+          description: `Le fichier ${file.name} dépasse ${maxSizeLabel}`,
+          variant: 'destructive'
+        });
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      setMediaFiles(prev => [...prev, ...validFiles]);
+    }
+
+    event.target.value = '';
+  };
+
+  const removeExistingMedia = (url: string) => {
+    setExistingMedia(prev => prev.filter(u => u !== url));
+  };
+
+  const removeNewMediaFile = (index: number) => {
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const isVideoUrl = (url: string) => {
+    const lower = url.toLowerCase();
+    return lower.includes('.mp4') || lower.includes('.webm') || lower.includes('.mov') || lower.includes('.m4v') || lower.includes('.ogg');
+  };
+
+  const uploadMediaFiles = async (reportId: string): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+
+    for (const file of mediaFiles) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${reportId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('daily-reports')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('daily-reports')
+        .getPublicUrl(fileName);
+
+      uploadedUrls.push(publicUrl);
+    }
+
+    return uploadedUrls;
+  };
+
   const handleSave = async () => {
     setIsSubmitting(true);
     
     try {
+      const uploadedMediaUrls = mediaFiles.length > 0
+        ? await uploadMediaFiles(report.id)
+        : [];
+
+      const allMedia = Array.from(new Set([...(existingMedia || []), ...uploadedMediaUrls]));
+
       const updateData = {
         arrival_time: formData.arrival_time || null,
         departure_time: formData.departure_time || null,
@@ -170,7 +276,8 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
         hygiene_bowel_movement: formData.hygiene_bowel_movement,
         hygiene_frequency_notes: formData.hygiene_frequency_notes || null,
         mood: formData.mood,
-        special_observations: formData.special_observations || null
+        special_observations: formData.special_observations || null,
+        photos: allMedia
       };
 
       const { error } = await supabase
@@ -561,6 +668,94 @@ const EditReportForm: React.FC<EditReportFormProps> = ({ report, onSaved, onCanc
             placeholder="Notez ici toute observation particulière..."
             rows={4}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Photos & vidéos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="admin_media_upload">Ajouter des médias</Label>
+            <Input
+              id="admin_media_upload"
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleMediaUpload}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {(existingMedia.length > 0 || mediaFiles.length > 0) && (
+            <div className="space-y-3">
+              {existingMedia.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Médias existants</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {existingMedia.map((url) => (
+                      <div key={url} className="border rounded-md overflow-hidden">
+                        <div className="aspect-video bg-muted flex items-center justify-center">
+                          {isVideoUrl(url) ? (
+                            <video src={url} className="w-full h-full object-cover" controls />
+                          ) : (
+                            <img src={url} alt="media" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div className="p-2 flex justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeExistingMedia(url)}
+                            disabled={isSubmitting}
+                          >
+                            Retirer
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {mediaFiles.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Nouveaux médias</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {newMediaPreviews.map(({ file, url, isVideo }, index) => {
+                      return (
+                        <div key={`${file.name}-${index}`} className="border rounded-md overflow-hidden">
+                          <div className="aspect-video bg-muted flex items-center justify-center">
+                            {isVideo ? (
+                              <video src={url} className="w-full h-full object-cover" controls />
+                            ) : (
+                              <img src={url} alt={file.name} className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                          <div className="p-2 flex items-center justify-between gap-2">
+                            <div className="text-xs text-muted-foreground truncate flex-1">
+                              {file.name}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeNewMediaFile(index)}
+                              disabled={isSubmitting}
+                            >
+                              Retirer
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

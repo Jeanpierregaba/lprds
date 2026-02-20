@@ -80,6 +80,8 @@ const ReportValidation: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | null>(null);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -132,6 +134,7 @@ const ReportValidation: React.FC = () => {
         .select(`
           id,
           report_date,
+          status,
           arrival_time,
           departure_time,
           health_status,
@@ -148,11 +151,12 @@ const ReportValidation: React.FC = () => {
           mood,
           special_observations,
           photos,
+          rejection_reason,
           created_at,
           child_id,
           educator_id
         `)
-        .eq('is_validated', false)
+        .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       // Filtres sur daily_reports directement
@@ -238,17 +242,25 @@ const ReportValidation: React.FC = () => {
     setIsValidating(true);
     
     try {
+      const updateData = {
+        status: isApproved ? 'validated' : 'rejected',
+        is_validated: isApproved,
+        validated_by: profile.id,
+        validated_at: new Date().toISOString(),
+        validation_notes: validationNote || null,
+        rejection_reason: isApproved ? null : (validationNote || 'Rapport rejeté par l\'administration')
+      };
+
+      console.log('Updating report:', reportId, 'with data:', updateData);
+
       const { error } = await supabase
         .from('daily_reports')
-        .update({
-          is_validated: isApproved,
-          validated_by: profile.id,
-          validated_at: new Date().toISOString(),
-          validation_notes: validationNote || null
-        })
+        .update(updateData)
         .eq('id', reportId);
 
       if (error) throw error;
+
+      console.log('Report updated successfully:', isApproved ? 'validated' : 'rejected');
 
       // Si le rapport est approuvé, envoyer une notification email aux parents
       if (isApproved) {
@@ -364,6 +376,16 @@ const ReportValidation: React.FC = () => {
     setIsModalOpen(true);
     setIsEditing(false);
     setValidationNote('');
+  };
+
+  const isVideoUrl = (url: string) => {
+    const lower = url.toLowerCase();
+    return lower.includes('.mp4') || lower.includes('.webm') || lower.includes('.mov') || lower.includes('.m4v') || lower.includes('.ogg');
+  };
+
+  const openMediaModal = (url: string) => {
+    setSelectedMediaUrl(url);
+    setIsMediaModalOpen(true);
   };
 
   const getMoodEmoji = (mood: string) => {
@@ -811,18 +833,34 @@ const ReportValidation: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Photos */}
+                    {/* Médias */}
                     {selectedReport.photos && selectedReport.photos.length > 0 && (
                       <div className="p-4 border rounded-md">
-                        <h4 className="font-medium mb-2">Photos ({selectedReport.photos.length})</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {selectedReport.photos.map((photo, index) => (
-                            <img
+                        <h4 className="font-medium mb-2">Médias ({selectedReport.photos.length})</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {selectedReport.photos.map((mediaUrl, index) => (
+                            <button
                               key={index}
-                              src={photo}
-                              alt={`Photo ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg"
-                            />
+                              type="button"
+                              className="block w-full text-left"
+                              onClick={() => openMediaModal(mediaUrl)}
+                            >
+                              <div className="w-full h-32 rounded-lg overflow-hidden bg-muted">
+                                {isVideoUrl(mediaUrl) ? (
+                                  <video
+                                    src={mediaUrl}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                  />
+                                ) : (
+                                  <img
+                                    src={mediaUrl}
+                                    alt={`Media ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </div>
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -871,6 +909,23 @@ const ReportValidation: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>Fermer</Button>
             </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isMediaModalOpen} onOpenChange={setIsMediaModalOpen}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Média</DialogTitle>
+          </DialogHeader>
+          {selectedMediaUrl && (
+            <div className="w-full">
+              {isVideoUrl(selectedMediaUrl) ? (
+                <video src={selectedMediaUrl} className="w-full max-h-[75vh]" controls />
+              ) : (
+                <img src={selectedMediaUrl} alt="media" className="w-full max-h-[75vh] object-contain" />
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>

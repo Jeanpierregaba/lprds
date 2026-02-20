@@ -4,6 +4,7 @@ import { AdminOrSecretary, EducatorOnly } from '@/components/PermissionGuard'
 import DailyReportForm from '@/components/admin/reports/DailyReportForm'
 import ReportValidation from '@/components/admin/reports/ReportValidation'
 import ReportsHistory from '@/components/admin/reports/ReportsHistory'
+import RejectedReportsList from '@/components/admin/reports/RejectedReportsList'
 
 const DailyReportsPage = () => {
   return (
@@ -13,6 +14,9 @@ const DailyReportsPage = () => {
           <TabsTrigger value="create">Créer un rapport</TabsTrigger>
           <AdminOrSecretary>
             <TabsTrigger value="validate">Validation</TabsTrigger>
+          </AdminOrSecretary>
+          <AdminOrSecretary>
+            <TabsTrigger value="rejected">Rejetés</TabsTrigger>
           </AdminOrSecretary>
           <AdminOrSecretary>
             <TabsTrigger value="history">Historique</TabsTrigger>
@@ -26,6 +30,12 @@ const DailyReportsPage = () => {
         <AdminOrSecretary>
           <TabsContent value="validate">
             <ReportValidation />
+          </TabsContent>
+        </AdminOrSecretary>
+
+        <AdminOrSecretary>
+          <TabsContent value="rejected">
+            <RejectedReportsList />
           </TabsContent>
         </AdminOrSecretary>
 

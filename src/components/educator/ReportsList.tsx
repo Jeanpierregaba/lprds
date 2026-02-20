@@ -19,12 +19,36 @@ interface Report {
   id: string;
   report_date: string;
   status: 'draft' | 'pending' | 'validated' | 'rejected';
+  arrival_time?: string;
+  departure_time?: string;
   health_status?: string;
-  mood?: string;
+  health_notes?: string;
+  temperature_arrival?: number;
+  temperature_departure?: number;
+  activities: string[];
+  nap_taken: boolean;
+  nap_duration_minutes?: number;
+  breakfast_eaten: string;
+  lunch_eaten: string;
+  snack_eaten: string;
+  hygiene_bath: boolean;
+  hygiene_bowel_movement: boolean;
+  hygiene_frequency_notes?: string;
+  mood?: string | string[];
+  special_observations?: string;
+  photos?: string[];
   validation_notes?: string;
+  rejection_reason?: string;
   created_at: string;
   updated_at: string;
+  child_id: string;
+  educator_id: string;
   child?: Child;
+}
+
+// Type compatible avec ReportCard
+type ReportCardReport = Omit<Report, 'activities' | 'nap_taken' | 'breakfast_eaten' | 'lunch_eaten' | 'snack_eaten' | 'hygiene_bath' | 'hygiene_bowel_movement' | 'hygiene_frequency_notes' | 'special_observations' | 'photos' | 'child_id' | 'educator_id'> & {
+  mood?: string; // ReportCard attend string, pas string[]
 }
 
 interface ReportsListProps {
@@ -47,24 +71,54 @@ export const ReportsList = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'child'>('date');
 
+  const normalizeMoodValue = (value: string | string[] | null | undefined): string[] => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (typeof value === 'string' && value.trim()) {
+      return [value];
+    }
+    return [];
+  };
+
   const fetchReports = useCallback(async () => {
     if (!profile) return;
 
     try {
       setLoading(true);
 
+      console.log('Fetching reports for educator:', profile.id, 'with status:', status);
+
       const { data, error } = await supabase
         .from('daily_reports')
         .select(`
           id,
           report_date,
-          is_validated,
-          is_draft,
+          status,
+          arrival_time,
+          departure_time,
           health_status,
+          health_notes,
+          temperature_arrival,
+          temperature_departure,
+          activities,
+          nap_taken,
+          nap_duration_minutes,
+          breakfast_eaten,
+          lunch_eaten,
+          snack_eaten,
+          hygiene_bath,
+          hygiene_bowel_movement,
+          hygiene_frequency_notes,
           mood,
+          special_observations,
+          photos,
           validation_notes,
+          rejection_reason,
           created_at,
           updated_at,
+          child_id,
+          educator_id,
           child:children (
             id,
             first_name,
@@ -73,30 +127,21 @@ export const ReportsList = ({
           )
         `)
         .eq('educator_id', profile.id)
+        .eq('status', status)
         .order('report_date', { ascending: false });
 
       if (error) throw error;
 
-      // Filter by status based on validation flags
-      const filteredData = (data || []).filter(report => {
-        if (status === 'pending') return !report.is_validated && !report.is_draft;
-        if (status === 'validated') return report.is_validated === true;
-        if (status === 'rejected') return report.validation_notes && !report.is_validated;
-        return true;
-      });
+      console.log('Reports fetched:', data?.length || 0, 'reports with status:', status);
+      console.log('Sample report:', data?.[0]);
 
-      // Map to expected Report type with status field
-      const mappedReports: Report[] = filteredData.map(report => ({
+      // Map to expected Report type
+      const mappedReports: Report[] = (data || []).map(report => ({
         ...report,
-        mood: Array.isArray(report.mood) 
-          ? report.mood.join(', ') 
-          : typeof report.mood === 'string' 
-            ? report.mood 
-            : undefined,
-        status: report.is_validated ? 'validated' as const : 
-                (report.validation_notes && !report.is_validated) ? 'rejected' as const :
-                report.is_draft ? 'draft' as const : 'pending' as const
-      }));
+        activities: Array.isArray(report.activities) ? report.activities : [],
+        mood: normalizeMoodValue(report.mood),
+        status: report.status as 'draft' | 'pending' | 'validated' | 'rejected'
+      } as Report));
 
       setReports(mappedReports);
     } catch (error) {
@@ -220,14 +265,22 @@ export const ReportsList = ({
             </p>
           </div>
         ) : (
-          filteredAndSortedReports.map((report) => (
-            <ReportCard
-              key={report.id}
-              report={report}
-              onView={onViewReport}
-              onEdit={onEditReport}
-            />
-          ))
+          filteredAndSortedReports.map((report) => {
+            // Convertir le rapport en format compatible avec ReportCard
+            const reportCardReport: ReportCardReport = {
+              ...report,
+              mood: Array.isArray(report.mood) ? report.mood.join(', ') : report.mood
+            };
+            
+            return (
+              <ReportCard
+                key={report.id}
+                report={reportCardReport}
+                onView={onViewReport}
+                onEdit={onEditReport ? () => onEditReport(report) : undefined}
+              />
+            );
+          })
         )}
       </div>
     </div>

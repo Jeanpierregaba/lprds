@@ -118,10 +118,55 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
 
   const normalizeMoodValue = (value: string | string[] | null | undefined): string[] => {
     if (Array.isArray(value)) {
-      return value;
+      return value
+        .flatMap((v) => {
+          const str = String(v ?? '').trim();
+          if (!str) return [];
+
+          if (str.startsWith('[') && str.endsWith(']')) {
+            try {
+              const parsed = JSON.parse(str);
+              if (Array.isArray(parsed)) {
+                return parsed.map(String).map((p) => p.trim()).filter(Boolean);
+              }
+            } catch {
+              // ignore parsing errors and fall back to comma-splitting
+            }
+          }
+
+          if (str.includes(',')) {
+            return str
+              .split(',')
+              .map((p) => p.trim())
+              .filter(Boolean);
+          }
+
+          return [str];
+        })
+        .filter(Boolean);
     }
     if (typeof value === 'string' && value.trim()) {
-      return [value];
+      const trimmed = value.trim();
+
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            return parsed.map(String).map(v => v.trim()).filter(Boolean);
+          }
+        } catch {
+          // ignore parsing errors and fall back to comma-splitting
+        }
+      }
+
+      if (trimmed.includes(',')) {
+        return trimmed
+          .split(',')
+          .map(v => v.trim())
+          .filter(Boolean);
+      }
+
+      return [trimmed];
     }
     return [];
   };
@@ -436,6 +481,15 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       // Préparer les données du rapport
       const activitiesCombined = [...selectedActivities];
 
+      // Valider que tous les moods sont valides
+      const validMoods = ['joyeux', 'calme', 'agite', 'triste', 'fatigue', 'grincheux'];
+      const invalidMoods = formData.mood.filter(mood => !validMoods.includes(mood));
+      
+      if (invalidMoods.length > 0) {
+        // Ne pas bloquer la sauvegarde pour les humeurs, juste logger l'avertissement
+        // throw new Error(`Humeurs invalides trouvées: ${invalidMoods.join(', ')}`);
+      }
+
       const reportData = {
         child_id: child.id,
         educator_id: profile.id,
@@ -458,6 +512,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
         mood: formData.mood,
         special_observations: formData.special_observations || null,
         photos: [],
+        status: sendForValidation ? 'pending' : 'draft',
         is_draft: !sendForValidation,
         is_validated: false
       };
@@ -465,13 +520,14 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       let reportId: string;
 
       if (existingReport?.id) {
-        // Mettre à jour le rapport existant
         const { error } = await supabase
           .from('daily_reports')
           .update(reportData)
           .eq('id', existingReport.id);
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
         reportId = existingReport.id;
       } else {
         // Vérifier si un rapport existe déjà pour cet enfant à cette date
@@ -557,9 +613,19 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
       
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        error: error?.error
+      });
+      
+      // Afficher l'erreur spécifique dans le toast pour le débogage
+      const errorMessage = error?.message || error?.error || 'Erreur inconnue';
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder le rapport",
+        description: `Impossible de sauvegarder le rapport: ${errorMessage}`,
         variant: "destructive"
       });
     } finally {
