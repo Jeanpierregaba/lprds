@@ -115,6 +115,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   
   const { toast } = useToast();
   const { profile } = useAuth();
+  const selectedReportDate = formData.report_date || reportDate;
 
   const normalizeMoodValue = (value: string | string[] | null | undefined): string[] => {
     if (Array.isArray(value)) {
@@ -213,13 +214,13 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
   // Charger automatiquement les horaires et températures d'arrivée/départ depuis la présence scannée
   useEffect(() => {
     const loadAttendanceData = async () => {
-      if (!child || !reportDate) return;
+      if (!child || !selectedReportDate) return;
       try {
         const { data, error } = await supabase
           .from('daily_attendance')
           .select('arrival_time, departure_time, arrival_temperature, departure_temperature')
           .eq('child_id', child.id)
-          .eq('attendance_date', reportDate)
+          .eq('attendance_date', selectedReportDate)
           .maybeSingle();
 
         if (error) throw error;
@@ -240,7 +241,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
     };
 
     loadAttendanceData();
-  }, [child?.id, reportDate]);
+  }, [child?.id, selectedReportDate]);
 
   const loadAvailableChildren = async () => {
     try {
@@ -748,7 +749,7 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CalendarDays className="h-4 w-4" />
-                      {new Date(reportDate).toLocaleDateString('fr-FR', {
+                      {new Date(selectedReportDate).toLocaleDateString('fr-FR', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -774,6 +775,24 @@ const DailyReportForm: React.FC<DailyReportFormProps> = ({
                 )}
               </CardTitle>
             </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Date du rapport</CardTitle>
+              <CardDescription>
+                Sélectionnez le jour concerné pour ce rapport quotidien.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input
+                id="report_date"
+                type="date"
+                value={selectedReportDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, report_date: e.target.value }))}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </CardContent>
           </Card>
 
           <Alert className="bg-blue-50 border-blue-200">

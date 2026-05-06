@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   FileText, 
+  Download,
   CheckCircle, 
   XCircle, 
   Clock,
@@ -31,6 +32,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import logoImage from '@/assets/logo.png';
+import html2pdf from 'html2pdf.js';
+import nuage from '@/assets/nuage.png';
+import soleil from '@/assets/soleil.png';
+import star from '@/assets/star.png';
 
 interface Child {
   id: string;
@@ -93,6 +99,34 @@ const getCurrentSchoolYear = () => {
     return `${year}-${year + 1}`;
   }
   return `${year - 1}-${year}`;
+};
+
+const getSectionAbbreviation = (section?: string): string => {
+  if (!section) return '';
+  const abbreviations: Record<string, string> = {
+    'maternelle_PS1': 'PS',
+    'maternelle_PS2': 'PS',
+    'maternelle_MS': 'MS',
+    'maternelle_GS': 'GS',
+    'creche_etoile': 'Crèche',
+    'creche_nuage': 'Crèche',
+    'creche_soleil': 'TPS',
+    'garderie': 'Garderie'
+  };
+  return abbreviations[section] || '';
+};
+
+const convertImageToBase64 = async (imagePath: string): Promise<string> => {
+  const response = await fetch(imagePath);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      resolve(reader.result as string);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 };
 
 const AssessmentsValidationPage = () => {
@@ -171,6 +205,553 @@ const AssessmentsValidationPage = () => {
     }
   };
 
+  const handleDownloadPDF = async (assessment: Assessment) => {
+    let logoBase64 = '';
+    let soleilBase64 = '';
+    let starBase64 = '';
+    let nuageBase64 = '';
+    try {
+      logoBase64 = await convertImageToBase64(logoImage);
+      soleilBase64 = await convertImageToBase64(soleil);
+      starBase64 = await convertImageToBase64(star);
+      nuageBase64 = await convertImageToBase64(nuage);
+    } catch (error) {
+      console.error('Error converting logo to base64:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger le logo',
+        variant: 'destructive'
+      });
+    }
+
+    const sectionAbbr = getSectionAbbreviation(assessment.child?.section);
+
+    const getPeriodRoman = (periodName: string): string => {
+      const match = periodName.match(/\d+/);
+      if (!match) return 'I';
+      const num = parseInt(match[0]);
+      const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V'];
+      return romanNumerals[num] || num.toString();
+    };
+
+    const periodRoman = getPeriodRoman(assessment.period_name);
+
+    const domainCount = assessment.domains.length;
+    const baseFontSize = domainCount > 6 ? 9 : domainCount > 4 ? 10 : 11;
+    const rowPadding = domainCount > 6 ? 4 : domainCount > 4 ? 6 : 8;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Bilan - ${assessment.child?.first_name} ${assessment.child?.last_name}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Nunito:wght@400;600;700&display=swap');
+          @page {
+            size: A4;
+            margin: 8mm;
+          }
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: 'Nunito', 'Comic Neue', sans-serif;
+            background: #fff8f3;
+            color: #333;
+            font-size: ${baseFontSize}px;
+            line-height: 1.3;
+          }
+          .page-container {
+            width: 100%;
+            min-height: 100vh;
+            padding: 0;
+            background: #fef6e4;
+          }
+          .header-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+          .logo-container {
+            width: 70px;
+            height: 70px;
+          }
+          .logo-container img {
+            width: 100%;
+            height: 100%;
+          }
+          .header-right {
+            text-align: right;
+          }
+          .year-text {
+            font-weight: 700;
+            font-size: 12px;
+            color: #92400e;
+            letter-spacing: 0.5px;
+          }
+
+          .title-section {
+            text-align: center;
+          }
+          .title-main {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f2937;
+          }
+          .child-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+          .dashed-line {
+            display: flex;
+            justify-content: center;
+          }
+          .dashed-line span {
+            width: 80px;
+            height: 0;
+            border-bottom: 2px dashed #f59e0b;
+          }
+          .teacher-section {
+            text-align: center;
+          }
+          .teacher-label {
+            font-size: 11px;
+            color: #666;
+          }
+          .teacher-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #333;
+            border-bottom: 2px dashed #f59e0b;
+            display: inline-block;
+          }
+          .sun-decoration {
+            display: inline-block;
+            font-size: 24px;
+          }
+          .section-banner {
+            background: linear-gradient(135deg, #fcd34d, #f59e0b);
+            color: #fff;
+            border-radius: 20px;
+            width: fit-content;
+            font-weight: 700;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+          }
+          .clip-icon {
+            font-size: 14px;
+          }
+          .legend-row {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+          }
+          .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: #555;
+          }
+          .legend-icon {
+            font-size: 18px;
+          }
+          .legend-icon-img {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+          }
+          .table-container {
+            border: 2px dashed #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th, td {
+            border: 1px solid #e5e7eb;
+            padding: ${rowPadding}px 10px;
+          }
+          thead {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+          }
+          th {
+            font-weight: 700;
+            color: #92400e;
+            font-size: 12px;
+            text-align: left;
+            border-bottom: 2px dashed #fcd34d;
+          }
+          th.rating-col,
+          td.rating-col {
+            text-align: center;
+            width: 80px;
+          }
+          td {
+            font-size: ${baseFontSize}px;
+            color: #333;
+            border-bottom: 1px dashed #e5e7eb;
+            vertical-align: middle;
+          }
+          tr:last-child td {
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .domain-name {
+            font-weight: 500;
+            width: 28%;
+          }
+          .comment-text {
+            color: #555;
+            text-align: justify;
+            line-height: 1.35;
+          }
+          .rating-icon {
+            font-size: 22px;
+          }
+          .rating-icon-img {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+          }
+          .teacher-comment-section {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px dashed #fcd34d;
+            border-radius: 12px;
+            padding: 10px 15px;
+            text-align: center;
+          }
+          .teacher-comment-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #92400e;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          }
+          .rocket-icon {
+            font-size: 16px;
+          }
+          .teacher-comment-text {
+            color: #444;
+            font-style: italic;
+            line-height: 1.4;
+            font-size: ${baseFontSize}px;
+          }
+          .clap-icon {
+            font-size: 14px;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .page-container {
+              padding: 5mm;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page-container">
+          <div class="header-row" style="display: flex; flex-direction: row; justify-content: space-between;">
+            <div class="logo-container">
+              <img src="${logoBase64}" alt="Logo" style="width: 250px; padding: 50px" />
+            </div>
+            <div class="header-right" style="display: flex; flex-direction: column; padding: 15px 50px 0 0">
+              <div class="year-text" style="padding-bottom: 25px">ANNÉE SCOLAIRE : ${assessment.school_year}</div>
+              
+              <div style="background-color: #fff3e4; padding: 20px 35px 35px 35px;">
+                <div>Le bilan de ma Période ${periodRoman}${sectionAbbr ? ` en ${sectionAbbr}` : ''}</div>
+                <div class="child-name">${assessment.child?.last_name?.toUpperCase()} ${assessment.child?.first_name}</div>
+                <div class="dashed-line"><span></span></div>
+
+                <div class="teacher-section">
+                  <div class="teacher-label">Mon institutrice est <span class="teacher-name">Maîtresse ${assessment.educator?.first_name}</span></div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+
+          <div class="section-banner" style="text-align: center; margin: 30px; ">
+            <span style="padding: 5px 25px 25px 25px; background-color: #fadb05; border-radius: 10px;">Ce que j'ai appris cette période</span>
+          </div>
+
+          <div style="display: flex; flex-direction: row; justify-content: space-around; margin: 50px;">
+            <div style="display: flex-direction: column;">
+
+              <div style="display: flex; justify-content: center;">
+                <img src="${soleilBase64}" alt="soleil-icon" style="width: 50px; text-align: center;"/>
+              </div>
+
+              <div>
+                <span><strong>Acquis</strong></span>
+              </div>
+
+            </div>
+
+            <div style="display: flex-direction: column;">
+            
+              <div style="display: flex; justify-content: center;">
+                <img src="${starBase64}" alt="star-icon" style="width: 50px;"/>
+              </div>
+
+              <div>
+                <span><strong>En cours d'acquisition</strong></span>
+              </div>
+
+            </div>
+
+
+            <div style="display: flex-direction: column;">
+            
+              <div style="display: flex; justify-content: center;">
+                <img src="${nuageBase64}" alt="nuage-icon" style="width: 50px;"/>
+              </div>
+
+              <div>
+                <span><strong>A consolider</strong></span>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr style="text-align:center; border: 1px dashed #1b1f25ff;">
+                  <th class="domain-name" style="padding: 5px 10px 20px 10px; border: 1px dashed #1b1f25ff;">Domaines</th>
+                  <th class="rating-col" style="padding: 5px 10px 20px 10px; border: 1px dashed #1b1f25ff;">Notation</th>
+                  <th style="padding: 5px 10px 20px 10px; border: 1px dashed #1b1f25ff;">Commentaires</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${assessment.domains.map(d => {
+                  const ratingImg = d.rating === 'acquis' ? soleilBase64 : d.rating === 'en_cours' ? starBase64 : nuageBase64;
+                  return `
+                  <tr style="border: 1px dashed #1b1f25ff;">
+                    <td class="domain-name" style="border: 1px dashed #1b1f25ff; padding: 5px 10px 20px 10px;">${d.domain}</td>
+                    <td class="rating-col" style="border: 1px dashed #1b1f25ff; text-align: center;">
+                      <img class="rating-icon-img" src="${ratingImg}" alt="${d.rating}" width="30" height="30" style="display: block; margin: 0 auto;"/>
+                    </td>
+                    <td class="comment-text" style="border: 1px dashed #1b1f25ff; padding: 5px 10px 20px 10px;">${d.comment || '—'}</td>
+                  </tr>
+                `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          ${assessment.teacher_comment ? `
+            <div class="teacher-comment-section">
+              <div class="teacher-comment-title">
+                <span>Petit mot de la maîtresse</span>
+                <span class="rocket-icon">🚀</span>
+              </div>
+              <div class="teacher-comment-text">
+                ${assessment.teacher_comment} <span class="clap-icon">👏</span>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      toast({
+        title: 'Génération du PDF',
+        description: 'Le PDF est en cours de génération...'
+      });
+
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'fixed';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      tempContainer.style.width = '210mm';
+      tempContainer.style.height = '297mm';
+      tempContainer.style.overflow = 'hidden';
+      document.body.appendChild(tempContainer);
+
+      const iframe = document.createElement('iframe');
+      iframe.style.width = '210mm';
+      iframe.style.height = '297mm';
+      iframe.style.border = 'none';
+      iframe.style.visibility = 'hidden';
+      tempContainer.appendChild(iframe);
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Could not access iframe document');
+      }
+
+      iframeDoc.open();
+      iframeDoc.write(printContent);
+      iframeDoc.close();
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout waiting for content to load'));
+        }, 10000);
+
+        const checkReady = () => {
+          try {
+            const body = iframeDoc.body;
+            if (!body) {
+              setTimeout(checkReady, 100);
+              return;
+            }
+
+            const images = body.querySelectorAll('img');
+            let loadedImages = 0;
+            const totalImages = images.length;
+
+            if (totalImages === 0) {
+              clearTimeout(timeout);
+              resolve();
+              return;
+            }
+
+            const imageLoadHandler = () => {
+              loadedImages++;
+              if (loadedImages === totalImages) {
+                clearTimeout(timeout);
+                resolve();
+              }
+            };
+
+            const imageErrorHandler = () => {
+              loadedImages++;
+              if (loadedImages === totalImages) {
+                clearTimeout(timeout);
+                resolve();
+              }
+            };
+
+            images.forEach((img) => {
+              if (img.complete) {
+                loadedImages++;
+              } else {
+                img.addEventListener('load', imageLoadHandler, { once: true });
+                img.addEventListener('error', imageErrorHandler, { once: true });
+              }
+            });
+
+            if (loadedImages === totalImages) {
+              clearTimeout(timeout);
+              resolve();
+            }
+          } catch (error) {
+            clearTimeout(timeout);
+            reject(error);
+          }
+        };
+
+        iframe.onload = () => {
+          setTimeout(checkReady, 500);
+        };
+
+        if (iframeDoc.readyState === 'complete') {
+          setTimeout(checkReady, 500);
+        } else {
+          iframeDoc.addEventListener('DOMContentLoaded', checkReady, { once: true });
+        }
+      });
+
+      const bodyElement = iframeDoc.body;
+      if (!bodyElement) {
+        throw new Error('Could not access body element');
+      }
+
+      const margin: [number, number, number, number] = [8, 8, 8, 8];
+      const filename = `Bilan_${assessment.child?.first_name}_${assessment.child?.last_name}_${assessment.period_name}.pdf`;
+
+      const opt = {
+        margin,
+        filename,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          letterRendering: true,
+          windowWidth: 794,
+          windowHeight: 1123,
+          backgroundColor: '#fef6e4',
+          removeContainer: true,
+          onclone: (clonedDoc: Document) => {
+            const clonedBody = clonedDoc.body;
+            if (clonedBody) {
+              clonedBody.style.backgroundColor = '#fef6e4';
+            }
+          }
+        },
+        jsPDF: {
+          unit: 'mm' as const,
+          format: 'a4' as const,
+          orientation: 'portrait' as const,
+          compress: true
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      await html2pdf().set(opt as any).from(bodyElement).save();
+
+      try {
+        document.body.removeChild(tempContainer);
+      } catch (cleanupError) {
+        console.warn('Cleanup error:', cleanupError);
+      }
+
+      toast({
+        title: 'Succès',
+        description: 'Le PDF a été téléchargé avec succès.'
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+
+      try {
+        const containers = document.querySelectorAll('div[style*="-9999px"]');
+        containers.forEach(container => {
+          if (container.parentNode) {
+            container.parentNode.removeChild(container);
+          }
+        });
+      } catch (cleanupError) {
+        console.warn('Cleanup error:', cleanupError);
+      }
+
+      toast({
+        title: 'Erreur',
+        description: error instanceof Error
+          ? `Impossible de générer le PDF: ${error.message}`
+          : 'Impossible de générer le PDF. Veuillez réessayer.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleValidate = async (id: string) => {
     setProcessing(true);
     try {
@@ -185,6 +766,25 @@ const AssessmentsValidationPage = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      try {
+        const assessment = assessments.find(a => a.id === id);
+        const childId = assessment?.child_id;
+        if (childId) {
+          await supabase.functions.invoke('send-whatsapp-notification', {
+            body: {
+              notification_type: 'periodic_assessment_available',
+              child_id: childId,
+              entity_table: 'periodic_assessments',
+              entity_id: id,
+              deep_link_path: '/parent/dashboard/assessments'
+            }
+          });
+        }
+      } catch (whatsAppError) {
+        console.error('Error sending WhatsApp notification:', whatsAppError);
+        // Ne pas faire échouer toute l'opération si WhatsApp échoue
+      }
 
       toast({
         title: 'Succès',
@@ -464,6 +1064,14 @@ const AssessmentsValidationPage = () => {
                         >
                           <Edit className="w-4 h-4 mr-2" />
                           Modifier
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadPDF(assessment)}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Télécharger pdf
                         </Button>
                       </div>
                     </div>

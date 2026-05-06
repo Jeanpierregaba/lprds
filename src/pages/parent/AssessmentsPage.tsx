@@ -26,6 +26,9 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import logoImage from '@/assets/logo.png';
 import html2pdf from 'html2pdf.js';
+import nuage from '@/assets/nuage.png';
+import soleil from '@/assets/soleil.png';
+import star from '@/assets/star.png';
 
 interface Child {
   id: string;
@@ -213,8 +216,14 @@ const ParentAssessmentsPage = () => {
     
     // Convert logo to base64
     let logoBase64 = '';
+    let soleilBase64 = '';
+    let starBase64 = '';
+    let nuageBase64 = '';
     try {
       logoBase64 = await convertImageToBase64(logoImage);
+      soleilBase64 = await convertImageToBase64(soleil);
+      starBase64 = await convertImageToBase64(star);
+      nuageBase64 = await convertImageToBase64(nuage);
     } catch (error) {
       console.error('Error converting logo to base64:', error);
       toast({
@@ -250,6 +259,7 @@ const ParentAssessmentsPage = () => {
         <title>Bilan - ${selectedAssessment.child?.first_name} ${selectedAssessment.child?.last_name}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Nunito:wght@400;600;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap');
           @page {
             size: A4;
             margin: 8mm;
@@ -283,8 +293,8 @@ const ParentAssessmentsPage = () => {
             height: 70px;
           }
           .logo-container img {
-            width: 100%;
-            height: 100%;
+            width: 60%;
+            height: 60%;
             object-fit: contain;
           }
           .header-right {
@@ -390,6 +400,11 @@ const ParentAssessmentsPage = () => {
           .legend-icon {
             font-size: 18px;
           }
+          .legend-icon-img {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+          }
           .table-container {
             margin: 8px 0;
             border: 2px dashed #e5e7eb;
@@ -400,11 +415,14 @@ const ParentAssessmentsPage = () => {
             width: 100%; 
             border-collapse: collapse;
           }
+          th, td {
+            border: 1px solid #e5e7eb;
+            padding: ${rowPadding}px 10px;
+          }
           thead {
             background: linear-gradient(135deg, #fef3c7, #fde68a);
           }
           th { 
-            padding: ${rowPadding}px 10px;
             font-weight: 700; 
             color: #92400e;
             font-size: 12px;
@@ -417,14 +435,13 @@ const ParentAssessmentsPage = () => {
             width: 80px;
           }
           td { 
-            padding: ${rowPadding}px 10px;
             font-size: ${baseFontSize}px;
             color: #333;
             border-bottom: 1px dashed #e5e7eb;
             vertical-align: middle;
           }
           tr:last-child td {
-            border-bottom: none;
+            border-bottom: 1px solid #e5e7eb;
           }
           .domain-name {
             font-weight: 500;
@@ -437,6 +454,13 @@ const ParentAssessmentsPage = () => {
           }
           .rating-icon {
             font-size: 22px;
+          }
+          .rating-icon-img {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
           }
           .teacher-comment-section {
             background: linear-gradient(135deg, #fef3c7, #fde68a);
@@ -485,7 +509,7 @@ const ParentAssessmentsPage = () => {
           <!-- Header with logo and year -->
           <div class="header-row">
             <div class="logo-container">
-              <img src="${logoBase64}" alt="Logo" />
+              <img src="${logoBase64}" alt="Logo"/>
             </div>
             <div class="header-right">
               <div class="year-text">ANNÉE SCOLAIRE : ${selectedAssessment.school_year}</div>
@@ -508,7 +532,7 @@ const ParentAssessmentsPage = () => {
           <div class="teacher-section">
             <div class="teacher-label">Mon institutrice est</div>
             <div>
-              <span class="teacher-name">Maîtresse ${selectedAssessment.educator?.last_name}</span>
+              <span class="teacher-name">Maîtresse ${selectedAssessment.educator?.first_name}</span>
               <span class="sun-decoration">☀️</span>
             </div>
           </div>
@@ -522,15 +546,15 @@ const ParentAssessmentsPage = () => {
           <!-- Legend -->
           <div class="legend-row">
             <div class="legend-item">
-              <span class="legend-icon">☀️</span>
+              <img class="legend-icon-img" src="${soleilBase64}" alt="Acquis" />
               <span><strong>Acquis</strong></span>
             </div>
             <div class="legend-item">
-              <span class="legend-icon">⭐</span>
+              <img class="legend-icon-img" src="${starBase64}" alt="En cours d'acquisition" />
               <span><strong>En cours d'acquisition</strong></span>
             </div>
             <div class="legend-item">
-              <span class="legend-icon">☁️</span>
+              <img class="legend-icon-img" src="${nuageBase64}" alt="A consolider" />
               <span><strong>A consolider</strong></span>
             </div>
           </div>
@@ -540,21 +564,21 @@ const ParentAssessmentsPage = () => {
             <table>
               <thead>
                 <tr>
-                  <th class="domain-name">Domaines</th>
-                  <th class="rating-col">Notation</th>
-                  <th>Commentaires</th>
+                  <th class="domain-name" style="padding: ${rowPadding}px 10px; border: 1px solid #e5e7eb;">Domaines</th>
+                  <th class="rating-col" style="padding: ${rowPadding}px 10px; border: 1px solid #e5e7eb;">Notation</th>
+                  <th style="padding: ${rowPadding}px 10px; border: 1px solid #e5e7eb;">Commentaires</th>
                 </tr>
               </thead>
               <tbody>
                 ${selectedAssessment.domains.map(d => {
-                  const ratingIcon = d.rating === 'acquis' ? '☀️' : d.rating === 'en_cours' ? '⭐' : '☁️';
+                  const ratingImg = d.rating === 'acquis' ? soleilBase64 : d.rating === 'en_cours' ? starBase64 : nuageBase64;
                   return `
-                  <tr>
-                    <td class="domain-name">${d.domain}</td>
-                    <td class="rating-col">
-                      <span class="rating-icon">${ratingIcon}</span>
+                  <tr style="border: 1px solid #e5e7eb;">
+                    <td class="domain-name" style="padding: ${rowPadding}px 10px; border: 1px solid #e5e7eb;">${d.domain}</td>
+                    <td class="rating-col" style="padding: ${rowPadding}px 10px; border: 1px solid #e5e7eb; text-align: center;">
+                      <img class="rating-icon-img" src="${ratingImg}" alt="${d.rating}" style="display: block; margin: 0 auto;" />
                     </td>
-                    <td class="comment-text">${d.comment || '—'}</td>
+                    <td class="comment-text" style="padding: ${rowPadding}px 10px; border: 1px solid #e5e7eb;">${d.comment || '—'}</td>
                   </tr>
                 `;
                 }).join('')}

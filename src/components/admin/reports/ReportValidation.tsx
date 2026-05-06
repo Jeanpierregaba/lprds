@@ -276,6 +276,21 @@ const ReportValidation: React.FC = () => {
           console.error('Error sending email notification:', emailError);
           // Ne pas faire échouer toute l'opération si l'email échoue
         }
+
+        try {
+          await supabase.functions.invoke('send-whatsapp-notification', {
+            body: {
+              notification_type: 'daily_report_available',
+              child_id: selectedReport.child.id,
+              entity_table: 'daily_reports',
+              entity_id: reportId,
+              deep_link_path: '/parent/dashboard/daily-reports'
+            }
+          });
+        } catch (whatsAppError) {
+          console.error('Error sending WhatsApp notification:', whatsAppError);
+          // Ne pas faire échouer toute l'opération si WhatsApp échoue
+        }
       }
 
       toast({

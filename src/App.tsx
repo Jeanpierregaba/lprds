@@ -38,6 +38,7 @@ import EducatorAssessmentsPage from "@/pages/educator/EducatorAssessmentsPage";
 import EducatorWeeklyReportsPage from "@/pages/educator/EducatorWeeklyReportsPage";
 import ParentAssessmentsPage from "@/pages/parent/AssessmentsPage";
 import ParentWeeklyReportsPage from "@/pages/parent/WeeklyReportsPage";
+import ParentDailyReportsPage from "@/pages/parent/DailyReportsPage";
 import ForgotPassword from "@/pages/admin/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="/parent/dashboard">
               <Route index element={<ParentDashboard />} />
               <Route path="menus" element={<ParentMenuPage />} />
+              <Route path="daily-reports" element={<ParentDailyReportsPage />} />
               <Route path="assessments" element={<ParentAssessmentsPage />} />
               <Route path="weekly-reports" element={<ParentWeeklyReportsPage />} />
               <Route path="gallery" element={<ParentGalleryPage />} />

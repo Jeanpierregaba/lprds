@@ -97,7 +97,7 @@ const EducatorDailyReportsPage = () => {
               <CardDescription>
                 {selectedDraft 
                   ? 'Complétez et envoyez votre rapport sauvegardé'
-                  : 'Sélectionnez un enfant de votre groupe et remplissez le formulaire de suivi'
+                  : 'Sélectionnez un enfant, choisissez la date du rapport, puis remplissez le formulaire de suivi'
                 }
               </CardDescription>
             </CardHeader>

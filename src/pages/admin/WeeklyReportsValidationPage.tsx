@@ -168,6 +168,21 @@ export default function WeeklyReportsValidationPage() {
       toast.error("Erreur lors de la validation");
       console.error(error);
     } else {
+      try {
+        await supabase.functions.invoke('send-whatsapp-notification', {
+          body: {
+            notification_type: 'weekly_report_available',
+            child_id: report.child_id,
+            entity_table: 'weekly_reports',
+            entity_id: report.id,
+            deep_link_path: '/parent/dashboard/weekly-reports'
+          }
+        });
+      } catch (whatsAppError) {
+        console.error('Error sending WhatsApp notification:', whatsAppError);
+        // Ne pas faire échouer toute l'opération si WhatsApp échoue
+      }
+
       toast.success("Rapport validé et envoyé aux parents");
       fetchReports();
     }
