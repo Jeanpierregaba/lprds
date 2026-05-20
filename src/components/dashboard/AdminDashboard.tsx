@@ -4,13 +4,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Users, 
   TrendingUp, 
   Calendar,
   UserCheck,
   Shield
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
 import { DashboardStatsCard } from './DashboardStatsCard';
 import { BirthdaySection } from './BirthdaySection';
 import { AlertsSection, type Alert } from './AlertsSection';
@@ -19,18 +30,30 @@ interface DashboardStats {
   totalChildren: number;
   presentToday: number;
   attendanceRate: number;
-  staffPresent: number;
-  totalStaff: number;
   incidentsToday: number;
   birthdaysThisMonth: number;
 }
 
 interface SectionData {
   section: string;
-  effectif: number;
-  capacite: number;
+  inscrits: number;
+  presents: number;
 }
 
+const SECTION_COLORS: Record<string, string> = {
+  'Crèche Étoile': '#3b82f6',
+  'Crèche Nuage': '#8b5cf6',
+  'Crèche Soleil': '#f59e0b',
+  'Garderie': '#22c55e',
+  'Maternelle PS1': '#ec4899',
+  'Maternelle PS2': '#06b6d4',
+  'Maternelle MS': '#f97316',
+  'Maternelle GS': '#6366f1',
+};
+
+const SECTION_CHART_FALLBACK_COLORS = [
+  '#3b82f6', '#8b5cf6', '#f59e0b', '#22c55e', '#ec4899', '#06b6d4', '#f97316', '#6366f1',
+];
 
 export const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -38,8 +61,6 @@ export const AdminDashboard = () => {
     totalChildren: 0,
     presentToday: 0,
     attendanceRate: 0,
-    staffPresent: 0,
-    totalStaff: 0,
     incidentsToday: 0,
     birthdaysThisMonth: 0
   });
@@ -56,7 +77,7 @@ export const AdminDashboard = () => {
       const today = new Date().toISOString().split('T')[0];
 
       // Fetch all data in parallel for better performance
-      const [childrenRes, attendanceRes, staffRes] = await Promise.all([
+      const [childrenRes, attendanceRes] = await Promise.all([
         supabase
           .from('children')
           .select('id, status, section, admission_date, first_name, last_name, allergies, birth_date'),
@@ -65,22 +86,15 @@ export const AdminDashboard = () => {
           .select('id, child_id, arrival_time')
           .eq('attendance_date', today)
           .not('arrival_time', 'is', null), // Uniquement les enfants avec une heure d'arrivée
-        supabase
-          .from('profiles')
-          .select('id, role, is_active')
-          .in('role', ['educator', 'admin', 'secretary'])
       ]);
 
       const children = childrenRes.data || [];
       const attendance = attendanceRes.data || [];
-      const staff = staffRes.data || [];
       
       // Calculate stats
       const totalChildren = children?.filter(c => c.status === 'active').length || 0;
       const presentToday = attendance?.length || 0;
       const attendanceRate = totalChildren > 0 ? Math.round((presentToday / totalChildren) * 100) : 0;
-      const totalStaff = staff?.filter(s => s.is_active).length || 0;
-      const staffPresent = totalStaff; // Assuming all active staff are present for now
       const incidentsToday = 0; // No incidents table available
 
       // Calculate birthdays this month
@@ -106,8 +120,6 @@ export const AdminDashboard = () => {
         totalChildren,
         presentToday,
         attendanceRate,
-        staffPresent,
-        totalStaff,
         incidentsToday,
         birthdaysThisMonth
       });
@@ -126,14 +138,14 @@ export const AdminDashboard = () => {
 
       const sectionStats = Object.entries(sectionLabels).map(([key, label]) => {
         const sectionChildren = children?.filter(c => c.section === key && c.status === 'active') || [];
-        const sectionAttendance = attendance?.filter(a => 
+        const sectionAttendance = attendance?.filter(a =>
           sectionChildren.some(c => c.id === a.child_id)
         ) || [];
-        
+
         return {
           section: label,
-          effectif: sectionAttendance.length,
-          capacite: Math.max(sectionChildren.length, sectionAttendance.length) // Use actual capacity
+          inscrits: sectionChildren.length,
+          presents: sectionAttendance.length,
         };
       });
 
@@ -181,7 +193,7 @@ export const AdminDashboard = () => {
 
       // Check for section capacity issues
       sectionStats.forEach(section => {
-        if (section.effectif > section.capacite * 0.9) {
+        if (section.inscrits > 0 && section.presents > section.inscrits * 0.9) {
           realAlerts.push({
             id: `capacity-${section.section}`,
             type: 'ratio',
@@ -213,6 +225,15 @@ export const AdminDashboard = () => {
     }), 
   []);
 
+  const sectionChartData = useMemo(
+    () => sectionData.filter((s) => s.inscrits > 0),
+    [sectionData]
+  );
+
+  const totalEnrolledBySection = useMemo(
+    () => sectionChartData.reduce((sum, s) => sum + s.inscrits, 0),
+    [sectionChartData]
+  );
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -231,7 +252,7 @@ export const AdminDashboard = () => {
       <AlertsSection alerts={alerts} />
 
       {/* Statistiques principales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <DashboardStatsCard
           title="Enfants Présents"
           value={stats.presentToday}
@@ -246,14 +267,6 @@ export const AdminDashboard = () => {
           subtitle={stats.attendanceRate >= 80 ? 'Excellent' : stats.attendanceRate >= 60 ? 'Correct' : 'À surveiller'}
           icon={TrendingUp}
           iconColor="text-blue-600"
-          loading={loading}
-        />
-        <DashboardStatsCard
-          title="Personnel Présent"
-          value={stats.staffPresent}
-          subtitle={`sur ${stats.totalStaff} prévus`}
-          icon={Users}
-          iconColor="text-purple-600"
           loading={loading}
         />
         <DashboardStatsCard
@@ -280,23 +293,57 @@ export const AdminDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>Effectifs par Section</CardTitle>
-            <CardDescription>Occupation actuelle vs capacité maximale</CardDescription>
+            <CardDescription>Répartition des enfants inscrits par section</CardDescription>
           </CardHeader>
           <CardContent>
-            {sectionData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={sectionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="section" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="effectif" fill="#3b82f6" name="Effectif actuel" />
-                  <Bar dataKey="capacite" fill="#e5e7eb" name="Capacité max" />
-                </BarChart>
+            {sectionChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={sectionChartData}
+                    dataKey="inscrits"
+                    nameKey="section"
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={50}
+                    outerRadius={95}
+                    paddingAngle={2}
+                    label={({ percent }) =>
+                      percent >= 0.08 ? `${Math.round(percent * 100)}%` : ''
+                    }
+                  >
+                    {sectionChartData.map((entry, index) => (
+                      <Cell
+                        key={entry.section}
+                        fill={
+                          SECTION_COLORS[entry.section] ??
+                          SECTION_CHART_FALLBACK_COLORS[index % SECTION_CHART_FALLBACK_COLORS.length]
+                        }
+                        stroke="hsl(var(--background))"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, _name, item) => {
+                      const pct =
+                        totalEnrolledBySection > 0
+                          ? Math.round((value / totalEnrolledBySection) * 100)
+                          : 0;
+                      return [`${value} inscrit${value > 1 ? 's' : ''} (${pct}%)`, item.payload.section];
+                    }}
+                  />
+                  <Legend
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="center"
+                    wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }}
+                  />
+                </PieChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-80 flex items-center justify-center text-muted-foreground">
-                Aucune donnée disponible
+                Aucun enfant inscrit réparti par section
               </div>
             )}
           </CardContent>
@@ -348,16 +395,16 @@ export const AdminDashboard = () => {
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span>Éducateurs:</span>
-                      <Badge variant="outline">{Math.ceil(section.effectif / 8)}</Badge>
+                      <Badge variant="outline">{Math.ceil(section.presents / 8) || 0}</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span>Enfants:</span>
-                      <Badge variant="secondary">{section.effectif}</Badge>
+                      <Badge variant="secondary">{section.presents}</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span>Ratio:</span>
-                      <Badge variant={section.effectif / Math.ceil(section.effectif / 8) > 8 ? "destructive" : "default"}>
-                        1:{Math.round(section.effectif / Math.ceil(section.effectif / 8))}
+                      <Badge variant={section.presents > 0 && section.presents / Math.ceil(section.presents / 8) > 8 ? "destructive" : "default"}>
+                        1:{section.presents > 0 ? Math.round(section.presents / Math.ceil(section.presents / 8)) : 0}
                       </Badge>
                     </div>
                   </div>
