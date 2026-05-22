@@ -73,8 +73,8 @@ const AttendancePage = () => {
     try {
       setLoading(true)
       
-      // First get all children
-      let childrenQuery = supabase.from('children').select('*')
+      // Uniquement les enfants actifs
+      let childrenQuery = supabase.from('children').select('*').eq('status', 'active')
       
       const mapFilterToDb = (val: string): 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_GS' | 'maternelle_MS' | 'maternelle_PS1' | 'maternelle_PS2' | null => {
         // The filter values are the actual database values, so just return them
@@ -141,12 +141,18 @@ const AttendancePage = () => {
   }
 
   const calculateStats = (data: AttendanceData[]) => {
+    // Tous les compteurs portent sur les enfants actifs (périmètre de data)
     const total = data.length
-    const present = data.filter(d => d.attendance?.is_present && d.attendance?.arrival_time).length
-    const absent = data.filter(d => !d.attendance?.is_present).length
-    
-    // Calculate late with pure string comparison to avoid timezone drift
-    const late = data.filter(d => d.attendance?.arrival_time && isLateArrival(d.attendance.arrival_time, d.child.section)).length
+    const present = data.filter(
+      (d) => d.attendance?.is_present && d.attendance?.arrival_time
+    ).length
+    const absent = data.filter((d) => !d.attendance?.is_present).length
+    const late = data.filter(
+      (d) =>
+        d.attendance?.is_present &&
+        d.attendance?.arrival_time &&
+        isLateArrival(d.attendance.arrival_time, d.child.section)
+    ).length
 
     setStats({ total, present, absent, late })
   }
@@ -233,7 +239,11 @@ const AttendancePage = () => {
       } else if (type === 'absent') {
         return !data.attendance?.is_present
       } else if (type === 'late') {
-        return data.attendance?.arrival_time && isLateArrival(data.attendance.arrival_time, data.child.section)
+        return (
+          data.attendance?.is_present &&
+          data.attendance?.arrival_time &&
+          isLateArrival(data.attendance.arrival_time, data.child.section)
+        )
       }
       return false
     })
@@ -297,7 +307,7 @@ const AttendancePage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total</p>
+                <p className="text-sm font-medium text-muted-foreground">Enfants actifs</p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
               <UserCheck className="h-8 w-8 text-muted-foreground" />
@@ -399,7 +409,7 @@ const AttendancePage = () => {
         <CardHeader>
           <CardTitle>Liste des Présences - {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: fr })}</CardTitle>
           <CardDescription>
-            {filteredData.length} enfant{filteredData.length > 1 ? 's' : ''}
+            {filteredData.length} enfant{filteredData.length > 1 ? 's' : ''} actif{filteredData.length > 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>

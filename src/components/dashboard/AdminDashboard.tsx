@@ -27,7 +27,7 @@ import { BirthdaySection } from './BirthdaySection';
 import { AlertsSection, type Alert } from './AlertsSection';
 
 interface DashboardStats {
-  totalChildren: number;
+  totalActiveChildren: number;
   presentToday: number;
   attendanceRate: number;
   incidentsToday: number;
@@ -36,7 +36,7 @@ interface DashboardStats {
 
 interface SectionData {
   section: string;
-  inscrits: number;
+  actifs: number;
   presents: number;
 }
 
@@ -58,7 +58,7 @@ const SECTION_CHART_FALLBACK_COLORS = [
 export const AdminDashboard = () => {
   const { profile } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
-    totalChildren: 0,
+    totalActiveChildren: 0,
     presentToday: 0,
     attendanceRate: 0,
     incidentsToday: 0,
@@ -90,20 +90,27 @@ export const AdminDashboard = () => {
 
       const children = childrenRes.data || [];
       const attendance = attendanceRes.data || [];
-      
-      // Calculate stats
-      const totalChildren = children?.filter(c => c.status === 'active').length || 0;
-      const presentToday = attendance?.length || 0;
-      const attendanceRate = totalChildren > 0 ? Math.round((presentToday / totalChildren) * 100) : 0;
+
+      const activeChildren = children.filter((c) => c.status === 'active');
+      const activeChildIds = new Set(activeChildren.map((c) => c.id));
+      const attendanceForActive = attendance.filter((a) => activeChildIds.has(a.child_id));
+
+      // Stats basées uniquement sur les enfants actifs
+      const totalActiveChildren = activeChildren.length;
+      const presentToday = attendanceForActive.length;
+      const attendanceRate =
+        totalActiveChildren > 0
+          ? Math.round((presentToday / totalActiveChildren) * 100)
+          : 0;
       const incidentsToday = 0; // No incidents table available
 
       // Calculate birthdays this month
       const currentMonth = new Date().getMonth();
-      const birthdayChildrenThisMonth = children?.filter(child => {
+      const birthdayChildrenThisMonth = activeChildren.filter((child) => {
         if (!child.birth_date) return false;
         const birthDate = new Date(child.birth_date);
-        return birthDate.getMonth() === currentMonth && child.status === 'active';
-      }) || [];
+        return birthDate.getMonth() === currentMonth;
+      });
       
       const birthdaysThisMonth = birthdayChildrenThisMonth.length;
 
@@ -117,7 +124,7 @@ export const AdminDashboard = () => {
       setBirthdayChildren(sortedBirthdayChildren);
 
       setStats({
-        totalChildren,
+        totalActiveChildren,
         presentToday,
         attendanceRate,
         incidentsToday,
@@ -137,14 +144,14 @@ export const AdminDashboard = () => {
       };
 
       const sectionStats = Object.entries(sectionLabels).map(([key, label]) => {
-        const sectionChildren = children?.filter(c => c.section === key && c.status === 'active') || [];
-        const sectionAttendance = attendance?.filter(a =>
-          sectionChildren.some(c => c.id === a.child_id)
-        ) || [];
+        const sectionChildren = activeChildren.filter((c) => c.section === key);
+        const sectionAttendance = attendanceForActive.filter((a) =>
+          sectionChildren.some((c) => c.id === a.child_id)
+        );
 
         return {
           section: label,
-          inscrits: sectionChildren.length,
+          actifs: sectionChildren.length,
           presents: sectionAttendance.length,
         };
       });
@@ -155,10 +162,10 @@ export const AdminDashboard = () => {
       const hourlyData = [];
       for (let hour = 8; hour <= 17; hour++) {
         const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-        const hourAttendance = attendance?.filter(a => {
+        const hourAttendance = attendanceForActive.filter((a) => {
           const arrivalHour = new Date(a.arrival_time).getHours();
           return arrivalHour <= hour;
-        }).length || 0;
+        }).length;
         
         hourlyData.push({
           time: timeStr,
@@ -171,7 +178,7 @@ export const AdminDashboard = () => {
       const realAlerts: Alert[] = [];
       
       // Check for medical alerts
-      const childrenWithAllergies = children?.filter(c => c.allergies && c.status === 'active') || [];
+      const childrenWithAllergies = activeChildren.filter((c) => c.allergies);
       childrenWithAllergies.forEach(child => {
         realAlerts.push({
           id: `medical-${child.id}`,
@@ -193,7 +200,7 @@ export const AdminDashboard = () => {
 
       // Check for section capacity issues
       sectionStats.forEach(section => {
-        if (section.inscrits > 0 && section.presents > section.inscrits * 0.9) {
+        if (section.actifs > 0 && section.presents > section.actifs * 0.9) {
           realAlerts.push({
             id: `capacity-${section.section}`,
             type: 'ratio',
@@ -226,12 +233,12 @@ export const AdminDashboard = () => {
   []);
 
   const sectionChartData = useMemo(
-    () => sectionData.filter((s) => s.inscrits > 0),
+    () => sectionData.filter((s) => s.actifs > 0),
     [sectionData]
   );
 
-  const totalEnrolledBySection = useMemo(
-    () => sectionChartData.reduce((sum, s) => sum + s.inscrits, 0),
+  const totalActiveBySection = useMemo(
+    () => sectionChartData.reduce((sum, s) => sum + s.actifs, 0),
     [sectionChartData]
   );
 
@@ -256,7 +263,7 @@ export const AdminDashboard = () => {
         <DashboardStatsCard
           title="Enfants Présents"
           value={stats.presentToday}
-          subtitle={`sur ${stats.totalChildren} inscrits`}
+          subtitle={`sur ${stats.totalActiveChildren} actifs`}
           icon={UserCheck}
           iconColor="text-green-600"
           loading={loading}
@@ -293,7 +300,7 @@ export const AdminDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>Effectifs par Section</CardTitle>
-            <CardDescription>Répartition des enfants inscrits par section</CardDescription>
+            <CardDescription>Répartition des enfants actifs par section</CardDescription>
           </CardHeader>
           <CardContent>
             {sectionChartData.length > 0 ? (
@@ -301,7 +308,7 @@ export const AdminDashboard = () => {
                 <PieChart>
                   <Pie
                     data={sectionChartData}
-                    dataKey="inscrits"
+                    dataKey="actifs"
                     nameKey="section"
                     cx="50%"
                     cy="45%"
@@ -327,10 +334,10 @@ export const AdminDashboard = () => {
                   <Tooltip
                     formatter={(value: number, _name, item) => {
                       const pct =
-                        totalEnrolledBySection > 0
-                          ? Math.round((value / totalEnrolledBySection) * 100)
+                        totalActiveBySection > 0
+                          ? Math.round((value / totalActiveBySection) * 100)
                           : 0;
-                      return [`${value} inscrit${value > 1 ? 's' : ''} (${pct}%)`, item.payload.section];
+                      return [`${value} actif${value > 1 ? 's' : ''} (${pct}%)`, item.payload.section];
                     }}
                   />
                   <Legend
@@ -343,7 +350,7 @@ export const AdminDashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-80 flex items-center justify-center text-muted-foreground">
-                Aucun enfant inscrit réparti par section
+                Aucun enfant actif réparti par section
               </div>
             )}
           </CardContent>

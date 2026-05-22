@@ -76,6 +76,7 @@ export default function ChildrenManagement() {
   const [activeTab, setActiveTab] = useState('children');
   // Nouveaux états: filtre et tri
   const [sectionFilter, setSectionFilter] = useState<'all' | 'creche_etoile' | 'creche_nuage' | 'creche_soleil' | 'garderie' | 'maternelle_PS1' | 'maternelle_PS2' | 'maternelle_MS' | 'maternelle_GS'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'admission' | 'section'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -273,14 +274,22 @@ export default function ChildrenManagement() {
     const filtered = children.filter((c) => {
       // Filtre par section
       const sectionMatch = sectionFilter === 'all' ? true : c.section === sectionFilter;
-      
+
+      // Filtre par statut actif/inactif
+      const statusMatch =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'active'
+            ? c.status === 'active'
+            : c.status === 'inactive';
+
       // Filtre par recherche (nom ou prénom)
       const searchMatch = searchQuery === '' || 
         `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.last_name.toLowerCase().includes(searchQuery.toLowerCase());
       
-      return sectionMatch && searchMatch;
+      return sectionMatch && statusMatch && searchMatch;
     });
     const sorted = [...filtered].sort((a, b) => {
       let cmp = 0;
@@ -396,6 +405,19 @@ export default function ChildrenManagement() {
                   <SelectItem value="maternelle_PS2">Maternelle Petite Section 2</SelectItem>
                   <SelectItem value="maternelle_MS">Maternelle Moyenne Section</SelectItem>
                   <SelectItem value="maternelle_GS">Maternelle Grande Section</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Actif / Inactif</Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Tous" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="active">Actifs</SelectItem>
+                  <SelectItem value="inactive">Inactifs</SelectItem>
                 </SelectContent>
               </Select>
             </div>
