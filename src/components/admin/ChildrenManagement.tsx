@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Eye, Users, FileText, UserCircle, AlertTriangle, Trash, UserPlus, Settings } from 'lucide-react';
+import { Plus, Edit, Eye, Users, FileText, UserCircle, AlertTriangle, Trash, UserPlus, Settings, UserX, UserCheck, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -65,7 +65,10 @@ export default function ChildrenManagement() {
   const [children, setChildren] = useState<Child[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [educators, setEducators] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const fetchInFlightRef = useRef(false);
+  const hasLoadedOnceRef = useRef(false);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -76,6 +79,51 @@ export default function ChildrenManagement() {
   const [sortBy, setSortBy] = useState<'name' | 'age' | 'admission' | 'section'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [togglingChildId, setTogglingChildId] = useState<string | null>(null);
+
+  const handleToggleChildStatus = async (child: Child) => {
+    const isActive = child.status === 'active';
+    const newStatus = isActive ? 'inactive' : 'active';
+    const actionLabel = isActive ? 'désactiver' : 'activer';
+
+    if (isActive) {
+      const confirmed = window.confirm(
+        `Confirmer la désactivation de ${child.first_name} ${child.last_name} ? L'enfant n'apparaîtra plus dans les listes actives.`
+      );
+      if (!confirmed) return;
+    }
+
+    setTogglingChildId(child.id);
+    try {
+      const { error } = await supabase
+        .from('children')
+        .update({ status: newStatus })
+        .eq('id', child.id);
+
+      if (error) throw error;
+
+      setChildren((prev) =>
+        prev.map((c) => (c.id === child.id ? { ...c, status: newStatus } : c))
+      );
+      if (selectedChild?.id === child.id) {
+        setSelectedChild((prev) => (prev ? { ...prev, status: newStatus } : prev));
+      }
+
+      toast({
+        title: isActive ? 'Enfant désactivé' : 'Enfant activé',
+        description: `${child.first_name} ${child.last_name} est maintenant ${isActive ? 'inactif' : 'actif'}.`,
+      });
+    } catch (err: any) {
+      console.error(`Error trying to ${actionLabel} child:`, err);
+      toast({
+        title: 'Erreur',
+        description: err?.message || `Impossible de ${actionLabel} l'enfant`,
+        variant: 'destructive',
+      });
+    } finally {
+      setTogglingChildId(null);
+    }
+  };
 
   const handleDeleteChild = async (childId: string, childName: string) => {
     const confirmed = window.confirm(`Confirmer la suppression de ${childName} ? Cette action est irréversible.`);
@@ -84,63 +132,66 @@ export default function ChildrenManagement() {
       const { error } = await supabase.from('children').delete().eq('id', childId);
       if (error) throw error;
       toast({ title: 'Supprimé', description: "L'enfant a été supprimé avec succès." });
-      // Rafraîchir la liste
-      fetchData();
+      setChildren((prev) => prev.filter((c) => c.id !== childId));
+      if (selectedChild?.id === childId) {
+        setSelectedChild(null);
+        setIsDetailDialogOpen(false);
+        setIsEditDialogOpen(false);
+      }
     } catch (err: any) {
       console.error('Error deleting child:', err);
       toast({ title: 'Erreur', description: err?.message || "Suppression impossible", variant: 'destructive' });
     }
   };
 
-  useEffect(() => {
-    if (profile) {
-      fetchData();
-    }
-  }, [profile]);
+  const fetchData = useCallback(async (options?: { silent?: boolean }) => {
+    if (fetchInFlightRef.current) return;
 
-  const fetchData = async () => {
+    const silent = options?.silent ?? hasLoadedOnceRef.current;
+    fetchInFlightRef.current = true;
+
     try {
-      setLoading(true);
+      if (silent) {
+        setIsRefreshing(true);
+      } else {
+        setInitialLoading(true);
+      }
 
-      // Fetch children
-      const { data: childrenData, error: childrenError } = await supabase
-        .from('children')
-        .select(`
-          *,
-          groups (
-            id,
-            name,
-            section
-          )
-        `);
+      const [
+        { data: childrenData, error: childrenError },
+        { data: groupsData, error: groupsError },
+        { data: educatorsData, error: educatorsError },
+      ] = await Promise.all([
+        supabase
+          .from('children')
+          .select(`
+            *,
+            groups (
+              id,
+              name,
+              section
+            )
+          `),
+        supabase
+          .from('groups')
+          .select(`
+            *,
+            assigned_educator:profiles!fk_groups_educator (
+              first_name,
+              last_name
+            )
+          `),
+        supabase.from('profiles').select('*').eq('role', 'educator'),
+      ]);
 
       if (childrenError) throw childrenError;
-
-      // Fetch groups with educator info
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('groups')
-        .select(`
-          *,
-          assigned_educator:profiles!fk_groups_educator (
-            first_name,
-            last_name
-          )
-        `);
-
       if (groupsError) throw groupsError;
-
-      // Fetch educators
-      const { data: educatorsData, error: educatorsError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'educator');
-
       if (educatorsError) throw educatorsError;
 
-      // Set children data directly - no mapping needed as DB already uses correct values
       setChildren(childrenData || []);
       setGroups(groupsData || []);
       setEducators(educatorsData || []);
+      hasLoadedOnceRef.current = true;
     } catch (error: any) {
       console.error('Error loading children data:', error);
       toast({
@@ -149,9 +200,22 @@ export default function ChildrenManagement() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setIsRefreshing(false);
+      fetchInFlightRef.current = false;
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (!profile?.id) {
+      hasLoadedOnceRef.current = false;
+      setInitialLoading(false);
+      return;
+    }
+    fetchData({ silent: false });
+    // fetchData volontairement exclu : évite un rechargement à chaque recréation du callback
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   const getSectionLabel = (section: string) => {
     const labels = {
@@ -169,21 +233,18 @@ export default function ChildrenManagement() {
 
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      'active': 'default',
-      'inactive': 'secondary',
-      'suspended': 'destructive'
-    };
-    
-    const labels = {
-      'active': 'Actif',
-      'inactive': 'Inactif',
-      'suspended': 'Suspendu'
+    const config: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string; className?: string }> = {
+      active: { variant: 'default', label: 'Actif', className: 'bg-green-600 hover:bg-green-600' },
+      inactive: { variant: 'secondary', label: 'Inactif' },
+      waiting_list: { variant: 'outline', label: "Liste d'attente" },
+      suspended: { variant: 'destructive', label: 'Suspendu' },
     };
 
+    const { variant, label, className } = config[status] ?? { variant: 'outline' as const, label: status };
+
     return (
-      <Badge variant={variants[status as keyof typeof variants] as any}>
-        {labels[status as keyof typeof labels] || status}
+      <Badge variant={variant} className={className}>
+        {label}
       </Badge>
     );
   };
@@ -225,9 +286,11 @@ export default function ChildrenManagement() {
       let cmp = 0;
       switch (sortBy) {
         case 'name': {
-          const an = `${a.first_name} ${a.last_name}`.toLowerCase();
-          const bn = `${b.first_name} ${b.last_name}`.toLowerCase();
-          cmp = an.localeCompare(bn);
+          cmp = `${a.last_name} ${a.first_name}`.localeCompare(
+            `${b.last_name} ${b.first_name}`,
+            'fr',
+            { sensitivity: 'base' }
+          );
           break;
         }
         case 'age': {
@@ -251,14 +314,27 @@ export default function ChildrenManagement() {
     return sorted;
   })();
 
-  if (loading) {
-    return <div>Chargement...</div>;
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span>Chargement...</span>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-foreground">Gestion des Enfants</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-foreground">Gestion des Enfants</h2>
+          {isRefreshing && (
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Mise à jour...
+            </span>
+          )}
+        </div>
         {(profile?.role === 'admin' || profile?.role === 'secretary') && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
@@ -400,6 +476,24 @@ export default function ChildrenManagement() {
                           <Edit className="w-4 h-4 mr-1" />
                           Modifier
                         </Button>
+                        <Button
+                          size="sm"
+                          variant={child.status === 'active' ? 'secondary' : 'default'}
+                          disabled={togglingChildId === child.id}
+                          onClick={() => handleToggleChildStatus(child)}
+                        >
+                          {child.status === 'active' ? (
+                            <>
+                              <UserX className="w-4 h-4 mr-1" />
+                              Désactiver
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="w-4 h-4 mr-1" />
+                              Activer
+                            </>
+                          )}
+                        </Button>
                         <QRCodeGeneratorTrigger child={child as any} />
                         <Button
                           size="sm"
@@ -423,7 +517,7 @@ export default function ChildrenManagement() {
             groups={groups}
             educators={educators}
             children={children}
-            onRefresh={fetchData}
+            onRefresh={() => fetchData({ silent: true })}
           />
         </TabsContent>
 
